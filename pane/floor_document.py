@@ -10,9 +10,15 @@ failures are caught as `TransportFailed` or `QueryRefused` and turned into one
 `DegradedEntry` per failed read; the section is still present with `data: null`
 (or `items: []` for attention).  Any other exception propagates — a bug is not
 a degraded read.
+
+Partial answers are tolerated: every `NodeCard` field has its default, an absent
+epic state is ``"unknown"``, and a value the factory did not record stays
+``None``.  No integer coercion, no ``or 0`` fallbacks, and the word ``live`` is
+nowhere in a key, seam, or label.
 """
 
-from typing import TYPE_CHECKING
+import re
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pane.readers import EpicRef, Reader
@@ -132,11 +138,8 @@ async def _assemble_epic(reader: "Reader", ref: "EpicRef") -> tuple[dict, list[d
         degraded.append(_degraded_entry("epics", mode, read, detail, epic_id))
         workgraph = None
 
-    epic_state = "unknown"
-    status_nodes: dict[str, dict] = {}
-    if status is not None:
-        epic_state = status.get("epic_state", "unknown")
-        status_nodes = status.get("nodes", {}) or {}
+    epic_state = _default(status, "epic_state", "unknown") if status else "unknown"
+    status_nodes: dict[str, dict] = _default(status, "nodes", {}) if status else {}
 
     declared_nodes: list[dict] = []
     if workgraph is not None:
@@ -157,11 +160,11 @@ async def _assemble_epic(reader: "Reader", ref: "EpicRef") -> tuple[dict, list[d
     if workgraph is not None:
         workgraph_seam = workgraph.get("specs_root")
         if workgraph_seam is None:
-            workgraph_seam = f"<specs_root>/{ref.epic_id}/workgraph.json"
+            workgraph_seam = f"<specs_root>/{ref.workgraph_ref}/workgraph.json"
         else:
-            workgraph_seam = f"{workgraph_seam}/{ref.epic_id}/workgraph.json"
+            workgraph_seam = f"{workgraph_seam}/{ref.workgraph_ref}/workgraph.json"
     else:
-        workgraph_seam = f"<specs_root>/{ref.epic_id}/workgraph.json"
+        workgraph_seam = f"<specs_root>/{ref.workgraph_ref}/workgraph.json"
 
     entry = {
         "epic_id": ref.epic_id,
@@ -176,6 +179,15 @@ async def _assemble_epic(reader: "Reader", ref: "EpicRef") -> tuple[dict, list[d
     return entry, degraded
 
 
+def _default(container: dict | None, key: str, fallback: Any) -> Any:
+    """Return container[key] if it exists, else fallback; never coerce a missing value."""
+    if container is None:
+        return fallback
+    if key not in container:
+        return fallback
+    return container[key]
+
+
 def _node_card(node_id: str, declared: dict | None, live: dict, *, declared_flag: bool) -> dict:
     """Join one workgraph node with its live status fields."""
     defaults = {
@@ -187,24 +199,25 @@ def _node_card(node_id: str, declared: dict | None, live: dict, *, declared_flag
         "verified": False,
     }
 
-    persona = live.get("persona") if live else None
-    if not persona and declared:
-        persona = declared.get("persona")
+    # Use an explicit None sentinel so an absent key does not fall through to a default.
+    persona = _default(live, "persona", None)
+    if persona is None and declared:
+        persona = _default(declared, "persona", None)
 
     card = {
         "id": node_id,
         "declared": declared_flag,
-        "story_key": declared.get("story_key") if declared else None,
-        "persona": persona or None,
-        "spec_ref": declared.get("spec_ref") if declared else None,
-        "depends_on": declared.get("depends_on") if declared else None,
-        "depends_on_merged": declared.get("depends_on_merged") if declared else None,
-        "state": live.get("state", defaults["state"]) if live else defaults["state"],
-        "attempt": live.get("attempt", defaults["attempt"]) if live else defaults["attempt"],
-        "awaiting_operator": live.get("awaiting_operator", defaults["awaiting_operator"]) if live else defaults["awaiting_operator"],
-        "landing_state": live.get("landing_state", defaults["landing_state"]) if live else defaults["landing_state"],
-        "pr_number": live.get("pr_number", defaults["pr_number"]) if live else defaults["pr_number"],
-        "verified": live.get("verified", defaults["verified"]) if live else defaults["verified"],
+        "story_key": _default(declared, "story_key", None),
+        "persona": persona,
+        "spec_ref": _default(declared, "spec_ref", None),
+        "depends_on": _default(declared, "depends_on", None),
+        "depends_on_merged": _default(declared, "depends_on_merged", None),
+        "state": _default(live, "state", defaults["state"]),
+        "attempt": _default(live, "attempt", defaults["attempt"]),
+        "awaiting_operator": _default(live, "awaiting_operator", defaults["awaiting_operator"]),
+        "landing_state": _default(live, "landing_state", defaults["landing_state"]),
+        "pr_number": _default(live, "pr_number", defaults["pr_number"]),
+        "verified": _default(live, "verified", defaults["verified"]),
     }
     return card
 
@@ -255,5 +268,10 @@ def _degraded_entry(section: str, mode: str, read: str, detail: str, epic_id: st
         "mode": mode,
         "epic_id": epic_id,
         "read": read,
-        "detail": detail,
+        "detail": _redact_secrets(detail),
     }
+
+
+def _redact_secrets(detail: str) -> str:
+    """Mask bearer tokens and API keys that might leak in error messages."""
+    return re.sub(r"sk-[A-Za-z0-9_\-]{8,}|Bearer \S+", "<redacted>", detail)
