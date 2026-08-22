@@ -23,7 +23,7 @@ def test_create_app_returns_fastapi_app():
     assert isinstance(app, FastAPI)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_spa_serves_index_when_built(tmp_path):
     dist = tmp_path / "dist"
     dist.mkdir()
@@ -40,7 +40,7 @@ async def test_spa_serves_index_when_built(tmp_path):
             assert response.text == "hello pane", path
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_spa_refuses_directory_escape(tmp_path):
     dist = tmp_path / "dist"
     dist.mkdir()
@@ -56,7 +56,7 @@ async def test_spa_refuses_directory_escape(tmp_path):
         assert response.text == "safe"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_spa_503_when_dist_missing(tmp_path):
     dist = tmp_path / "empty_dist"
     dist.mkdir()

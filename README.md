@@ -36,13 +36,6 @@ npm --prefix web run build
 PANE_DEMO=1 uv run uvicorn pane.app:app --port 8787
 ```
 
-## Status
-
-**Specs authored; scaffold in progress.** This repository is a wireable target
-repository for the sibling factory, and the factory is building its own pane from
-the specs in `specs/` (D-003). The pane watching the factory build the pane is the
-point.
-
 ## The shape, in one paragraph
 
 A FastAPI backend runs on the factory host and imports the ergane distribution,
