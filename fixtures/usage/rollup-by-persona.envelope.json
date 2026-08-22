@@ -1,0 +1,8 @@
+{
+  "captured_at": "2026-08-22T17:42:32+00:00",
+  "seam": "factory.usage.ledger.rollup(by='persona') over factory.usage.cli.open_readonly",
+  "source": "ledger=/home/tharpeboxadmin/.local/state/ergane/runtime/ledger.db",
+  "host": "tharpebox",
+  "ergane_version": "0.2.0",
+  "notes": "NULL metrics are unknown, never fabricated zeros"
+}

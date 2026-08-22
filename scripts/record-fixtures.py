@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""Record Fixture-floor documents from ergane's real seams (spec 001 FR-007/FR-008).
+
+Runs on the ergane tool venv's interpreter (it needs `factory` and `temporalio`):
+
+    ~/.local/share/uv/tools/ergane-cli/bin/python scripts/record-fixtures.py <verb> [...]
+
+Every document is written exactly as the seam returned it (`dataclasses.asdict`,
+enums to their names, JSON-serialised) — never hand-edited (constitution V). Capture
+provenance goes in a sidecar `<name>.envelope.json`, never inside the payload (FR-009).
+
+Verbs:
+  floor <specs_root> <out>            FloorStatus via factory.cli.status.collect_floor
+  epic <epic_id> <out>                one epic_status answer via the Temporal query
+  watch <epic_id> <out_dir> [secs]    poll epic_status; write every DISTINCT answer
+  escalations <out>                   factory.escalation.client.open_escalations
+  rollup <ledger.db> <out> [--by X]   factory.usage.ledger.rollup over open_readonly
+  findings <doctor.db> <out>          factory.doctor.store.list_findings over connect_readonly
+  questions <verification.db> <out>   factory.verify.store.pending_questions
+  refusal <epic_id> <out>             query a CLOSED epic under NOT_OPEN → the refusal shape
+"""
+from __future__ import annotations
+
+import asyncio
+import dataclasses
+import enum
+import json
+import os
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+def _plain(value: Any) -> Any:
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return {k: _plain(v) for k, v in dataclasses.asdict(value).items()}
+    if isinstance(value, enum.Enum):
+        return value.name
+    if isinstance(value, dict):
+        return {str(k): _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(v) for v in value]
+    if isinstance(value, Path):
+        return str(value)
+    return value
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def write(out: Path, document: Any, *, seam: str, source: str, notes: str = "", **extra: Any) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(_plain(document), indent=2, sort_keys=False) + "\n")
+    envelope = {
+        "captured_at": _now(),
+        "seam": seam,
+        "source": source,
+        "host": os.uname().nodename,
+        "ergane_version": _ergane_version(),
+        "notes": notes,
+        **extra,
+    }
+    out.with_suffix(".envelope.json").write_text(json.dumps(envelope, indent=2) + "\n")
+    print(f"wrote {out}")
+
+
+def _ergane_version() -> str:
+    try:
+        from importlib.metadata import version
+
+        return version("ergane-cli")
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
+async def _client():
+    from temporalio.client import Client
+
+    from factory.controlplane.resolve import resolve_temporal_target
+
+    target = resolve_temporal_target()
+    return await Client.connect(target.address, namespace=target.namespace), target
+
+
+async def floor(specs_root: str, out: str) -> None:
+    from factory.cli.status import collect_floor
+
+    document = await collect_floor(Path(specs_root))
+    write(Path(out), document, seam="factory.cli.status.collect_floor", source=f"specs_root={specs_root}",
+          notes="the `ergane status --json` shape; degraded=True means a half the CLI could not read")
+
+
+def _query_status_fn():
+    from factory.workgraph.workflow import EpicWorkflow
+
+    return EpicWorkflow.epic_status
+
+
+async def epic(epic_id: str, out: str) -> None:
+    from factory.cli.nouns.build import workflow_id
+
+    client, target = await _client()
+    handle = client.get_workflow_handle(workflow_id(epic_id))
+    document = await handle.query(_query_status_fn())
+    write(Path(out), document, seam="EpicWorkflow.epic_status (Temporal query)",
+          source=f"workflow_id={workflow_id(epic_id)} @ {target.address}/{target.namespace}")
+
+
+def _summary(status: Any) -> str:
+    nodes = _plain(status)["nodes"]
+    parts = []
+    for node_id, node in nodes.items():
+        tag = node["state"]
+        if node.get("landing_state"):
+            tag += f"/{node['landing_state']}"
+        if node.get("awaiting_operator"):
+            tag += "+paged"
+        parts.append(f"{node_id}={tag}")
+    return " ".join(parts)
+
+
+async def watch(epic_id: str, out_dir: str, seconds: str = "7200") -> None:
+    from factory.cli.nouns.build import workflow_id
+
+    client, target = await _client()
+    handle = client.get_workflow_handle(workflow_id(epic_id))
+    deadline = asyncio.get_event_loop().time() + float(seconds)
+    last = None
+    seq = 0
+    query = _query_status_fn()
+    while asyncio.get_event_loop().time() < deadline:
+        try:
+            status = await handle.query(query)
+        except Exception as exc:  # noqa: BLE001 - a refusal is itself worth recording
+            print(f"query refused/failed: {type(exc).__name__}: {exc}")
+            await asyncio.sleep(20)
+            continue
+        snapshot = json.dumps(_plain(status), sort_keys=True)
+        if snapshot != last:
+            seq += 1
+            summary = _summary(status).replace(" ", "_").replace("/", "-")[:120]
+            name = Path(out_dir) / f"{epic_id}-{seq:03d}-{summary}.json"
+            write(name, status, seam="EpicWorkflow.epic_status (Temporal query, polled)",
+                  source=f"workflow_id={workflow_id(epic_id)} @ {target.address}/{target.namespace}",
+                  sequence=seq)
+            last = snapshot
+            if _plain(status)["epic_state"] in ("COMPLETED", "KILLED"):
+                print("epic reached a terminal state; stopping")
+                return
+        await asyncio.sleep(float(os.environ.get("FX_POLL_S", "15")))
+    print("watch deadline reached")
+
+
+async def escalations(out: str) -> None:
+    from factory.escalation.client import open_escalations
+
+    client, target = await _client()
+    document = await open_escalations(client)
+    write(Path(out), list(document), seam="factory.escalation.client.open_escalations",
+          source=f"{target.address}/{target.namespace}",
+          notes="visibility index + each EscalationWorkflow's own escalation_status query; sorted by (expires_at, id)")
+
+
+def rollup(ledger: str, out: str, *rest: str) -> None:
+    from factory.usage.cli import open_readonly
+    from factory.usage.ledger import rollup as _rollup
+
+    by = "persona"
+    if rest and rest[0] == "--by":
+        by = rest[1]
+    conn = open_readonly(ledger)
+    try:
+        document = _rollup(conn, by=by)
+    finally:
+        conn.close()
+    write(Path(out), document, seam=f"factory.usage.ledger.rollup(by={by!r}) over factory.usage.cli.open_readonly",
+          source=f"ledger={ledger}", notes="NULL metrics are unknown, never fabricated zeros")
+
+
+def findings(db: str, out: str) -> None:
+    from factory.doctor.store import connect_readonly, list_findings
+
+    conn = connect_readonly(db)
+    try:
+        document = list_findings(conn)
+    finally:
+        conn.close()
+    write(Path(out), document, seam="factory.doctor.store.list_findings over connect_readonly", source=f"doctor.db={db}")
+
+
+def questions(db: str, out: str) -> None:
+    import sqlite3
+
+    from factory.verify.store import pending_questions
+
+    conn = sqlite3.connect(f"file:{Path(db).resolve()}?mode=ro", uri=True)
+    try:
+        document = pending_questions(conn)
+    finally:
+        conn.close()
+    write(Path(out), document, seam="factory.verify.store.pending_questions", source=f"verification.db={db}",
+          notes="expires_at is factory-written (sent_at + the question timeout)")
+
+
+async def refusal(epic_id: str, out: str) -> None:
+    from temporalio.client import WorkflowQueryFailedError, WorkflowQueryRejectedError
+    from temporalio.common import QueryRejectCondition
+
+    from factory.cli.nouns.build import workflow_id
+
+    client, target = await _client()
+    handle = client.get_workflow_handle(workflow_id(epic_id))
+    try:
+        await handle.query(_query_status_fn(), reject_condition=QueryRejectCondition.NOT_OPEN)
+    except (WorkflowQueryRejectedError, WorkflowQueryFailedError) as exc:
+        # The shape `ergane build status --json` prints for a refused query
+        # (factory/cli/nouns/build.py: QUERY_REFUSED -> "refusal" key, nodes {}).
+        document = {"epic_id": epic_id, "workflow_id": workflow_id(epic_id),
+                    "refusal": str(exc), "refusal_type": type(exc).__name__, "nodes": {}}
+        write(Path(out), document, seam="EpicWorkflow.epic_status refused (WorkflowQueryRejectedError/FailedError)",
+              source=f"workflow_id={workflow_id(epic_id)} @ {target.address}/{target.namespace}",
+              notes="provoked by querying a CLOSED execution under QueryRejectCondition.NOT_OPEN; "
+                    "this is the class ergane's CLI reports as `unavailable (<message>)`")
+        return
+    raise SystemExit("the query was answered, not refused — is the epic still open?")
+
+
+VERBS = {"floor": floor, "epic": epic, "watch": watch, "escalations": escalations,
+         "rollup": rollup, "findings": findings, "questions": questions, "refusal": refusal}
+
+
+def main(argv: list[str]) -> int:
+    if not argv or argv[0] not in VERBS:
+        print(__doc__)
+        return 2
+    fn = VERBS[argv[0]]
+    result = fn(*argv[1:])
+    if asyncio.iscoroutine(result):
+        asyncio.run(result)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

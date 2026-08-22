@@ -1,0 +1,32 @@
+{
+  "pending_questions": [
+    {
+      "question_id": "800ee6b4c7df",
+      "workflow_id": "800ee6b4c7df",
+      "epic_id": "fx-question-e8c371",
+      "node_id": "us1",
+      "attempt": 1,
+      "question_text": "I hit a fork on how the questions table should key its rows.\n\nOption A: a 12-hex id like escalations. Option B: the (epic, node, attempt) tuple. I lean A for reply-routing parity.\n\nWhich?",
+      "sent_at": "2026-08-22T17:41:13Z",
+      "expires_at": "2026-08-23T01:41:13Z",
+      "message_id": null,
+      "resolution": null,
+      "answer_text": null,
+      "resolved_at": null
+    }
+  ],
+  "get_question": {
+    "question_id": "800ee6b4c7df",
+    "workflow_id": "800ee6b4c7df",
+    "epic_id": "fx-question-e8c371",
+    "node_id": "us1",
+    "attempt": 1,
+    "question_text": "I hit a fork on how the questions table should key its rows.\n\nOption A: a 12-hex id like escalations. Option B: the (epic, node, attempt) tuple. I lean A for reply-routing parity.\n\nWhich?",
+    "sent_at": "2026-08-22T17:41:13Z",
+    "expires_at": "2026-08-23T01:41:13Z",
+    "message_id": null,
+    "resolution": null,
+    "answer_text": null,
+    "resolved_at": null
+  }
+}

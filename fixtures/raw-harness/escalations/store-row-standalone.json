@@ -1,0 +1,19 @@
+{
+  "escalation_id": "de7c63c0fbb8",
+  "workflow_id": "de7c63c0fbb8",
+  "epic_id": "fx-standalone-efe2ce",
+  "node_id": "us1",
+  "choices": [
+    "RETRY",
+    "KILL",
+    "PAUSE_EPIC",
+    "KILL_EPIC"
+  ],
+  "history_summary": "attempt 1: gate `test` FAIL (exit 1)\n  E   AssertionError: attempt-one recorded no loan against the member\nattempt 2: gate `test` FAIL (exit 1)\n  E   TypeError: attempt-two Catalogue.borrow() missing 1 argument\n",
+  "sent_at": "2026-08-22T17:41:12Z",
+  "expires_at": "2026-08-22T18:01:12Z",
+  "delivered": true,
+  "resolution": null,
+  "resolved_at": null,
+  "check_evidence": []
+}

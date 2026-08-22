@@ -1,0 +1,6 @@
+{
+  "raised": true,
+  "exception_type": "WorkflowQueryRejectedError",
+  "message": "Query rejected, status: 2",
+  "status": "COMPLETED"
+}

@@ -1,0 +1,8 @@
+{
+  "captured_at": "2026-08-22T17:19:31+00:00",
+  "seam": "factory.cli.status.collect_floor",
+  "source": "specs_root=specs",
+  "host": "tharpebox",
+  "ergane_version": "0.2.0",
+  "notes": "the `ergane status --json` shape; degraded=True means a half the CLI could not read"
+}

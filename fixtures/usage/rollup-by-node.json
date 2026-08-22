@@ -1,0 +1,41 @@
+{
+  "by": "node",
+  "filters": {
+    "epic": null,
+    "since": null
+  },
+  "groups": [
+    {
+      "key": "002-expense-notes:us1",
+      "prompt_tokens": 1417622,
+      "completion_tokens": 4651,
+      "cache_read_tokens": null,
+      "cache_write_tokens": null,
+      "requests": 40,
+      "spend_usd": 0.0,
+      "rows": 2,
+      "unconfirmed_rows": 0
+    },
+    {
+      "key": "002-expense-notes:us2",
+      "prompt_tokens": 7396306,
+      "completion_tokens": 51627,
+      "cache_read_tokens": null,
+      "cache_write_tokens": null,
+      "requests": 160,
+      "spend_usd": 0.0,
+      "rows": 8,
+      "unconfirmed_rows": 0
+    }
+  ],
+  "totals": {
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "cache_read_tokens": null,
+    "cache_write_tokens": null,
+    "requests": null,
+    "spend_usd": 0.0,
+    "rows": 10,
+    "unconfirmed_rows": 0
+  }
+}

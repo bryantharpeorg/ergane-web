@@ -1,0 +1,12 @@
+{
+  "alert": {
+    "service": "temporal",
+    "condition": "not reachable on 127.0.0.1:7233",
+    "duration_s": 95.0
+  },
+  "outcome": {
+    "text": "ergane supervision: temporal — not reachable on 127.0.0.1:7233 (for 1m 35s)",
+    "delivered": true,
+    "failure": null
+  }
+}

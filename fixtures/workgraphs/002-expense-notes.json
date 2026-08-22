@@ -1,0 +1,43 @@
+{
+  "epic_id": "002-expense-notes",
+  "feature": "002-expense-notes",
+  "specs_root": "/home/tharpeboxadmin/code/ergane-test/specs",
+  "target_repo": "/home/tharpeboxadmin/code/ergane-test",
+  "nodes": [
+    {
+      "id": "us1",
+      "story_key": "US1",
+      "persona": "implementer",
+      "spec_ref": "002-expense-notes:US1",
+      "requirement_keys": [
+        "US1",
+        "FR-001",
+        "FR-002",
+        "FR-003",
+        "FR-004",
+        "FR-005"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": 5400
+    },
+    {
+      "id": "us2",
+      "story_key": "US2",
+      "persona": "implementer",
+      "spec_ref": "002-expense-notes:US2",
+      "requirement_keys": [
+        "US2",
+        "FR-006",
+        "FR-007",
+        "FR-008"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us1"
+      ],
+      "timeout_override_s": 5400
+    }
+  ],
+  "inferred_edges": []
+}

@@ -1,0 +1,468 @@
+{
+  "run_id": "run-20260822T174042Z-a692e2",
+  "captured_at": "2026-08-22T17:41:27Z",
+  "ergane_checkout_revision": "6443221",
+  "temporal_namespace": "ergane",
+  "task_queue": "workgraph",
+  "webhook_url": "http://127.0.0.1:35117/<redacted>",
+  "epics": {
+    "landing": "fx-landing-f0a0d6",
+    "paged": "fx-paged-5e2e8a",
+    "standalone": "fx-standalone-efe2ce",
+    "question": "fx-question-e8c371",
+    "expiring": "fx-expiring-fd5f1e"
+  },
+  "workflow_ids": {
+    "landing": "epic-fx-landing-f0a0d6",
+    "paged": "epic-fx-paged-5e2e8a",
+    "question": "epic-fx-question-e8c371"
+  },
+  "escalation_ids": {
+    "paged": "d10263341dac",
+    "standalone": "de7c63c0fbb8"
+  },
+  "question_ids": {
+    "open": "800ee6b4c7df",
+    "expired": "595ae18d48cf"
+  },
+  "left_open": [
+    {
+      "what": "EpicWorkflow (paged, parked VERIFYING)",
+      "workflow_id": "epic-fx-paged-5e2e8a"
+    },
+    {
+      "what": "EscalationWorkflow (child of the paged epic)",
+      "workflow_id": "d10263341dac"
+    },
+    {
+      "what": "EscalationWorkflow (standalone)",
+      "workflow_id": "de7c63c0fbb8"
+    }
+  ],
+  "files": [
+    {
+      "file": "epic-status/fx-landing-f0a0d6-01-RUNNING_.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-01-RUNNING_.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:43Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-02-RUNNING_us1-VERIFYING_us2-PENDING_us3-PENDING.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-02-RUNNING_us1-VERIFYING_us2-PENDING_us3-PENDING.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:43Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-03-RUNNING_us1-PASSED_us2-PENDING_us3-PENDING.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-03-RUNNING_us1-PASSED_us2-PENDING_us3-PENDING.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:44Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-04-RUNNING_us1-PR_OPEN_us2-PENDING_us3-PENDING.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-04-RUNNING_us1-PR_OPEN_us2-PENDING_us3-PENDING.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:46Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-05-RUNNING_us1-ENQUEUED_us2-PENDING_us3-PENDING.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-05-RUNNING_us1-ENQUEUED_us2-PENDING_us3-PENDING.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:48Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-06-RUNNING_us1-MERGED_us2-VERIFYING_us3-PENDING.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-06-RUNNING_us1-MERGED_us2-VERIFYING_us3-PENDING.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:54Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-07-RUNNING_us1-MERGED_us2-PASSED_us3-PENDING.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-07-RUNNING_us1-MERGED_us2-PASSED_us3-PENDING.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:55Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-08-RUNNING_us1-MERGED_us2-PR_OPEN_us3-PENDING.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-08-RUNNING_us1-MERGED_us2-PR_OPEN_us3-PENDING.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:57Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-09-RUNNING_us1-MERGED_us2-ENQUEUED_us3-RUNNING.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-09-RUNNING_us1-MERGED_us2-ENQUEUED_us3-RUNNING.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:59Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-10-RUNNING_us1-MERGED_us2-ENQUEUED_us3-PASSED.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-10-RUNNING_us1-MERGED_us2-ENQUEUED_us3-PASSED.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:40:59Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-11-RUNNING_us1-MERGED_us2-ENQUEUED_us3-PR_OPEN.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-11-RUNNING_us1-MERGED_us2-ENQUEUED_us3-PR_OPEN.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:41:01Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-12-RUNNING_us1-MERGED_us2-ENQUEUED_us3-ENQUEUED.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-12-RUNNING_us1-MERGED_us2-ENQUEUED_us3-ENQUEUED.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:41:03Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-13-RUNNING_us1-MERGED_us2-MERGED_us3-ENQUEUED.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-13-RUNNING_us1-MERGED_us2-MERGED_us3-ENQUEUED.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:41:05Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-14-COMPLETED_us1-MERGED_us2-MERGED_us3-MERGED.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-14-COMPLETED_us1-MERGED_us2-MERGED_us3-MERGED.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:41:10Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-final.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-final.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.query(\"epic_status\") after COMPLETED",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:41:10Z"
+    },
+    {
+      "file": "epic-status/fx-landing-f0a0d6-result.json",
+      "envelope": "epic-status/fx-landing-f0a0d6-result.envelope.json",
+      "scene": "landing",
+      "seam": "WorkflowHandle.result() — EpicStatus via dataclasses.asdict",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:41:10Z"
+    },
+    {
+      "file": "epic-status/fx-paged-5e2e8a-01-RUNNING_.json",
+      "envelope": "epic-status/fx-paged-5e2e8a-01-RUNNING_.envelope.json",
+      "scene": "paged-while-verifying",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-paged-5e2e8a",
+      "captured_at": "2026-08-22T17:41:10Z"
+    },
+    {
+      "file": "epic-status/fx-paged-5e2e8a-02-RUNNING_us1-VERIFYING.json",
+      "envelope": "epic-status/fx-paged-5e2e8a-02-RUNNING_us1-VERIFYING.envelope.json",
+      "scene": "paged-while-verifying",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-paged-5e2e8a",
+      "captured_at": "2026-08-22T17:41:11Z"
+    },
+    {
+      "file": "epic-status/fx-paged-5e2e8a-03-RUNNING_us1-VERIFYING.json",
+      "envelope": "epic-status/fx-paged-5e2e8a-03-RUNNING_us1-VERIFYING.envelope.json",
+      "scene": "paged-while-verifying",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-paged-5e2e8a",
+      "captured_at": "2026-08-22T17:41:11Z"
+    },
+    {
+      "file": "epic-status/fx-paged-5e2e8a-04-RUNNING_us1-VERIFYING+op.json",
+      "envelope": "epic-status/fx-paged-5e2e8a-04-RUNNING_us1-VERIFYING+op.envelope.json",
+      "scene": "paged-while-verifying",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-paged-5e2e8a",
+      "captured_at": "2026-08-22T17:41:12Z"
+    },
+    {
+      "file": "epic-status/fx-paged-5e2e8a-paged.json",
+      "envelope": "epic-status/fx-paged-5e2e8a-paged.envelope.json",
+      "scene": "paged-while-verifying",
+      "seam": "WorkflowHandle.query(\"epic_status\") while the node is parked on an EscalationWorkflow child",
+      "workflow_id": "epic-fx-paged-5e2e8a",
+      "captured_at": "2026-08-22T17:41:12Z"
+    },
+    {
+      "file": "escalations/open_escalations.json",
+      "envelope": "escalations/open_escalations.envelope.json",
+      "scene": "paged-while-verifying",
+      "seam": "factory.escalation.client.open_escalations(client) — tuple[OpenEscalation] via asdict",
+      "workflow_id": "d10263341dac",
+      "captured_at": "2026-08-22T17:41:12Z"
+    },
+    {
+      "file": "escalations/store-rows.json",
+      "envelope": "escalations/store-rows.envelope.json",
+      "scene": "paged-while-verifying",
+      "seam": "factory.verify.store.get_escalation / pending_escalations (EscalationRecord via asdict)",
+      "workflow_id": "d10263341dac",
+      "captured_at": "2026-08-22T17:41:12Z"
+    },
+    {
+      "file": "escalations/open_escalations-2.json",
+      "envelope": "escalations/open_escalations-2.envelope.json",
+      "scene": "standalone-escalation",
+      "seam": "factory.escalation.client.open_escalations(client) — tuple[OpenEscalation] via asdict",
+      "workflow_id": "de7c63c0fbb8",
+      "captured_at": "2026-08-22T17:41:12Z"
+    },
+    {
+      "file": "escalations/store-row-standalone.json",
+      "envelope": "escalations/store-row-standalone.envelope.json",
+      "scene": "standalone-escalation",
+      "seam": "factory.verify.store.get_escalation (EscalationRecord via asdict)",
+      "workflow_id": "de7c63c0fbb8",
+      "captured_at": "2026-08-22T17:41:12Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-01-RUNNING_.json",
+      "envelope": "epic-status/fx-question-e8c371-01-RUNNING_.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:12Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-02-RUNNING_us1-RUNNING.json",
+      "envelope": "epic-status/fx-question-e8c371-02-RUNNING_us1-RUNNING.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:12Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-03-PAUSED_us1-WAITING_OPERATOR+op.json",
+      "envelope": "epic-status/fx-question-e8c371-03-PAUSED_us1-WAITING_OPERATOR+op.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:13Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-waiting-operator.json",
+      "envelope": "epic-status/fx-question-e8c371-waiting-operator.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") while the node is parked on a QuestionWorkflow child",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:13Z"
+    },
+    {
+      "file": "questions/pending_questions.json",
+      "envelope": "questions/pending_questions.envelope.json",
+      "scene": "question",
+      "seam": "factory.verify.store.pending_questions / get_question (QuestionRecord via asdict)",
+      "workflow_id": "800ee6b4c7df",
+      "captured_at": "2026-08-22T17:41:13Z"
+    },
+    {
+      "file": "questions/expired-question.json",
+      "envelope": "questions/expired-question.envelope.json",
+      "scene": "question",
+      "seam": "QuestionWorkflow result (QuestionOutcome) + factory.verify.store.get_question",
+      "workflow_id": "595ae18d48cf",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "epic-status/refusal-exception.json",
+      "envelope": "epic-status/refusal-exception.envelope.json",
+      "scene": "refusal",
+      "seam": "WorkflowHandle.query('epic_status', reject_condition=QueryRejectCondition.NOT_OPEN) on a COMPLETED execution",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "epic-status/refusal.json",
+      "envelope": "epic-status/refusal.envelope.json",
+      "scene": "refusal",
+      "seam": "factory.cli.nouns.build._query_status(epic_id, as_json=True) — stdout JSON, exit code 0",
+      "workflow_id": "epic-fx-landing-f0a0d6",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "bridge/unknown.json",
+      "envelope": "bridge/unknown.envelope.json",
+      "scene": "bridge-rulings",
+      "seam": "factory.notify.service.CallbackBridge(db_path, client, authorized_responders=()).handle_relay(InboundRelay)",
+      "workflow_id": "bc592795f73a",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "bridge/expired.json",
+      "envelope": "bridge/expired.envelope.json",
+      "scene": "bridge-rulings",
+      "seam": "factory.notify.service.CallbackBridge(db_path, client, authorized_responders=()).handle_relay(InboundRelay)",
+      "workflow_id": "595ae18d48cf",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "bridge/unauthorized.json",
+      "envelope": "bridge/unauthorized.envelope.json",
+      "scene": "bridge-rulings",
+      "seam": "factory.notify.service.CallbackBridge(db_path, client, authorized_responders=()).handle_relay(InboundRelay)",
+      "workflow_id": "800ee6b4c7df",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "bridge/malformed-relay.json",
+      "envelope": "bridge/malformed-relay.envelope.json",
+      "scene": "bridge-rulings",
+      "seam": "factory.notify.webhook.WebhookAdapter.relay(event) → None (never reaches handle_relay)",
+      "workflow_id": null,
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "bridge/resolved.json",
+      "envelope": "bridge/resolved.envelope.json",
+      "scene": "bridge-rulings",
+      "seam": "factory.notify.service.CallbackBridge(db_path, client, authorized_responders=()).handle_relay(InboundRelay)",
+      "workflow_id": "800ee6b4c7df",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "bridge/already_resolved.json",
+      "envelope": "bridge/already_resolved.envelope.json",
+      "scene": "bridge-rulings",
+      "seam": "factory.notify.service.CallbackBridge(db_path, client, authorized_responders=()).handle_relay(InboundRelay)",
+      "workflow_id": "800ee6b4c7df",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "questions/answered-question.json",
+      "envelope": "questions/answered-question.envelope.json",
+      "scene": "bridge-rulings",
+      "seam": "factory.verify.store.get_question after RESOLVED",
+      "workflow_id": "800ee6b4c7df",
+      "captured_at": "2026-08-22T17:41:18Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-04-RUNNING_us1-PASSED.json",
+      "envelope": "epic-status/fx-question-e8c371-04-RUNNING_us1-PASSED.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:19Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-05-RUNNING_us1-PR_OPEN.json",
+      "envelope": "epic-status/fx-question-e8c371-05-RUNNING_us1-PR_OPEN.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:21Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-06-RUNNING_us1-ENQUEUED.json",
+      "envelope": "epic-status/fx-question-e8c371-06-RUNNING_us1-ENQUEUED.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:23Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-07-COMPLETED_us1-MERGED.json",
+      "envelope": "epic-status/fx-question-e8c371-07-COMPLETED_us1-MERGED.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "epic-status/fx-question-e8c371-final.json",
+      "envelope": "epic-status/fx-question-e8c371-final.envelope.json",
+      "scene": "question",
+      "seam": "WorkflowHandle.query(\"epic_status\") after COMPLETED",
+      "workflow_id": "epic-fx-question-e8c371",
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "notices/supervision-alert-outcome.json",
+      "envelope": "notices/supervision-alert-outcome.envelope.json",
+      "scene": "supervision",
+      "seam": "factory.supervision.alert.send_alert(StackAlert) → AlertOutcome via asdict",
+      "workflow_id": null,
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "notices/roadmap-notice-outcome.json",
+      "envelope": "notices/roadmap-notice-outcome.envelope.json",
+      "scene": "supervision",
+      "seam": "factory.activities.notify_activities.send_roadmap_notice via temporalio.testing.ActivityEnvironment",
+      "workflow_id": "roadmap-fx-945757",
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "webhook/escalation.json",
+      "envelope": "webhook/escalation.envelope.json",
+      "scene": "webhook",
+      "seam": "factory.notify.webhook.WebhookAdapter.deliver — the POST body as received by the recorder",
+      "workflow_id": "d10263341dac",
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "webhook/escalation-standalone.json",
+      "envelope": "webhook/escalation-standalone.envelope.json",
+      "scene": "webhook",
+      "seam": "factory.notify.webhook.WebhookAdapter.deliver — the POST body as received by the recorder",
+      "workflow_id": "de7c63c0fbb8",
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "webhook/question.json",
+      "envelope": "webhook/question.envelope.json",
+      "scene": "webhook",
+      "seam": "factory.notify.webhook.WebhookAdapter.deliver — the POST body as received by the recorder",
+      "workflow_id": "800ee6b4c7df",
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "webhook/question-expired.json",
+      "envelope": "webhook/question-expired.envelope.json",
+      "scene": "webhook",
+      "seam": "factory.notify.webhook.WebhookAdapter.deliver — the POST body as received by the recorder",
+      "workflow_id": "595ae18d48cf",
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "webhook/notice-supervision.json",
+      "envelope": "webhook/notice-supervision.envelope.json",
+      "scene": "webhook",
+      "seam": "factory.notify.webhook.WebhookAdapter.deliver — the POST body as received by the recorder",
+      "workflow_id": "supervision",
+      "captured_at": "2026-08-22T17:41:27Z"
+    },
+    {
+      "file": "webhook/notice-roadmap.json",
+      "envelope": "webhook/notice-roadmap.envelope.json",
+      "scene": "webhook",
+      "seam": "factory.notify.webhook.WebhookAdapter.deliver — the POST body as received by the recorder",
+      "workflow_id": "roadmap-fx-945757",
+      "captured_at": "2026-08-22T17:41:27Z"
+    }
+  ]
+}

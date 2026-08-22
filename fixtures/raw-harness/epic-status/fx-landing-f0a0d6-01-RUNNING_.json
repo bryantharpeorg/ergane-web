@@ -1,0 +1,15 @@
+{
+  "epic_state": "RUNNING",
+  "landing_config": {
+    "max_free_rebases": 3,
+    "max_recovery_cycles": 1,
+    "merge_method": "squash",
+    "poll_interval_s": 3,
+    "stall_after_s": 7200
+  },
+  "landing_overrides": [
+    "poll_interval_s"
+  ],
+  "nodes": {},
+  "worker_revision": "6443221"
+}

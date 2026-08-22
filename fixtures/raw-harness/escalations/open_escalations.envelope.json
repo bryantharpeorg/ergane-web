@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-08-22T17:41:12Z",
+  "scene": "paged-while-verifying",
+  "seam": "factory.escalation.client.open_escalations(client) — tuple[OpenEscalation] via asdict",
+  "workflow_id": "d10263341dac",
+  "notes": "filtered to this run's escalation ids; 0 foreign open escalation(s) in the namespace were omitted (not hand-edited otherwise)",
+  "document": "escalations/open_escalations.json",
+  "run_id": "run-20260822T174042Z-a692e2",
+  "recorder": "scripts/record-fixtures-harness.py",
+  "ergane_checkout_revision": "6443221",
+  "webhook_url": "http://127.0.0.1:35117/<redacted>"
+}

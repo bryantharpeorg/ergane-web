@@ -1,0 +1,6 @@
+{
+  "nodes": {},
+  "execution_status": "COMPLETED",
+  "refusal": "Query rejected, status: 2",
+  "skew_notice": "worker revision is unknown (CLI revision 6443221); the worker predates this check or is not a git checkout"
+}

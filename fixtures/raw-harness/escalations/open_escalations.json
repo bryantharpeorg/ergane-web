@@ -1,0 +1,10 @@
+[
+  {
+    "escalation_id": "d10263341dac",
+    "epic_id": "fx-paged-5e2e8a",
+    "node_id": "us1",
+    "question": "fx-paged-5e2e8a/us1: RETRY / KILL / PAUSE_EPIC / KILL_EPIC?",
+    "expires_at": "2026-08-22T17:56:11Z",
+    "resolution": null
+  }
+]

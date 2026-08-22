@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-08-22T17:41:13Z",
+  "scene": "question",
+  "seam": "factory.verify.store.pending_questions / get_question (QuestionRecord via asdict)",
+  "workflow_id": "800ee6b4c7df",
+  "notes": "sent_at/expires_at written by notify_activities._pending_question (QUESTION_TIMEOUT_S=28800 → +8h); message_id is null because the webhook transport mints none; 0 foreign pending question(s) omitted",
+  "document": "questions/pending_questions.json",
+  "run_id": "run-20260822T174042Z-a692e2",
+  "recorder": "scripts/record-fixtures-harness.py",
+  "ergane_checkout_revision": "6443221",
+  "webhook_url": "http://127.0.0.1:35117/<redacted>"
+}

@@ -1,0 +1,96 @@
+[
+  {
+    "key": "init/non-interactive-rewrites-manifest",
+    "category": "init",
+    "severity": "CRITICAL",
+    "status": "OPEN",
+    "summary": "init --wire --non-interactive rewrote a committed ergane.yaml and dropped standards and ladder",
+    "refs": [
+      "factory/cli/init.py:588",
+      "factory/cli/init.py:699"
+    ],
+    "notes": null,
+    "source": "ergane-web dogfood round 2",
+    "occurrences": 1,
+    "first_seen": "2026-08-22T17:42:31Z",
+    "last_seen": "2026-08-22T17:42:31Z",
+    "promoted_spec": null,
+    "resolved_at": null,
+    "resolution": null
+  },
+  {
+    "key": "install/managed-temporal-never-generated",
+    "category": "install",
+    "severity": "CRITICAL",
+    "status": "OPEN",
+    "summary": "worker install never reads temporal.mode; the managed Temporal unit is never generated and --verify passes without dialing",
+    "refs": [
+      "factory/supervision/units.py:165",
+      "factory/supervision/units.py:130",
+      "factory/controlplane/verify.py:606"
+    ],
+    "notes": "three patches needed: layout temporal_mode from config; wrapper $@; mkdir db dir",
+    "source": "ergane-web dogfood round 2",
+    "occurrences": 1,
+    "first_seen": "2026-08-22T17:42:31Z",
+    "last_seen": "2026-08-22T17:42:31Z",
+    "promoted_spec": null,
+    "resolved_at": null,
+    "resolution": null
+  },
+  {
+    "key": "install/scan-classifies-401-as-unreachable",
+    "category": "install",
+    "severity": "WARNING",
+    "status": "OPEN",
+    "summary": "install --scan reports a master-keyed LiteLLM as unreachable because /v1/models answers 401",
+    "refs": [
+      "factory/discovery/llm_scanner.py:117"
+    ],
+    "notes": null,
+    "source": "ergane-web dogfood round 2",
+    "occurrences": 1,
+    "first_seen": "2026-08-22T17:42:31Z",
+    "last_seen": "2026-08-22T17:42:31Z",
+    "promoted_spec": null,
+    "resolved_at": null,
+    "resolution": null
+  },
+  {
+    "key": "wiring/queue-before-workflow-deadlock",
+    "category": "wiring",
+    "severity": "WARNING",
+    "status": "OPEN",
+    "summary": "a freshly wired repo cannot land the gates workflow its own queue requires; no bypass actor",
+    "refs": [
+      "factory/mergequeue/wiring.py:1"
+    ],
+    "notes": null,
+    "source": "ergane-web dogfood round 2",
+    "occurrences": 1,
+    "first_seen": "2026-08-22T17:42:31Z",
+    "last_seen": "2026-08-22T17:42:31Z",
+    "promoted_spec": null,
+    "resolved_at": null,
+    "resolution": null
+  },
+  {
+    "key": "status/pace-seconds-is-verification-time",
+    "category": "status",
+    "severity": "INFO",
+    "status": "OPEN",
+    "summary": "pace 'seconds' is verification duration (gates+judge), labelled as attempt time",
+    "refs": [
+      "factory/cli/status.py:623",
+      "factory/cli/status.py:668"
+    ],
+    "notes": null,
+    "source": "ergane-web dogfood round 2",
+    "occurrences": 1,
+    "first_seen": "2026-08-22T17:42:32Z",
+    "last_seen": "2026-08-22T17:42:32Z",
+    "promoted_spec": null,
+    "resolved_at": null,
+    "resolution": null
+  }
+]

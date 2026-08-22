@@ -1,0 +1,21 @@
+{
+  "outcome": {
+    "question_id": "595ae18d48cf",
+    "outcome": "EXPIRED",
+    "answer_text": ""
+  },
+  "get_question": {
+    "question_id": "595ae18d48cf",
+    "workflow_id": "595ae18d48cf",
+    "epic_id": "fx-expiring-fd5f1e",
+    "node_id": "us1",
+    "attempt": 1,
+    "question_text": "Should the loans ledger key on member id or card number?",
+    "sent_at": "2026-08-22T17:41:13Z",
+    "expires_at": "2026-08-22T17:41:18Z",
+    "message_id": null,
+    "resolution": "EXPIRED",
+    "answer_text": null,
+    "resolved_at": "2026-08-22T17:41:18Z"
+  }
+}

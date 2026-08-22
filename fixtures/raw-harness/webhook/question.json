@@ -1,0 +1,5 @@
+{
+  "correlation_id": "800ee6b4c7df",
+  "text": "❓ Operator question\nepic: fx-question-e8c371\nnode: us1\n\nI hit a fork on how the questions table should key its rows.\n\nOption A: a 12-hex id like escalations. Option B: the (epic, node, attempt) tuple. I lean A for reply-routing parity.\n\nWhich?\n\nReply to this message with your answer (attempt 1). No answer by 2026-08-23T01:41:13Z lets the node proceed as a FAIL.",
+  "actions": []
+}
