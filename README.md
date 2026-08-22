@@ -45,11 +45,16 @@ PANE_DEMO=1 uv run uvicorn pane.app:app --port 8787
 | `PANE_SPECS_ROOT` | `factory.workgraph.cli.DEFAULT_SPECS_ROOT` | live: where `<epic_id>/workgraph.json` lives |
 | `PANE_POLL_INTERVAL_S` | `15` | SSE poll cycle |
 | `PANE_WEB_DIST` | `<repo>/web/dist` | the built frontend the catch-all serves |
+| `PANE_INTAKE_CREDENTIAL` | unset | bearer token the factory uses for `POST /intake/{credential}` |
+| `PANE_ANSWER_IDENTITY` | unset | identity the pane signs outbound answers with (US3) |
+| `PANE_ATTENTION_DB` | demo: temp dir / live: `.pane/attention.db` | SQLite store for attention items |
 
 ### Routes
 
 - `GET /api/floor` — the full floor document (JSON).
-- `GET /api/events` — server-sent events; each `data:` line is a typed `{type, data}` envelope whose only 001 type is `floor`.
+- `GET /api/attention` — stored attention items, unioned with open escalations.
+- `GET /api/events` — server-sent events; each `data:` line is a typed `{type, data}` envelope whose 001 type is `floor` and whose 003 type is `attention`.
+- `POST /intake/{credential}` — the factory's webhook; classifies and stores an attention item.
 - `GET /{path:path}` — the built frontend (`web/dist`), falling back to `index.html`.
 
 Ledger, doctor store, and Temporal are resolved by ergane's own resolvers and environment chain; the pane reads none of those variables itself.

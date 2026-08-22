@@ -101,7 +101,7 @@ describe("Desk", () => {
   it("renders attention before the floor section", async () => {
     const c = await renderDesk(
       buildDoc({
-        attention: { seam: "attention", items: [{ kind: "question", id: "q1", expires_at: null, resolution: null, source: "stored_questions", document: { text: "what is next?" } }] },
+        attention: { seam: "attention", items: [{ kind: "question", id: "q1", correlation_id: "q1", expires_at: null, settlement: { state: "none", ruling: null, signal: null, pressed_choice: null, resolution: null }, degraded: null, text: "what is next?", actions: [] }] },
         floor: { seam: "floor", data: { epics: [{}], queue: [], drafts: [] } },
       }),
     );

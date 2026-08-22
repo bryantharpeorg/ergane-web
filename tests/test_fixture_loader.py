@@ -90,7 +90,27 @@ def test_api_floor_serves_whole_fixture_floor(demo_settings, monkeypatch):
     assert document["floor"]["data"] is not None
     assert document["health"]["data"] is not None
     assert document["spend_to_date"]["data"] is not None
-    assert len(document["attention"]["items"]) == 2
+
+    _assert_fixture_attention(document["attention"]["items"])
+
+
+def _assert_fixture_attention(attention: list[dict]) -> None:
+    kinds = {item["kind"] for item in attention}
+    assert kinds == {"escalation", "question", "notice"}
+    for item in attention:
+        assert item["settlement"]["state"] != "settled"
+        assert "id" in item
+        assert "correlation_id" in item
+        assert "text" in item
+        assert "actions" in item
+        assert "expires_at" in item
+        assert "settlement" in item
+    question = next(item for item in attention if item["kind"] == "question")
+    assert question["expires_at"] is None
+    notice = next(item for item in attention if item["kind"] == "notice")
+    assert notice["settlement"]["state"] == "none"
+    escalation = next(item for item in attention if item["kind"] == "escalation")
+    assert escalation["expires_at"] == "2026-08-22T17:56:11Z"
 
 
 def _assert_full_fixture_document(document: dict) -> None:
@@ -105,7 +125,7 @@ def _assert_full_fixture_document(document: dict) -> None:
     }
 
     assert document["floor"]["seam"] == "factory.cli.status.collect_floor"
-    assert document["attention"]["seam"] == "factory.escalation.client.open_escalations + stored Question documents"
+    assert document["attention"]["seam"] == "factory.escalation.client.open_escalations + pane-side stored_items"
     assert document["health"]["seam"] == "factory.doctor.store.list_findings over connect_readonly"
     assert document["spend_to_date"]["seam"] == "factory.usage.ledger.rollup over factory.usage.cli.open_readonly"
 
@@ -113,11 +133,7 @@ def _assert_full_fixture_document(document: dict) -> None:
     scenes = {epic["scene"] for epic in document["epics"]}
     assert scenes == {scene.scene for scene in SCENES}
 
-    attention = document["attention"]["items"]
-    kinds = {item["kind"] for item in attention}
-    assert kinds == {"escalation", "question"}
-    question = next(item for item in attention if item["kind"] == "question")
-    assert question["expires_at"] is None
+    _assert_fixture_attention(document["attention"]["items"])
 
     health = document["health"]["data"]
     assert health == json.loads((FIXTURES / "doctor" / "findings.json").read_text())
@@ -135,9 +151,10 @@ class StubLiveReader:
 
     reference_instant: str | None
 
-    def __init__(self, root: Path = FIXTURES) -> None:
+    def __init__(self, root: Path = FIXTURES, attention_db: Path | None = None) -> None:
         self.root = root
         self.reference_instant = None
+        self._attention_db = attention_db
 
     async def read_floor(self) -> FloorRead:
         status = json.loads((self.root / "floor" / "floor-live.json").read_text())
@@ -186,8 +203,13 @@ class StubLiveReader:
     async def open_escalations(self) -> list[dict]:
         return json.loads((self.root / "escalations" / "open_escalations.json").read_text())
 
-    def stored_questions(self) -> list[dict]:
-        return [json.loads((self.root / "webhook" / "question.json").read_text())]
+    def stored_items(self) -> list[dict]:
+        from pane.attention_store import list_items, open_store
+
+        conn = open_store(self._attention_db or self.root / "attention-test.db")
+        items = list_items(conn)
+        conn.close()
+        return items
 
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())
@@ -201,9 +223,11 @@ def test_one_code_path_for_demo_and_live_readers(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     fixture_doc = asyncio.run(
-        assemble_floor_document(FixtureReader(FIXTURES, transport_fail=frozenset()))
+        assemble_floor_document(
+            FixtureReader(FIXTURES, transport_fail=frozenset(), attention_db=tmp_path / "attention-test.db")
+        )
     )
-    stub_doc = asyncio.run(assemble_floor_document(StubLiveReader(FIXTURES)))
+    stub_doc = asyncio.run(assemble_floor_document(StubLiveReader(FIXTURES, tmp_path / "attention-test.db")))
 
     # The two documents are not identical because the live stub returns the
     # polled scene via the floor projection and the FixtureReader also emits the

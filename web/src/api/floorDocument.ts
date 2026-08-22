@@ -52,13 +52,28 @@ export interface EpicEntry {
   workgraph_seam: string;
 }
 
-export interface AttentionItem {
-  kind: "escalation" | "question";
-  id: string | null;
-  expires_at: string | null;
+export interface DeliveredAction {
+  label: string;
+  payload: string;
+}
+
+export interface Settlement {
+  state: "waiting" | "in_flight" | "ruled" | "settled" | "none";
+  ruling: string | null;
+  signal: "accepted" | "SIGNAL_FAILED" | null;
+  pressed_choice: string | null;
   resolution: string | null;
-  source: "open_escalations" | "stored_questions";
-  document: unknown;
+}
+
+export interface AttentionItem {
+  kind: "escalation" | "question" | "notice";
+  id: string;
+  correlation_id: string;
+  text: string;
+  actions: DeliveredAction[];
+  expires_at: string | null;
+  settlement: Settlement;
+  degraded: DegradedEntry | null;
 }
 
 export interface DegradedEntry {

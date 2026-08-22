@@ -56,13 +56,11 @@ def test_floor_document_sections_and_seams(demo_client):
     assert document["floor"]["seam"] == "factory.cli.status.collect_floor"
     assert document["floor"]["data"] is not None
 
-    assert document["attention"]["seam"] == "factory.escalation.client.open_escalations + stored Question documents"
+    assert document["attention"]["seam"] == "factory.escalation.client.open_escalations + pane-side stored_items"
     items = document["attention"]["items"]
-    kinds = {item["kind"] for item in items}
-    assert kinds == {"escalation", "question"}
+    _assert_attention_shape(items)
     question = next(item for item in items if item["kind"] == "question")
     assert question["expires_at"] is None
-    assert question["source"] == "stored_questions"
 
     assert document["health"]["seam"] == "factory.doctor.store.list_findings over connect_readonly"
     assert document["health"]["data"] is not None
@@ -74,6 +72,19 @@ def test_floor_document_sections_and_seams(demo_client):
         assert epic["status_seam"] == f"EpicWorkflow.epic_status on {epic['workflow_id']}"
         assert epic["workflow_id"] == f"epic-{epic['epic_id']}"
         assert "workgraph.json" in epic["workgraph_seam"]
+
+
+def _assert_attention_shape(items: list[dict]) -> None:
+    kinds = {item["kind"] for item in items}
+    assert kinds.issubset({"escalation", "question", "notice"})
+    for item in items:
+        assert "id" in item
+        assert "correlation_id" in item
+        assert "text" in item
+        assert "actions" in item
+        assert "expires_at" in item
+        assert "settlement" in item
+        assert "degraded" in item
 
 
 def test_partial_epic_status_defaults(demo_settings):
@@ -188,6 +199,41 @@ def test_undeclared_status_node_survives_assembly():
     assert declared_ids.index("us9") > declared_ids.index(workgraph_ids[-1])
 
 
+def _stub_stored_items() -> list[dict]:
+    from pane.attention_store import list_items, open_store
+
+    path = FIXTURES / "attention-test.db"
+    conn = open_store(path)
+    items = list_items(conn)
+    conn.close()
+    path.unlink(missing_ok=True)
+    return items
+
+
+@ pytest.fixture
+def demo_settings_with_store(tmp_path, monkeypatch) -> Settings:
+    monkeypatch.chdir(tmp_path)
+    for key in list(os.environ):
+        if key.startswith("ERGANE_") or key.startswith("FACTORY_") or key.startswith("TEMPORAL_"):
+            monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("PANE_DEMO", "1")
+    monkeypatch.setenv("PANE_FIXTURES_ROOT", str(FIXTURES))
+    monkeypatch.setenv("PANE_ATTENTION_DB", str(tmp_path / "attention.db"))
+    return Settings.from_env()
+
+
+@ pytest.fixture
+def demo_client_with_store(demo_settings_with_store):
+    return TestClient(create_app(demo_settings_with_store))
+
+
+def test_floor_document_attention_shape_via_store(demo_client_with_store):
+    resp = demo_client_with_store.get("/api/floor")
+    assert resp.status_code == 200
+    document = resp.json()
+    _assert_attention_shape(document["attention"]["items"])
+
+
 def _assert_no_live(value):
     if isinstance(value, dict):
         for key, item in value.items():
@@ -228,8 +274,13 @@ class _StubReader:
     async def open_escalations(self) -> list[dict]:
         return json.loads((self.root / "escalations" / "open_escalations.json").read_text())
 
-    def stored_questions(self) -> list[dict]:
-        return [json.loads((self.root / "webhook" / "question.json").read_text())]
+    def stored_items(self) -> list[dict]:
+        from pane.attention_store import list_items, open_store
+
+        conn = open_store(self.root / "attention-test.db")
+        items = list_items(conn)
+        conn.close()
+        return items
 
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())

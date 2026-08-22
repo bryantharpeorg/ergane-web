@@ -76,8 +76,8 @@ class Reader(Protocol):
         """Return open escalation documents."""
         ...
 
-    def stored_questions(self) -> list[dict]:
-        """Return stored Question documents (US3: factory.verify.store)."""
+    def stored_items(self) -> list[dict]:
+        """Return pane-side stored Attention items, the one source for the attention section."""
         ...
 
     def list_findings(self) -> list[dict]:
@@ -104,8 +104,9 @@ class LiveReader:
 
     reference_instant: str | None = None
 
-    def __init__(self, specs_root: Path) -> None:
+    def __init__(self, specs_root: Path, attention_db: Path) -> None:
         self.specs_root = Path(specs_root)
+        self.attention_db = Path(attention_db)
         self._client: Any = None
 
     def _plain(self, value: Any) -> Any:
@@ -140,6 +141,11 @@ class LiveReader:
         if self._client is not None:
             await self._client._close()
             self._client = None
+
+    def _attention_conn(self) -> Any:
+        from pane.attention_store import open_store
+
+        return open_store(self.attention_db)
 
     async def read_floor(self) -> FloorRead:
         from factory.cli.nouns import build
@@ -198,14 +204,15 @@ class LiveReader:
             raise QueryRefused("open_escalations", str(exc)) from exc
         return [self._plain(row) for row in rows]
 
-    def stored_questions(self) -> list[dict]:
-        """Return an empty list: the live Question store is owned by spec 003's webhook intake.
+    def stored_items(self) -> list[dict]:
+        """Return pane-side stored Attention items."""
+        from pane.attention_store import list_items
 
-        The pane has no live Question reader in spec 001.  When 003 lands it
-        will read `factory.verify.store` over `connect_readonly`; until then live
-        mode contributes no attention items from the Question side.
-        """
-        return []
+        conn = self._attention_conn()
+        try:
+            return list_items(conn)
+        finally:
+            conn.close()
 
     def list_findings(self) -> list[dict]:
         from factory.cli.nouns import build
@@ -264,8 +271,8 @@ class UnconfiguredReader:
     async def open_escalations(self) -> list[dict]:
         raise TransportFailed("open_escalations", "no live reader is configured in this build")
 
-    def stored_questions(self) -> list[dict]:
-        raise TransportFailed("stored_questions", "no live reader is configured in this build")
+    def stored_items(self) -> list[dict]:
+        raise TransportFailed("stored_items", "no live reader is configured in this build")
 
     def list_findings(self) -> list[dict]:
         raise TransportFailed("list_findings", "no live reader is configured in this build")

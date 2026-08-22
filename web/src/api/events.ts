@@ -7,11 +7,12 @@
  * compiling unchanged.
  */
 
-import type { FloorDocument } from "./floorDocument";
+import type { AttentionItem, FloorDocument } from "./floorDocument";
 
 export function handleEvent(
   raw: string,
   onFloor: (doc: FloorDocument) => void,
+  onAttention?: (item: AttentionItem) => void,
 ): void {
   let envelope: { type?: string; data?: unknown };
   try {
@@ -20,25 +21,32 @@ export function handleEvent(
     return;
   }
 
-  if (envelope.type !== "floor") {
+  if (envelope.type === "floor") {
+    onFloor(envelope.data as FloorDocument);
     return;
   }
 
-  onFloor(envelope.data as FloorDocument);
+  if (envelope.type === "attention" && onAttention) {
+    onAttention(envelope.data as AttentionItem);
+    return;
+  }
+
+  // Unknown types are silently ignored (001 FR-016).
 }
 
 export function subscribeFloor(
   url: string,
   onFloor: (doc: FloorDocument) => void,
+  onAttention?: (item: AttentionItem) => void,
 ): () => void {
   const source = new EventSource(url);
 
   const namedHandler = (event: MessageEvent) => {
-    handleEvent(event.data, onFloor);
+    handleEvent(event.data, onFloor, onAttention);
   };
 
   const messageHandler = (event: MessageEvent) => {
-    handleEvent(event.data, onFloor);
+    handleEvent(event.data, onFloor, onAttention);
   };
 
   source.addEventListener("floor", namedHandler);

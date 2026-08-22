@@ -18,6 +18,7 @@ from temporalio.client._exceptions import WorkflowQueryRejectedError
 
 from pane.readers import LiveReader, TransportFailed, QueryRefused
 
+
 ROOT = Path(__file__).resolve().parents[1]
 PANE = ROOT / "pane"
 
@@ -85,15 +86,26 @@ def test_no_literal_store_paths():
             assert substring not in source, f"{path}: contains forbidden literal {substring!r}"
 
 
-def test_no_write_mode_sqlite_connect():
+def test_factory_store_sqlite_connect_restricted():
+    """Only factory stores may be opened through the approved read-only seams."""
     for path in pane_py_sources():
-        tree = ast.parse(path.read_text())
+        source = path.read_text()
+        tree = ast.parse(source)
+
+        # `sqlite3.connect` is permitted in exactly one file, the pane's own store.
+        allowed_writable_sqlite_file = "pane/attention_store.py"
+        if allowed_writable_sqlite_file not in str(path):
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Attribute) and node.attr == "connect":
+                    value = node.value
+                    if isinstance(value, ast.Name) and value.id == "sqlite3":
+                        assert False, (
+                            f"{path}: calls sqlite3.connect outside the pane's own store; "
+                            "only pane/attention_store.py may open PANE_ATTENTION_DB"
+                        )
+
+        # Factory store read rules remain unchanged.
         for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    # sqlite3 is allowed only for OperationalError typing; direct connect is not.
-                    if alias.name == "sqlite3":
-                        continue
             if isinstance(node, ast.ImportFrom):
                 assert node.module != "sqlite3", f"{path}: imports from sqlite3"
             if isinstance(node, ast.Attribute) and node.attr == "connect":
@@ -177,7 +189,7 @@ def test_live_reader_calls_each_seam_once(monkeypatch, tmp_path):
                     return DummyAnswer()
             return Handle()
 
-    reader = LiveReader(tmp_path)
+    reader = LiveReader(tmp_path, tmp_path / "attention.db")
 
     import asyncio
     asyncio.run(reader.read_floor())
@@ -219,8 +231,8 @@ def test_live_reader_calls_each_seam_once(monkeypatch, tmp_path):
     assert captured["by"] == "persona"
 
 
-def test_operational_error_becomes_transport():
-    reader = LiveReader(Path("/nonexistent/specs"))
+def test_operational_error_becomes_transport(tmp_path):
+    reader = LiveReader(Path("/nonexistent/specs"), tmp_path / "attention.db")
 
     with pytest.raises(TransportFailed):
         reader.list_findings()
@@ -229,10 +241,10 @@ def test_operational_error_becomes_transport():
         reader.rollup()
 
 
-def test_rpc_error_transport_and_query_rejected_refusal():
+def test_rpc_error_transport_and_query_rejected_refusal(tmp_path):
     from temporalio.service import RPCStatusCode
 
-    reader = LiveReader(Path("/nonexistent/specs"))
+    reader = LiveReader(Path("/nonexistent/specs"), tmp_path / "attention.db")
 
     class FakeClient:
         def get_workflow_handle(self, workflow_id):

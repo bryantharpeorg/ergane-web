@@ -182,6 +182,7 @@ APPROVED_NODE = {
     "@types/react-dom",
     "@vitejs/plugin-react",
     "jsdom",
+    "@testing-library/react",
 }
 
 

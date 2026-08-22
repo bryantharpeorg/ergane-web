@@ -105,9 +105,16 @@ class FixtureReader:
 
     reference_instant: str | None
 
-    def __init__(self, root: Path, *, transport_fail: frozenset[str] = frozenset()) -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        transport_fail: frozenset[str] = frozenset(),
+        attention_db: Path | None = None,
+    ) -> None:
         self.root = root.resolve()
         self.transport_fail = transport_fail
+        self._attention_db = attention_db
 
         try:
             _, esc_env = load_document(self.root / "escalations" / "open_escalations.json", read="open_escalations")
@@ -123,6 +130,35 @@ class FixtureReader:
                 captured_at = None
 
         self.reference_instant = captured_at
+
+        if attention_db is not None:
+            self._seed_attention_store(attention_db)
+
+    def _seed_attention_store(self, path: Path) -> None:
+        from pane.attention_store import open_store, upsert_delivery
+
+        conn = open_store(path)
+        try:
+            for name, kind in (
+                ("question.json", "question"),
+                ("escalation.json", "escalation"),
+                ("notice-supervision.json", "notice"),
+                ("notice-roadmap.json", "notice"),
+            ):
+                payload_path = self.root / "webhook" / name
+                if not payload_path.exists():
+                    continue
+                doc, _ = load_document(payload_path, read="webhook")
+                upsert_delivery(
+                    conn,
+                    kind=kind,
+                    correlation_id=doc["correlation_id"],
+                    text=doc["text"],
+                    actions=doc.get("actions", []),
+                    received_at=self.reference_instant or doc.get("received_at"),
+                )
+        finally:
+            conn.close()
 
     def _check_fail(self, section: str, read: str) -> None:
         if section in self.transport_fail:
@@ -178,11 +214,17 @@ class FixtureReader:
         doc, _ = load_document(self.root / "escalations" / "open_escalations.json", read="open_escalations")
         return doc
 
-    def stored_questions(self) -> list[dict]:
-        self._check_fail("attention", "stored_questions")
-        path = self.root / "webhook" / "question.json"
-        doc, _ = load_document(path, read="stored_questions")
-        return [doc]
+    def stored_items(self) -> list[dict]:
+        self._check_fail("attention", "stored_items")
+        from pane.attention_store import list_items, open_store
+
+        if self._attention_db is None:
+            return []
+        conn = open_store(self._attention_db)
+        try:
+            return list_items(conn)
+        finally:
+            conn.close()
 
     def list_findings(self) -> list[dict]:
         self._check_fail("health", "list_findings")

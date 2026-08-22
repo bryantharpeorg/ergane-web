@@ -20,3 +20,9 @@ web/playwright-report/
 # Machine-local
 .env
 .env.*
+
+# Pane runtime artifacts (generated SQLite stores)
+*.db
+*.db-shm
+*.db-wal
+.pane/

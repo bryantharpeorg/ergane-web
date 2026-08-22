@@ -36,7 +36,7 @@ test("the Desk renders the fixture floor read-only", async ({ page, request }) =
   for (let i = 0; i < count; i++) {
     const item = items.nth(i);
     const kind = await item.getAttribute("data-kind");
-    expect(kind).toMatch(/escalation|question/);
+    expect(kind).toMatch(/escalation|question|notice/);
     if (kind === "escalation") {
       const expiresAt = await item.getAttribute("data-expires-at");
       expect(expiresAt).not.toBeNull();
@@ -49,6 +49,17 @@ test("the Desk renders the fixture floor read-only", async ({ page, request }) =
   const question = page.locator('article.item[data-kind="question"]');
   await expect(question).toBeVisible();
   await expect(question.locator(".no-deadline")).toHaveText("no deadline from the factory");
+
+  const notices = page.locator('article.item[data-kind="notice"]');
+  await expect(notices.first()).toBeVisible();
+  const noticeCount = await notices.count();
+  expect(noticeCount).toBeGreaterThan(0);
+  for (let i = 0; i < noticeCount; i++) {
+    const notice = notices.nth(i);
+    await expect(notice.locator(".kind")).toHaveText("Notice");
+    await expect(notice.locator(".no-deadline")).toHaveText("no clock");
+    await expect(notice.locator(".answer-note")).toHaveText("Asks for nothing; no answer exists.");
+  }
 
   const spend = page.locator("section.spend");
   await expect(spend.locator("h2")).toHaveText(/spend to date/i);

@@ -123,8 +123,24 @@ class _StubReaderWithRollupFailure:
     async def open_escalations(self) -> list[dict]:
         return json.loads((self.root / "escalations" / "open_escalations.json").read_text())
 
-    def stored_questions(self) -> list[dict]:
-        return [json.loads((self.root / "webhook" / "question.json").read_text())]
+    def stored_items(self) -> list[dict]:
+        doc = json.loads((self.root / "webhook" / "question.json").read_text())
+        return [
+            {
+                "seq": 1,
+                "correlation_id": doc["correlation_id"],
+                "kind": "question",
+                "text": doc["text"],
+                "actions_json": "[]",
+                "actions": [],
+                "received_at": doc.get("received_at", "2026-08-22T17:41:12Z"),
+                "last_ruling": None,
+                "last_ruling_at": None,
+                "pressed_choice": None,
+                "signal_state": None,
+                "signalled_at": None,
+            }
+        ]
 
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())
@@ -154,7 +170,7 @@ class _BuggyReader:
     async def open_escalations(self) -> list[dict]:
         return []
 
-    def stored_questions(self) -> list[dict]:
+    def stored_items(self) -> list[dict]:
         return []
 
     def list_findings(self) -> list[dict]:
