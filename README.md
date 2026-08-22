@@ -1,6 +1,7 @@
 # Ergane Web
 
-Ergane Web is the operator pane for an [Ergane](../ergane) factory: one web
+Ergane Web is the operator pane for an
+[Ergane](https://github.com/bryantharpeorg/ergane) factory: one web
 application, two rooms. The **Showfloor** is a full-bleed, live rendering of every
 epic currently building — each workgraph staged as a DAG whose nodes light with
 state and whose landings flow visibly to done. The **Desk** is the working room:
@@ -45,8 +46,9 @@ word inside one epic's workgraph.)
 
 - `CONTEXT.md` — the vocabulary this repository adds (Pane, Showfloor, Desk,
   Answer, Attention item, Fixture floor). Factory-side words are defined in
-  [`../ergane/CONTEXT.md`](../ergane/CONTEXT.md) and win on any conflict.
-- `docs/decisions.md` — the immutable decision log (D-001…D-009).
+  [ergane's `CONTEXT.md`](https://github.com/bryantharpeorg/ergane/blob/HEAD/CONTEXT.md)
+  and win on any conflict.
+- `docs/decisions.md` — the immutable decision log (D-001…D-010).
 - `.specify/memory/constitution.md` — the standards every node building this repo
   obeys.
 - `factory.yaml` — the gates and standards declaration, draft until wired.

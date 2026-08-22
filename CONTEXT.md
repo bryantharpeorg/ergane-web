@@ -7,7 +7,8 @@ glossary and nothing else; decisions live in [`docs/decisions.md`](docs/decision
 [`.specify/memory/constitution.md`](.specify/memory/constitution.md) (normative).
 Factory-side vocabulary (Spec, Epic, Node, Attempt, Persona, Question, Escalation,
 Landing, Promotion…) is defined in the sibling repository's
-[`CONTEXT.md`](../ergane/CONTEXT.md) and is not redefined here; this file covers only
+[`CONTEXT.md`](https://github.com/bryantharpeorg/ergane/blob/HEAD/CONTEXT.md) and is
+not redefined here; this file covers only
 the words the pane adds.
 
 ## Language
