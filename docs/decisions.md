@@ -307,3 +307,30 @@ neither was made for an operator pane, and a borrowed identity is a borrowed
 argument. Rejected: leaving appearance to the implementer — eleven states, two edge
 kinds, and a paged-while-verifying case are exactly what an agent guesses wrong.
 
+## D-013 · The gate boundary's `HOME` is a tmpfs, and the specs say so (decided)
+
+Decided 2026-08-22 during the first dispatch of spec 001, under the Governance rule that the
+constitution changes by superseding entry and never by silent edit.
+
+001/US1's first two attempts each brought three of the four gates green — `uv run pytest -q`,
+`npm --prefix web run typecheck`, `npm --prefix web run test:unit` — and each failed the smoke
+gate with Playwright's *"Looks like Playwright was just installed or updated. Please run …
+`npx playwright install`"*. The attempt had already added a `postinstall` hook that runs exactly
+that. The hook works: it warms `$HOME/.cache/ms-playwright` **in the attempt**. The gate then runs
+in the factory's sandbox with a fresh tmpfs `HOME` (ergane, `factory/verify/gates.py:785`), so the
+cache is not there. The boundary does have egress (`gates.py:810`), so the download would have
+succeeded — it simply never ran.
+
+The agent cannot observe this: from inside the attempt the browser is installed and the gate's
+advice is to install it. Two attempts were spent on it, and a third was in flight when this was
+recorded. **Nothing in the repository stated the fact**, so the constitution's Environment
+Constraints and `CLAUDE.md` now do: only the worktree crosses from the attempt into the gate, so a
+gate's dependencies live in the worktree (`PLAYWRIGHT_BROWSERS_PATH=0` → `web/node_modules`) or are
+fetched by the gate command itself.
+
+This changes no requirement and relaxes no gate. It is documentation of the environment the specs
+were always written against — spec 001's Assumptions already contemplated the sandbox's network
+posture, but not the boundary between an attempt's filesystem and its gate's. Reported to the
+Ergane agent as finding N20 with the suggestion that the attempt prompt, or the gate's own
+failure detail, carry this sentence so no target repository has to learn it by burning attempts.
+

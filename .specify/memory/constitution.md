@@ -109,6 +109,18 @@ shown*, the spec wins.
   inbound listener of its own, and the pane must never expect one.
 - Two package worlds live in one repository: `uv` owns the backend, `npm` owns
   `web/`. Gates are declared in `ergane.yaml` and nowhere else.
+- **A gate does not inherit the attempt's `HOME`.** Gates run inside the factory's
+  sandbox with a fresh tmpfs `HOME`, distinct from the one the attempt worked in.
+  The worktree persists into the gate; a cache warmed in `HOME` during the attempt
+  does not. Anything a gate command needs must therefore live **inside the
+  worktree** or be fetched by the gate command itself — the boundary does have
+  network egress. Concretely, `playwright install` run during an attempt (or from a
+  `postinstall` hook) puts the browser in `$HOME/.cache/ms-playwright`, which the
+  smoke gate cannot see: set `PLAYWRIGHT_BROWSERS_PATH=0` so the download lands in
+  `web/node_modules`, or have the smoke script install the browser as its first
+  step. A gate that passes locally and fails in the factory with "just installed —
+  please run `npx playwright install`" is this, and reinstalling harder will not
+  fix it.
 - `web/public/fonts/` (four OFL woff2 files and `fonts.css`) and `PRODUCT.md`,
   `DESIGN.md`, `.impeccable/` pre-exist the scaffold; the scaffold story keeps them.
 
