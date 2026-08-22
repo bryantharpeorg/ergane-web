@@ -19,7 +19,7 @@ depends_on_landed: [001-the-desk-sees-the-floor]
 # degraded-reads doctrine is not optional — a floor the pane cannot read is
 # rendered as exactly that, never as an empty floor. D-006 fixes the stack:
 # @xyflow/react with dagre layout, motion via CSS/Framer Motion, gates
-# already named in factory.yaml.
+# already named in ergane.yaml.
 #
 # D-008 sequences it: this spec depends on 001-the-desk-sees-the-floor
 # landing first — its worktrees' base must contain the scaffold, the
@@ -443,7 +443,7 @@ presence, count, target, and the absence of any interactive element.
 ## Assumptions
 
 - **This spec's base contains 001-the-desk-sees-the-floor, landed.** The
-  scaffold, the four gates of `factory.yaml`, the recorded Fixture floor,
+  scaffold, the four gates of `ergane.yaml`, the recorded Fixture floor,
   the backend's floor reads, the SSE event stream, and the Desk route it
   deep-links to are all 001's work. The workgraph grammar has no cross-spec
   edge, but the roadmap grammar does: this spec's frontmatter declares

@@ -184,4 +184,34 @@ ready, `ergane init --wire`, dispatch.
 
 ---
 
+## Entry 10 · 2026-08-22 ~10:00–10:50 AM CT — the dispatch ask, and a clean host
+
+A new session, a different shape of ask. The operator: *init yourself in the repo,
+read the specs, then use Ergane via the CLI to create yourself — assemble the specs
+into EpicWorkflow DAGs, execute them, validate the output against the specs — and
+keep a full feedback log on both the installation and the build-out for the Ergane
+agent.* Dogfooding that keeps the byproduct. Two constraints arrived mid-interview:
+the build runs on Kimi (`kimi-k2.7-code`, Ollama Cloud) with GLM (`glm-5.2`) as
+judge, and no persona may route to a metered provider — the gateway `closer` on
+`anthropic/claude-opus-5` is gone; the subscription-routed `opus-closer` is the
+only opt-in rung, and it asks first.
+
+The host is bare: ergane was torn down 2026-08-19, no Temporal, no tool, no state.
+LiteLLM is up at `127.0.0.1:4000` serving the four aliases the registry will name.
+`ergane-cli 0.2.0` reached PyPI today — which retires spec 001's "unpublished"
+assumption before the first attempt reads it. That, the landing branch, the
+manifest rename, the ladder, the routing and the fixture method were settled in a
+seven-question interview and recorded as **D-011**.
+
+Phase 0, operator session, inline: branched `dev`; `factory.yaml` → `ergane.yaml`
+(`landing_branch: dev`, `ladder: 6/3`); every live mention renamed (decisions and
+earlier log entries left as written); 001's assumption amended to pin
+`ergane-cli==0.2.0`; D-011; this entry; a `CLAUDE.md` for the two audiences that
+will read it (operator sessions and dispatched nodes); the ten `speckit-*` skills
+copied from the sibling test repo so nodes can see them. Zero questions asked of
+the factory yet — it is not installed. The install is the next entry, and the
+feedback log (`~/code/ergane-feedback-round2-2026-08-22.md`) starts there.
+
+---
+
 *(Append below; entries are immutable once written.)*

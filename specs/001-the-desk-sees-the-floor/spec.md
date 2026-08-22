@@ -7,7 +7,7 @@ state: draft
 # WHY THIS SPEC IS FIRST. D-008 ordered milestone one as a tracer bullet: before
 # any spectacle and before any verb, something real on screen, fed by the
 # factory's real seams, in a repository the factory itself can build (D-003).
-# This spec is that bullet. It makes the four gates in factory.yaml exist and
+# This spec is that bullet. It makes the four gates in ergane.yaml exist and
 # pass (the repo is DRAFT until they do), records the Fixture floor both later
 # epics' gates replay, stands up the library-backed backend D-005 decided on,
 # and renders a read-only Desk. The Showfloor is 002; the Answer verb and the
@@ -56,23 +56,23 @@ that renders what it read. Nothing here writes anything.
 **Evidence rule for every scenario in this spec**: the judge is given the diff
 and these criteria — never a terminal, never a screen (constitution IV).
 "Proven by a committed test" means a test in the diff that one of the four
-`factory.yaml` gates runs headless.
+`ergane.yaml` gates runs headless.
 
 ### User Story 1 - The declared gates exist and pass (Priority: P1)
 
 As the factory dispatching a node against this repository, I read
-`factory.yaml`, run its four gate commands in a fresh checkout after the
+`ergane.yaml`, run its four gate commands in a fresh checkout after the
 documented setup, and all four exit 0 — because the two package worlds those
 commands assume (`pane/` under `uv`, `web/` under `npm`) now exist.
 
-**Why this priority**: `factory.yaml` is a promise the repository does not yet
+**Why this priority**: `ergane.yaml` is a promise the repository does not yet
 keep — a gate whose command is not installed is a FAIL, not a skip. Until this
 story lands, no other story in any spec can be verified at all.
 
 **Independent Test**: fresh clone, run the documented setup (`uv sync` —
 resolving `ergane-cli` from the pinned source `pyproject.toml` names — and
 `npm ci --prefix web`), then the four gate commands verbatim from
-`factory.yaml`; all exit 0.
+`ergane.yaml`; all exit 0.
 
 **Acceptance Scenarios**:
 
@@ -332,8 +332,8 @@ the spend label, and the absence of any write.
   package exposing a FastAPI application, owned by `uv`, and a `web/`
   Vite/React/TypeScript application, owned by `npm`.
 - **FR-002**: After documented setup (`uv sync`, `npm ci --prefix web`) in a
-  fresh checkout, all four `factory.yaml` gate commands MUST exit 0, and each
-  MUST execute at least one committed test. `factory.yaml` declares schema
+  fresh checkout, all four `ergane.yaml` gate commands MUST exit 0, and each
+  MUST execute at least one committed test. `ergane.yaml` declares schema
   `version: 2` — v1 fixes the gate names to `test`/`lint`/`typecheck` and
   refuses `unit` and `smoke` as CONFIG_ERROR (ergane
   specs/002-verification-gating) — and `web/package.json` MUST run
@@ -527,17 +527,19 @@ the spend label, and the absence of any write.
 
 - The `ergane-cli` distribution is declared as a backend dependency
   (constitution VII approves it), resolved from a pinned source a fresh
-  checkout can install — a `[tool.uv.sources]` git reference to the ergane
-  repository, commit-pinned through `uv.lock`; the distribution is
-  unpublished, a bare name resolves nowhere, and a local path breaks every
-  checkout but the operator's — and it exports the seams this spec names:
+  checkout can install — the PyPI release `ergane-cli==0.2.0`, pinned exactly
+  in `pyproject.toml` and locked through `uv.lock` (D-011; the distribution
+  was published 2026-08-22, so a bare name now resolves; a `[tool.uv.sources]`
+  git reference commit-pinned through `uv.lock` is the fallback if a needed
+  seam is newer than the release, and a local path breaks every checkout but
+  the operator's) — and it exports the seams this spec names:
   `factory.cli.status.collect_floor`, the `epic_status`/`roadmap_status`
   queries, `factory.escalation.client.open_escalations`,
   `factory.usage.ledger.rollup` with `factory.usage.cli.open_readonly`, and
   `factory.doctor.store.connect_readonly` + `list_findings`. Gates never need
   a live factory: every test runs against the fixture-backed reader seam.
 - Attempt sandboxes and CI runners have network egress at gate time: `uv sync`
-  resolves `ergane-cli` from its git source and `npm ci` fetches packages plus
+  resolves `ergane-cli` from PyPI and `npm ci` fetches packages plus
   the Playwright chromium binary (FR-002). If the factory's sandbox denies
   egress, US1 cannot go green, and the operator must provide a cached or
   vendored channel before dispatch.

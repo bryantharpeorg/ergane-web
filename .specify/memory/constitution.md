@@ -95,7 +95,7 @@ approval.
 - The factory's `ERGANE_WEBHOOK_URL` points at the backend; the factory has no
   inbound listener of its own, and the pane must never expect one.
 - Two package worlds live in one repository: `uv` owns the backend, `npm` owns
-  `web/`. Gates are declared in `factory.yaml` and nowhere else.
+  `web/`. Gates are declared in `ergane.yaml` and nowhere else.
 
 ## Governance
 

@@ -221,3 +221,53 @@ authorized here, not silently edited.
 7. **Constitution II's seam list extended** to the surfaces the specs actually
    ride: the Temporal queries (`epic_status`, `roadmap_status`,
    `escalation_status`) and the verify store's Question reader.
+
+## D-011 · The build run's operating choices: `dev`, `ergane.yaml`, PyPI, Kimi/GLM, no metered Opus (decided)
+
+Decided 2026-08-22 in the dispatch interview, the session that installs ergane on
+a clean host and lets the factory build this pane. D-010's open checklist left
+four things to the operator at wiring; this entry rules on them and on two facts
+that moved since the corpus was written.
+
+1. **Landing branch is `dev`** (operator override of D-008's assumed `buildout`).
+   `main` is promoted from `dev` by the operator after the landed output is
+   validated against the specs. `ergane.yaml` carries `landing_branch: dev`.
+2. **The manifest is `ergane.yaml`**, not `factory.yaml`. Ergane's resolver
+   (`factory/verify/factory_yaml.py`, `resolve_manifest_path`) honors the legacy
+   name with a one-time deprecation warning per process; the preferred name avoids
+   that warning in every attempt. Mentions in live documents (README, constitution,
+   draft specs) follow the rename; earlier decisions and log entries keep the old
+   name because they describe the past.
+3. **`ergane-cli` resolves from PyPI**, pinned `==0.2.0` (published 2026-08-22).
+   Spec 001's assumption that the distribution was unpublished is amended; the
+   git-source `[tool.uv.sources]` reference stays the documented fallback for a
+   seam newer than the release.
+4. **Ladder**: `max_attempts: 6`, `debugger_cycles: 3` — the same rungs the
+   sibling test repository runs. Nothing promotes to a closer automatically.
+5. **Persona routing for this build**, recorded here because the registry lives
+   outside this repo (`~/.config/ergane/personas.yaml`, constitution VII):
+   architect, implementer, debugger, researcher → `ollama-cloud/kimi-k2.7-code`;
+   judge → `ollama-cloud/glm-5.2`; every fallback `local/qwen3.6-27b`. **No persona
+   routes to a metered provider.** The gateway-routed `closer` alias
+   (`anthropic/claude-opus-5`, per-token) is omitted from the registry; the one
+   opt-in rung for a stubborn story is `opus-closer` on ergane's `subscription`
+   agent (operator's own Claude Code login, `fallback: null`), dispatched by hand
+   and only after the operator is asked.
+6. **Dispatch path**: all three work graphs are derived by hand
+   (`ergane spec derive`, archived under `docs/dags/`) for review, then each spec
+   is flipped `ready` and the roadmap scheduler dispatches it. 002 and 003 are
+   readied together once 001 has landed.
+7. **The Fixture floor is recorded hybrid**: live captures from a running floor
+   through ergane's real seam functions, plus on-cue states (refusal, awaiting
+   operator, Question/Notice payloads, bridge rulings) provoked by driving the
+   same seams under ergane's own test harnesses. Provenance per document in
+   `fixtures/README.md`. Rejected: purely synthetic fixtures (constitution V
+   forbids inventing them); waiting for a naturally busy floor (no second epic
+   exists until this build runs).
+
+Rejected alternatives: keeping `buildout` (the operator's branch convention is
+`dev`); routing the whole build through one model (the judge must not share the
+builder's blind spots — D-008's reasoning, now applied to model choice); a
+`closer` on the metered alias "just in case" (a default that can bill is not
+opt-in; constitution VII's registry rule means the only safe absence is omission).
+

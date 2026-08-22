@@ -4,7 +4,7 @@
 # ergane against this checkout, and every node that works here reads this file to
 # learn which commands decide its fate. Declared, never auto-detected.
 #
-# DRAFT until the repository is wired (`ergane init --wire`): spec 001's scaffold
+# DRAFT until spec 001 lands (the repository is wired as of D-011): spec 001's scaffold
 # story is what makes each command below exist and exit 0 in a fresh checkout. A
 # gate whose command is not installed is a FAIL, not a skip — so this file lands
 # with the scaffold, not before it.
@@ -23,8 +23,8 @@ runtime: bwrap
 # workflow that wiring scaffolds runs `npm ci --prefix web` before the checks, and
 # spec 001's scaffold story owes a fresh checkout the same courtesy locally.
 #
-# Setup needs network egress: `uv sync` resolves ergane-cli from a git source and
-# `npm ci` fetches packages plus the Playwright chromium binary. A sandbox that
+# Setup needs network egress: `uv sync` resolves ergane-cli from PyPI (pinned
+# 0.2.0; D-011) and `npm ci` fetches packages plus the Playwright chromium binary. A sandbox that
 # denies egress at gate time fails US1 by construction (001's Assumptions name
 # this); provide a cached channel before dispatch if the runtime is sealed.
 gates:
@@ -37,7 +37,14 @@ gates:
 standards: .specify/memory/constitution.md
 
 # Mirrors ergane's two-branch model: a continuous landing branch the queue owns,
-# with `main` promoted by the operator at milestones. Assumed, not yet decided —
-# adjust at wiring if the operator wants a different name; absent, the factory
-# would treat `main` as the landing branch.
-landing_branch: buildout
+# with `main` promoted by the operator at milestones. Decided at wiring (D-011):
+# the operator chose `dev`; `main` is promoted from it after the build validates.
+landing_branch: dev
+
+# The verification ladder (schema v2). Six attempts per story before the
+# factory escalates, with up to three debugger diagnoses in between. The
+# implementer rung rides a flat-rate model; the ceiling is about wall clock and
+# operator attention, not spend. Nothing promotes to a closer automatically.
+ladder:
+  max_attempts: 6
+  debugger_cycles: 3

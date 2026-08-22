@@ -1,0 +1,22 @@
+# Ergane's runtime root: worktrees, session transcripts, verification evidence.
+# Never commit it; it lands megabytes of agent output on a branch.
+.ergane/
+# Legacy runtime root — `resolve_factory_root` can fall back to a relative
+# `.factory` against the worker's cwd; keep it out of the tree if that ever fires.
+.factory/
+
+# Backend (uv / pytest)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Frontend (npm / Vite / Playwright)
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+
+# Machine-local
+.env
+.env.*
