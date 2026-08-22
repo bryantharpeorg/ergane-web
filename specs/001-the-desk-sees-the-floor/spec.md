@@ -1,5 +1,12 @@
 ---
-state: ready
+state: landed
+# Attested landed 2026-08-22. US1 8dfcea36d6b1 (#2), US2 4e66099794c2 (#3),
+# US3 e9d0627eee8e (#4), US4 a2664e8ba532 (#5) — all four observed on dev.
+# US1-US3 passed on the first attempt of dispatch 4. US4 took ten: nine rungs
+# refused by diff_check on size (the last four byte-identical at 66,553 against
+# a 65,536 cap, all gates green throughout), then an operator RETRY grant bought
+# the attempt that passed at 63,940 with a judge PASS on all ten scenarios.
+# See docs/decisions.md D-014 and the round-2 feedback log's N34.
 # Drafted 2026-08-21 by an operator-session interview; see docs/decisions.md
 # (D-001…D-009 are that interview's record; every decision cited below is one of
 # its entries).

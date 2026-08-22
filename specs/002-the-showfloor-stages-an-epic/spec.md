@@ -1,5 +1,5 @@
 ---
-state: draft
+state: ready
 depends_on_landed: [001-the-desk-sees-the-floor]
 # Drafted 2026-08-21 by an operator-session interview; see docs/decisions.md.
 #
