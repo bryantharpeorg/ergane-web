@@ -20,7 +20,13 @@ export function floorSummary(doc: FloorDocument): FloorSummary {
     queue?: unknown[];
   } | null;
 
-  if (doc.epics.length === 0) {
+  const epicsEmpty = doc.epics.length === 0;
+  const queueEmpty =
+    floorData === null ||
+    (Array.isArray(floorData?.queue) && floorData.queue.length === 0);
+  const attentionEmpty = doc.attention.items.length === 0;
+
+  if (epicsEmpty && queueEmpty && attentionEmpty) {
     return "quiet";
   }
 
