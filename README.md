@@ -49,6 +49,9 @@ PANE_DEMO=1 uv run uvicorn pane.app:app --port 8787
 | `PANE_ANSWER_IDENTITY` | unset | identity the pane signs outbound answers with (US3) |
 | `PANE_ATTENTION_DB` | demo: temp dir / live: `.pane/attention.db` | SQLite store for attention items |
 
+Configure the factory side as `ERGANE_WEBHOOK_URL=http://<pane-host>:8787/intake/<PANE_INTAKE_CREDENTIAL>`.
+The credential value never appears in a log, page, event, or fixture.
+
 ### Routes
 
 - `GET /api/floor` — the full floor document (JSON).
