@@ -1,11 +1,3 @@
-/**
- * Floor summary classification (FR-025).
- *
- * A floor is "unreachable" when its floor read degraded, "quiet" when the floor
- * read succeeded but reported no running epics and an empty queue while no
- * attention items wait, and "busy" otherwise.
- */
-
 import type { FloorDocument } from "../api/floorDocument";
 
 export type FloorSummary = "quiet" | "unreachable" | "busy";

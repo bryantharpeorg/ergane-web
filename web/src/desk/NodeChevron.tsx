@@ -1,12 +1,3 @@
-/**
- * State chevron for a Desk node card.
- *
- * Renders one glyph + caption for each of the eleven node states. The paged case
- * keeps VERIFYING and adds a clay ring and the word "paged". An undeclared node
- * (not in the workgraph) is captioned "undeclared" but still carries its raw
- * state and paged marker when both apply.
- */
-
 import type { NodeCard } from "../api/floorDocument";
 
 const CAPTIONS: Record<string, string> = {

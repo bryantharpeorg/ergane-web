@@ -1,10 +1,3 @@
-/**
- * Degraded read notice.
- *
- * Renders in-section, naming what could not be learned and which failure mode.
- * Transport failures and query refusals have visually distinct wording.
- */
-
 import type { DegradedEntry } from "../api/floorDocument";
 
 interface DegradedWellProps {

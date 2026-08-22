@@ -1,11 +1,3 @@
-/**
- * Countdown anchor rule (DESIGN.md § Attention Item).
- *
- * Time left is computed against an injectable reference instant — demo mode pins
- * it to the fixture envelope's capture instant so committed assertions hold on
- * any run date. No expiry is ever minted from receipt time.
- */
-
 export type TimeLeft =
   | { kind: "none" }
   | { kind: "expired" }

@@ -1,11 +1,3 @@
-/**
- * Milestone bar derivations (DESIGN.md § Epic Timeline Row).
- *
- * The milestone bar tracks the furthest-behind open story — the not-yet-merged
- * node with the lowest milestone index. It can only read "done" when every
- * story is MERGED.
- */
-
 import type { NodeCard, NodeState } from "../api/floorDocument";
 
 export const MILESTONES = [

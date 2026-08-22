@@ -1,10 +1,3 @@
-/**
- * Health counts over the factory's doctor findings.
- *
- * Only `open` and `regressed` findings are active problems; `promoted` and
- * `resolved` findings are not counted (FR-021, DESIGN.md § Tables).
- */
-
 export interface Finding {
   severity: string;
   status: string;
