@@ -48,3 +48,9 @@ landing_branch: dev
 ladder:
   max_attempts: 6
   debugger_cycles: 3
+
+# Roadmap dials (schema v2). Two epics may build at once so 002 and 003 — which
+# both depend only on 001 landing — run concurrently after it does (D-011,
+# operator-confirmed 2026-08-22); the merge queue arbitrates their shared files.
+roadmap:
+  max_concurrent_epics: 2

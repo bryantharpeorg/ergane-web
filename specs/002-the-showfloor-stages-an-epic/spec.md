@@ -339,8 +339,8 @@ presence, count, target, and the absence of any interactive element.
   factory's filesystem. The pane re-derives no factory logic
   (constitution II).
 - **FR-003**: The static file is the structural truth: the staged graph
-  contains exactly the file's nodes and edges; a live-only node id is named
-  in the document's notes, never drawn.
+  MUST contain exactly the file's nodes and edges; a live-only node id MUST
+  be named in the document's notes, never drawn.
 - **FR-004**: A node absent from the live answer MUST render as its static
   self with live fields unknown; a missing key MUST take its default; a
   value the factory did not record MUST render as unknown, never as zero.
