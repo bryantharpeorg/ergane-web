@@ -1,3 +1,5 @@
+import Desk from "./desk/Desk";
+
 export default function App() {
   const pathname = window.location.pathname;
   const isDesk = pathname === "/" || pathname === "/desk";
@@ -16,7 +18,7 @@ export default function App() {
           <em>floor not read yet</em>
         </span>
       </header>
-      <main id="room" />
+      {isDesk ? <Desk /> : <main id="room" />}
     </>
   );
 }

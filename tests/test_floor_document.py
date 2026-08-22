@@ -143,6 +143,51 @@ def test_null_spend_stays_unknown_and_label_is_spend_to_date(demo_client):
     _assert_no_live(document)
 
 
+def test_undeclared_status_node_survives_assembly():
+    """An epic_status answer naming a node absent from workgraph renders as undeclared."""
+    base_status = json.loads(
+        (FIXTURES / "epic-status" / "002-expense-notes" / "002-expense-notes-013-us1=MERGED-MERGED_us2=MERGED-MERGED.json").read_text()
+    )
+
+    # Inject an undeclared node into the answer.
+    status_with_extra = {
+        "epic_state": base_status.get("epic_state", "RUNNING"),
+        "nodes": {
+            **base_status.get("nodes", {}),
+            "us9": {
+                "state": "VERIFYING",
+                "attempt": 3,
+                "awaiting_operator": False,
+                "persona": "implementer",
+                "landing_state": None,
+                "pr_number": None,
+                "verified": False,
+            },
+        },
+    }
+
+    reader = _StubReader(FIXTURES, {"epic-002-expense-notes": status_with_extra})
+    document = asyncio.run(assemble_floor_document(reader))
+
+    epic = next(e for e in document["epics"] if e["epic_id"] == "002-expense-notes")
+    declared_ids = [n["id"] for n in epic["nodes"]]
+
+    assert "us9" in declared_ids
+    undeclared_card = next(n for n in epic["nodes"] if n["id"] == "us9")
+    assert undeclared_card["declared"] is False
+    assert undeclared_card["story_key"] is None
+    assert undeclared_card["state"] == "VERIFYING"
+
+    # Declared nodes remain in workgraph order.
+    workgraph = json.loads((FIXTURES / "workgraphs" / "002-expense-notes.json").read_text())
+    workgraph_ids = [n["id"] for n in workgraph.get("nodes", [])]
+    for node_id in workgraph_ids:
+        assert node_id in declared_ids
+
+    # us9 comes after every declared node.
+    assert declared_ids.index("us9") > declared_ids.index(workgraph_ids[-1])
+
+
 def _assert_no_live(value):
     if isinstance(value, dict):
         for key, item in value.items():
