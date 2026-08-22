@@ -1,0 +1,191 @@
+import os
+from pathlib import Path
+
+import pytest
+import tomllib
+import yaml
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from pane.app import create_app
+
+
+def test_create_app_returns_fastapi():
+    app = create_app()
+    assert isinstance(app, FastAPI)
+
+
+def test_spa_serves_index_html(tmp_path):
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<html>desk</html>")
+    os.environ["PANE_WEB_DIST"] = str(dist)
+    client = TestClient(create_app())
+    for path in ("/", "/desk"):
+        resp = client.get(path)
+        assert resp.status_code == 200
+        assert resp.text == "<html>desk</html>"
+
+
+def test_spa_rejects_escape(tmp_path):
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<html>desk</html>")
+    # Write a file outside dist so escape would be detectable if allowed
+    (tmp_path / "secret.txt").write_text("secret")
+    os.environ["PANE_WEB_DIST"] = str(dist)
+    app = create_app()
+
+    async def run_request():
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/../secret.txt",
+            "raw_path": b"/../secret.txt",
+            "query_string": b"",
+            "headers": [(b"host", b"testserver")],
+            "server": ("testserver", 80),
+            "client": None,
+            "scheme": "http",
+            "root_path": "",
+            "state": {},
+            "app": app,
+        }
+        events = []
+
+        async def receive():
+            return {"type": "http.request", "body": b""}
+
+        async def send(message):
+            events.append(message)
+
+        await app(scope, receive, send)
+        return events
+
+    import asyncio
+
+    events = asyncio.run(run_request())
+    start = events[0]
+    assert start["status"] in (404, 403)
+
+
+def test_spa_unbuilt_returns_503(tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    os.environ["PANE_WEB_DIST"] = str(empty)
+    client = TestClient(create_app())
+    resp = client.get("/")
+    assert resp.status_code == 503
+    assert "web/dist" in resp.text
+    assert "npm --prefix web run build" in resp.text
+
+
+def test_ergane_yaml_gates():
+    root = Path(__file__).resolve().parents[1]
+    with open(root / "ergane.yaml", "rb") as f:
+        cfg = yaml.safe_load(f)
+    assert cfg["version"] == 2
+    gates = cfg["gates"]
+    assert gates["test"] == "uv run pytest -q"
+    assert gates["typecheck"] == "npm --prefix web run typecheck"
+    assert gates["unit"] == "npm --prefix web run test:unit"
+    assert gates["smoke"] == "npm --prefix web run test:smoke"
+
+
+def test_package_json_scripts_and_headless():
+    root = Path(__file__).resolve().parents[1]
+    pkg = json_load(root / "web" / "package.json")
+    assert pkg["scripts"]["typecheck"] == "tsc --noEmit"
+    assert "playwright install chromium" in pkg["scripts"]["postinstall"]
+
+    pw_source = (root / "web" / "playwright.config.ts").read_text()
+    assert "headless: true" in pw_source
+    assert "headless: false" not in pw_source
+
+
+def test_tsconfig_strict():
+    root = Path(__file__).resolve().parents[1]
+    tsconfig = json_load(root / "web" / "tsconfig.json")
+    assert tsconfig["compilerOptions"]["strict"] is True
+
+
+def test_dependency_roster():
+    root = Path(__file__).resolve().parents[1]
+    with open(root / "pyproject.toml", "rb") as f:
+        pyproject = tomllib.load(f)
+    py_deps = set(pyproject["project"]["dependencies"])
+    py_dev = set(pyproject["dependency-groups"]["dev"])
+    for dep in py_deps | py_dev:
+        name = dep.split("[")[0].split("==")[0].split(">=")[0].split("<")[0].strip()
+        assert name in APPROVED_PYTHON
+
+    pkg = json_load(root / "web" / "package.json")
+    node_deps = set(pkg.get("dependencies", {}).keys())
+    node_dev = set(pkg.get("devDependencies", {}).keys())
+    for dep in node_deps | node_dev:
+        assert dep in APPROVED_NODE
+
+
+def test_fonts_and_index_html():
+    root = Path(__file__).resolve().parents[1]
+    fonts_dir = root / "web" / "public" / "fonts"
+    for name in (
+        "RedHatDisplay.woff2",
+        "RedHatText.woff2",
+        "RedHatText-italic.woff2",
+        "RedHatMono.woff2",
+        "fonts.css",
+    ):
+        assert (fonts_dir / name).is_file()
+
+    index_html = (root / "web" / "index.html").read_text()
+    assert 'href="/fonts/fonts.css"' in index_html
+    assert "https://" not in index_html
+
+
+def test_readme_commands():
+    root = Path(__file__).resolve().parents[1]
+    readme = (root / "README.md").read_text()
+    commands = [
+        "uv sync",
+        "npm ci --prefix web",
+        "uv run pytest -q",
+        "npm --prefix web run typecheck",
+        "npm --prefix web run test:unit",
+        "npm --prefix web run test:smoke",
+    ]
+    for cmd in commands:
+        assert cmd in readme
+
+
+APPROVED_PYTHON = {
+    "ergane-cli",
+    "fastapi",
+    "uvicorn",
+    "sse-starlette",
+    "httpx",
+    "pytest",
+    "pytest-asyncio",
+}
+
+APPROVED_NODE = {
+    "react",
+    "react-dom",
+    "typescript",
+    "vite",
+    "@xyflow/react",
+    "@dagrejs/dagre",
+    "framer-motion",
+    "vitest",
+    "@playwright/test",
+    "@types/react",
+    "@types/react-dom",
+    "@vitejs/plugin-react",
+    "jsdom",
+}
+
+
+def json_load(path: Path):
+    import json
+
+    return json.loads(path.read_text())
