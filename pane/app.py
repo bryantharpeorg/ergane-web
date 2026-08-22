@@ -78,8 +78,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 escalations = await reader.open_escalations()
             except TransportFailed:
                 escalations = []
-            items, _degraded = assemble_attention(list_items(conn), escalations)
-            return JSONResponse({"items": items, "degraded": []})
+            items, degraded = assemble_attention(list_items(conn), escalations)
+            return JSONResponse({"items": items, "degraded": degraded})
         finally:
             conn.close()
 
