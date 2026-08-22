@@ -19,12 +19,14 @@ Two capture families, both real:
   the live factory with `scripts/record-fixtures.py` while the two-story epic
   `002-expense-notes` built on Kimi in the sibling repository `ergane-test` (two PRs landed
   through its real merge queue; the repository was then forgotten from this factory).
-- **`raw-harness/`** — on-cue states produced by `scripts/record-fixtures-harness.py`:
+- **`escalations/`, `questions/`, `bridge/`, `webhook/`, `notices/`, `epic-status/{landing,paged,question}/`, `epic-status/refusal*.json`** — on-cue states produced by `scripts/record-fixtures-harness.py`:
   ergane's own interpreter test harness (`tests/test_interpreter.py`: scripted attempts,
   scripted landing snapshots) run as a worker against the **real** Temporal server, with
   the **real** notify activities, the **real** verification store and the **real** webhook
   adapter posting to a local recorder. Every document there is a verbatim seam output
-  (run `run-20260822T174042Z-a692e2`, 53 documents, `raw-harness/manifest.json`).
+  (run `run-20260822T174042Z-a692e2`, 53 documents; the capture record — the run manifest and
+  the raw webhook journal — is under `capture/`). The capture method is recorded in each
+  envelope and here, never in a directory name: consumers read a document by what it *is*.
 
 | Requirement | Path | Seam |
 |---|---|---|
@@ -32,17 +34,17 @@ Two capture families, both real:
 | FloorStatus, quiet floor (no epics, empty queue) | `floor/floor-quiet.json` | `collect_floor` over this repo's `specs/`, three drafts, nothing running |
 | `workgraph.json` ×3 | `workgraphs/002-expense-notes.json` (2 nodes, merge edge), `workgraphs/077-…-runs-in-the-loop.json` (5 nodes, **both edge kinds, a same-rank pair**), `workgraphs/001-trip-expenses.json` (inferred merge edges, `inferred_edges` populated) | `ergane spec derive` |
 | `epic_status` through the landing run on a live floor | `epic-status/002-expense-notes/*.json` — 13 distinct answers polled at 3 s: RUNNING → VERIFYING (four judge FAIL/retry cycles) → PASSED → ENQUEUED → MERGED, epic COMPLETED | Temporal query `epic_status` |
-| `epic_status` through the landing run, every transition | `raw-harness/epic-status/fx-landing-*.json` — 14 answers: PASSED, PR_OPEN, ENQUEUED, MERGED for each of three nodes | harness landing scene |
-| `awaiting_operator: true` while `state: VERIFYING` | `raw-harness/epic-status/fx-paged-5e2e8a-paged.json` | ladder exhausted → real EscalationWorkflow child open |
-| `WAITING_OPERATOR` (question park) | `raw-harness/epic-status/fx-question-e8c371-waiting-operator.json` | `## OPERATOR QUESTION` marker → QuestionWorkflow |
-| `epic_status` refusal variant | `raw-harness/epic-status/refusal.json` (the `ergane build status --json` document: `refusal`, `nodes: {}`), `refusal-exception.json` | closed execution queried under `NOT_OPEN` through the CLI's own `_query_status` |
+| `epic_status` through the landing run, every transition | `epic-status/landing/*.json` — 14 answers: PASSED, PR_OPEN, ENQUEUED, MERGED for each of three nodes | harness landing scene |
+| `awaiting_operator: true` while `state: VERIFYING` | `epic-status/paged/paged.json` | ladder exhausted → real EscalationWorkflow child open |
+| `WAITING_OPERATOR` (question park) | `epic-status/question/waiting-operator.json` | `## OPERATOR QUESTION` marker → QuestionWorkflow |
+| `epic_status` refusal variant | `epic-status/refusal.json` (the `ergane build status --json` document: `refusal`, `nodes: {}`), `epic-status/refusal-exception.json` | closed execution queried under `NOT_OPEN` through the CLI's own `_query_status` |
 | `epic_status` naming a node its `workgraph.json` does not declare (FR-026) | `epic-status/skew/status-names-us3.json` paired with `workgraphs/002-expense-notes.json` | two verbatim documents; the pairing is the operator's (see envelope) |
-| Open Escalations incl. `expires_at` ≠ send + 3600 s | `raw-harness/escalations/open_escalations.json` (15-min expiry), `open_escalations-2.json` (20-min), store rows beside them | `open_escalations`, `factory.verify.store` |
-| A stored Question with factory-written `expires_at` | `raw-harness/questions/pending_questions.json` (+ `expired-question.json`, `answered-question.json`) | `pending_questions` / `get_question` |
-| Webhook payloads | `raw-harness/webhook/question.json` (`actions: []`), `escalation.json` (`esc:<12hex>:<CHOICE>` ×4), `notice-supervision.json` (`correlation_id: "supervision"`), `notice-roadmap.json` (`roadmap-…`), `question-expired.json`, `escalation-standalone.json`; the raw journal `webhook-received.jsonl` | the real `WebhookAdapter.deliver` |
+| Open Escalations incl. `expires_at` ≠ send + 3600 s | `escalations/open_escalations.json` (15-min expiry), `escalations/open_escalations-2.json` (20-min), store rows beside them | `open_escalations`, `factory.verify.store` |
+| A stored Question with factory-written `expires_at` | `questions/pending_questions.json` (+ `questions/expired-question.json`, `questions/answered-question.json`) | `pending_questions` / `get_question` |
+| Webhook payloads | `webhook/question.json` (`actions: []`), `webhook/escalation.json` (`esc:<12hex>:<CHOICE>` ×4), `webhook/notice-supervision.json` (`correlation_id: "supervision"`), `webhook/notice-roadmap.json` (`roadmap-…`), `webhook/question-expired.json`, `webhook/escalation-standalone.json`; the raw journal `capture/webhook-received.jsonl` | the real `WebhookAdapter.deliver` |
 | Usage rollup with NULLs | `usage/rollup-by-persona.json` (judge `prompt_tokens` NULL → totals NULL), `usage/rollup-by-node.json` | `rollup` over `open_readonly` of the real ledger |
 | Doctor findings | `doctor/findings.json` — five findings filed through `ergane findings report` from this dogfood round | `list_findings` over `connect_readonly` |
-| Bridge rulings | `raw-harness/bridge/{resolved,already_resolved,unknown,expired,unauthorized}.json`, `malformed-relay.json` | `CallbackBridge.handle_relay` |
+| Bridge rulings | `bridge/{RESOLVED,ALREADY_RESOLVED,UNKNOWN,EXPIRED,UNAUTHORIZED}.json` (each named for the ruling it records), `bridge/malformed-relay.json` | `CallbackBridge.handle_relay` |
 
 States observed across all `epic_status` documents: PENDING, RUNNING, VERIFYING, PASSED,
 PR_OPEN, ENQUEUED, MERGED, WAITING_OPERATOR (eight of eleven; KEY_ISSUED is transient,
@@ -64,7 +66,10 @@ $PY scripts/record-fixtures.py rollup "$ERGANE_LEDGER_PATH" fixtures/usage/rollu
 $PY scripts/record-fixtures.py findings "$ERGANE_ROOT/doctor.db" fixtures/doctor/findings.json
 $PY scripts/record-fixtures.py questions "$ERGANE_VERIFICATION_DB_PATH" fixtures/questions/pending_questions.json
 # on-cue states (stop the systemd worker first; the harness runs its own):
-systemctl --user stop ergane-worker && PYTHONPATH=~/code/ergane $PY scripts/record-fixtures-harness.py --out fixtures/raw-harness
+systemctl --user stop ergane-worker && sleep 95   # the harness refuses while another poller holds the queue
+PYTHONPATH=~/code/ergane $PY scripts/record-fixtures-harness.py --out fixtures/raw-harness
+# then promote raw-harness/* into the semantic layout above (see git log for the mapping)
+systemctl --user start ergane-worker
 ```
 
 When a contract gains a field, re-record; never hand-edit a payload (FR-008).

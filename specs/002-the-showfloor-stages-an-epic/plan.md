@@ -320,13 +320,13 @@ it once per running epic, inside the same try/except it already uses for the
 two reads, and attaches the result as `stage`. The tests load
 `fixtures/workgraphs/002-expense-notes.json` with a recorded answer from
 `fixtures/epic-status/002-expense-notes/` for the complete case;
-`fixtures/workgraphs/077-…json` for both edge kinds; `QueryRefused` as 001's
-`FixtureReader` raises it for `fixtures/raw-harness/epic-status/refusal.json`
+`fixtures/workgraphs/077-a-scanner-the-operator-chooses-runs-in-the-loop.json` for both edge kinds; `QueryRefused` as 001's
+`FixtureReader` raises it for `fixtures/epic-status/refusal.json`
 and `TransportFailed` as 001's transport tests raise it for the two modes; key
 deletion on a recorded answer for the partial case; the skew pair
 `fixtures/README.md` names — `fixtures/epic-status/skew/status-names-us3.json`
 paired with `fixtures/workgraphs/002-expense-notes.json` — for the stray id;
-and `fixtures/raw-harness/epic-status/fx-paged-5e2e8a-paged.json`, the
+and `fixtures/epic-status/paged/paged.json`, the
 recorded paged-while-verifying answer, for the derived flag. Paths are the
 README's committed layout, read from disk as recorded.
 
