@@ -9,6 +9,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+import factory.workgraph.cli
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -16,6 +18,8 @@ class Settings:
     fixtures_root: Path
     transport_fail: frozenset[str]
     web_dist: Path
+    poll_interval_s: float
+    specs_root: Path
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> "Settings":
@@ -27,6 +31,15 @@ class Settings:
         demo = bool(environ.get("PANE_DEMO", ""))
         fixtures_root = Path(environ.get("PANE_FIXTURES_ROOT", repo_root / "fixtures"))
         web_dist = Path(environ.get("PANE_WEB_DIST", repo_root / "web" / "dist"))
+        specs_root = Path(environ.get("PANE_SPECS_ROOT", factory.workgraph.cli.DEFAULT_SPECS_ROOT))
+
+        raw_interval = environ.get("PANE_POLL_INTERVAL_S", "15.0")
+        try:
+            poll_interval_s = float(raw_interval)
+        except ValueError:
+            raise ValueError(f"PANE_POLL_INTERVAL_S must be a positive float, got {raw_interval!r}")
+        if not poll_interval_s > 0:
+            raise ValueError(f"PANE_POLL_INTERVAL_S must be positive, got {poll_interval_s}")
 
         raw_fail = environ.get("PANE_DEMO_TRANSPORT_FAIL", "")
         allowed = {"floor", "epics", "attention", "health", "spend"}
@@ -43,4 +56,6 @@ class Settings:
             fixtures_root=fixtures_root,
             transport_fail=frozenset(fail_parts),
             web_dist=web_dist,
+            poll_interval_s=poll_interval_s,
+            specs_root=specs_root,
         )

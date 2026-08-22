@@ -35,6 +35,25 @@ npm --prefix web run build
 PANE_DEMO=1 uv run uvicorn pane.app:app --port 8787
 ```
 
+### Environment
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PANE_DEMO` | unset | `1` selects the fixture reader |
+| `PANE_FIXTURES_ROOT` | `<repo>/fixtures` | where the fixture reader looks |
+| `PANE_DEMO_TRANSPORT_FAIL` | unset | comma-separated sections whose demo reads raise `TransportFailed` |
+| `PANE_SPECS_ROOT` | `factory.workgraph.cli.DEFAULT_SPECS_ROOT` | live: where `<epic_id>/workgraph.json` lives |
+| `PANE_POLL_INTERVAL_S` | `15` | SSE poll cycle |
+| `PANE_WEB_DIST` | `<repo>/web/dist` | the built frontend the catch-all serves |
+
+### Routes
+
+- `GET /api/floor` — the full floor document (JSON).
+- `GET /api/events` — server-sent events; each `data:` line is a typed `{type, data}` envelope whose only 001 type is `floor`.
+- `GET /{path:path}` — the built frontend (`web/dist`), falling back to `index.html`.
+
+Ledger, doctor store, and Temporal are resolved by ergane's own resolvers and environment chain; the pane reads none of those variables itself.
+
 ## The shape, in one paragraph
 
 A FastAPI backend runs on the factory host and imports the ergane distribution,
