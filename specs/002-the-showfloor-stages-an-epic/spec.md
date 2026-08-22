@@ -442,6 +442,10 @@ presence, count, target, and the absence of any interactive element.
 
 ## Assumptions
 
+- The Showfloor's appearance is governed by `DESIGN.md` (constitution VIII, D-012):
+  stations, the two edge strokes, the shared landing line, the state glyph grammar,
+  the motion rules. Scenarios here say *what* is staged; DESIGN.md says *how it
+  looks*.
 - **This spec's base contains 001-the-desk-sees-the-floor, landed.** The
   scaffold, the four gates of `ergane.yaml`, the recorded Fixture floor,
   the backend's floor reads, the SSE event stream, and the Desk route it

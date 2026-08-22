@@ -85,6 +85,19 @@ without them). TypeScript runs
 `strict`; a looser compiler option is a new dependency in spirit and needs the same
 approval.
 
+### VIII. The Pane Is Built to DESIGN.md
+
+`DESIGN.md` at the repository root is the pane's visual authority (D-012): tokens,
+type, the eleven-state glyph grammar, the two edge strokes, the milestone bar, the
+attention ranking, the motion rules. A diff that renders anything the operator sees
+obeys it the way a diff that touches a seam obeys Principle II. What DESIGN.md
+states is not a suggestion: a colour, face, or radius it does not name is a defect,
+not a choice. State is never carried by colour alone. No cream or beige ground, no
+red, no remote stylesheet or script — the three faces are vendored under
+`web/public/fonts/` and loaded from there. Where a spec's scenario and DESIGN.md
+disagree on an *appearance*, DESIGN.md wins; where they disagree on *what is
+shown*, the spec wins.
+
 ## Environment Constraints
 
 - The backend runs on the factory host as a systemd user unit: it needs the factory
@@ -96,6 +109,8 @@ approval.
   inbound listener of its own, and the pane must never expect one.
 - Two package worlds live in one repository: `uv` owns the backend, `npm` owns
   `web/`. Gates are declared in `ergane.yaml` and nowhere else.
+- `web/public/fonts/` (four OFL woff2 files and `fonts.css`) and `PRODUCT.md`,
+  `DESIGN.md`, `.impeccable/` pre-exist the scaffold; the scaffold story keeps them.
 
 ## Governance
 

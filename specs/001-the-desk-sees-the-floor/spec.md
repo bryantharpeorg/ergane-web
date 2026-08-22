@@ -525,6 +525,12 @@ the spend label, and the absence of any write.
 
 ## Assumptions
 
+- The pane's appearance is governed by `DESIGN.md` at the repository root
+  (constitution VIII, D-012): tokens, faces (vendored under `web/public/fonts/`,
+  which the scaffold keeps), the eleven-state glyph grammar, the attention ranking
+  and the milestone bar. US1's scaffold links `web/public/fonts/fonts.css` and
+  loads no remote stylesheet; US4's Desk renders to that document. A scenario here
+  says *what* is shown; DESIGN.md says *how it looks*.
 - The `ergane-cli` distribution is declared as a backend dependency
   (constitution VII approves it), resolved from a pinned source a fresh
   checkout can install — the PyPI release `ergane-cli==0.2.0`, pinned exactly

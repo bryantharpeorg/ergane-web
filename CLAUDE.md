@@ -131,6 +131,10 @@ npm --prefix web run dev                               # Vite dev server against
 - **`specs/<feature>/`** — `spec.md` (the corpus the scheduler walks), `plan.md`,
   `tasks.md`. Three specs, tracer-bullet order: 001 the Desk → 002 the Showfloor ∥ 003
   the Answer.
+- **`DESIGN.md`** — the pane's visual authority (constitution VIII, D-012): tokens, faces,
+  the eleven-state glyph grammar, the milestone bar, motion. `PRODUCT.md` is the product
+  truth behind it; `.impeccable/mocks/` holds the two comps it was recorded from.
+  `web/public/fonts/` carries the vendored OFL faces — never load a remote stylesheet.
 - **`docs/dags/`** — the derived work graphs, archived for review before dispatch.
 - **`fixtures/`** — the recorded Fixture floor with `README.md` provenance. Recorded,
   never invented (constitution V). Credential sweep before every commit.

@@ -1,0 +1,160 @@
+<!doctype html>
+<!--
+DIRECTION CONTRACT — the Showfloor (room 2 of the Ergane pane). Comp, not product code.
+THESIS: the floor is a transit map, not a node-and-edge diagram. Every story is a station
+on a route; the landing run is one shared line at the right with four stations every
+node travels through; a jam at ENQUEUED is a place you can point to. It refuses the
+generic DAG-of-rounded-rectangles the category ships.
+OWN-WORLD: same tokens as the Desk — putty ground, graphite ink, teal live, mustard
+verifying, olive landing, clay waiting (never red). depends_on is a thin dashed route
+(unlocks on verification); depends_on_merged is a solid double rail (unlocks on merge).
+Stations are skewed squares with a chevron and a one-word caption; a travelling token
+is the brightest moving thing. Red Hat Display captions, Red Hat Mono ids.
+STORY: a visitor sees which stories are moving, where the landing line is busy, and
+whether anyone is paged — and can press nothing. The badge leads to the Desk.
+FIRST VIEWPORT: masthead; one full-bleed route map per running epic, stacked; the
+landing line shared on the right edge; the attention badge top-right.
+FORM: launch-telemetry timeline (seed 78126538, candidate 5) fused with the dealt
+visible-transit staging (data-dramaturgy-visible-transit); MCM warm ground by the
+operator's pinned steer.
+DATA: comp data — real derived graphs 001-trip-expenses and 077 (both edge kinds, a
+same-rank pair) with synthetic states. Nothing here is a recorded fixture.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ergane — Showfloor (comp)</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .mast { position: sticky; top: 0; background: var(--ground); z-index: 2; }
+  .badge { margin-left: var(--s4); font-family: var(--display); font-weight: 600; font-size: var(--fs-small); color: var(--orange-ink); text-decoration: none; display: inline-flex; align-items: center; gap: 0.45em; }
+  .badge::before { content: ""; width: 0.7em; height: 0.7em; background: var(--orange); border-radius: 50% 50% 2px 2px; }
+  .stage { padding: var(--s5) var(--s6) var(--s7); display: grid; gap: var(--s6); }
+  .route { display: grid; grid-template-columns: 220px 1fr; gap: var(--s5); align-items: start; border-top: 1px solid var(--rule); padding-top: var(--s4); }
+  .route h2 { font-size: var(--fs-display); }
+  .route .meta { font-size: var(--fs-small); color: var(--ink-soft); margin-top: var(--s2); line-height: 1.6; }
+  .route .meta code { font-family: var(--mono); font-size: var(--fs-micro); }
+  .mapwrap { overflow-x: auto; }
+  .map { width: 100%; min-width: 1040px; height: auto; display: block; overflow: visible; }
+
+  /* svg grammar */
+  .rail { stroke: var(--ink); stroke-width: 4; fill: none; }
+  .rail.merged { stroke: var(--olive); }
+  .rail2 { stroke: var(--ground); stroke-width: 1.5; fill: none; }      /* the gap that makes a double rail */
+  .dep { stroke: var(--ink-soft); stroke-width: 1.5; stroke-dasharray: 4 5; fill: none; }
+  .landing { stroke: var(--olive); stroke-width: 3; fill: none; }
+  .landing-gap { stroke: var(--ground); stroke-width: 1; fill: none; }
+  .station { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+  .station.PENDING { stroke: var(--aqua-ink); stroke-dasharray: 3 3; }
+  .station.KEY_ISSUED { stroke: var(--aqua-ink); }
+  .station.RUNNING { fill: var(--teal); stroke: var(--teal-ink); }
+  .station.VERIFYING { fill: var(--mustard); stroke: var(--mustard-ink); }
+  .station.PASSED { stroke: var(--olive); }
+  .station.PR_OPEN { stroke: var(--olive); fill: url(#half); }
+  .station.ENQUEUED { stroke: var(--olive); fill: url(#most); }
+  .station.MERGED { fill: var(--olive); stroke: var(--olive-ink); }
+  .station.WAITING_OPERATOR { fill: var(--orange); stroke: var(--orange-ink); }
+  .station.FAILED { stroke: var(--ink); fill: url(#cross); }
+  .station.KILLED { stroke: var(--ink-soft); fill: var(--panel-deep); }
+  .paged-ring { fill: none; stroke: var(--orange); stroke-width: 2; stroke-dasharray: 2 3; }
+  .id { font: 500 12px var(--mono); fill: var(--ink); }
+  .cap { font: 600 11px var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+  .cap.PENDING, .cap.KEY_ISSUED { fill: var(--aqua-ink); } .cap.RUNNING { fill: var(--teal-ink); } .cap.VERIFYING { fill: var(--mustard-ink); }
+  .cap.PASSED, .cap.PR_OPEN, .cap.ENQUEUED, .cap.MERGED { fill: var(--olive-ink); } .cap.WAITING_OPERATOR { fill: var(--orange-ink); } .cap.FAILED { fill: var(--ink); } .cap.KILLED { fill: var(--ink-soft); }
+  .lab { font: 500 10px var(--text); letter-spacing: 0.06em; text-transform: uppercase; fill: var(--ink-soft); }
+  .token { fill: var(--teal); stroke: var(--panel); stroke-width: 3; }
+  .token.queue { fill: var(--olive); }
+  .legendline { font: 500 10px var(--text); fill: var(--ink-soft); letter-spacing: 0.06em; text-transform: uppercase; }
+  .hatch { fill: url(#hatch); }
+  @media (prefers-reduced-motion: no-preference) {
+    .travel { animation: travel 6s var(--ease-out) infinite; }
+    @keyframes travel { 0% { transform: translate(0,0) } 45% { transform: translate(0,0) } 70% { transform: translate(0,-90px) } 100% { transform: translate(0,-90px) } }
+    .station.RUNNING { animation: glow 2.4s var(--ease-out) infinite; }
+    @keyframes glow { 0%, 100% { opacity: 1 } 50% { opacity: 0.55 } }
+  }
+  .quiet { border-top: 1px solid var(--rule); padding: var(--s6) var(--s6); color: var(--ink-soft); font-style: italic; }
+  @media (max-width: 900px) { .route { grid-template-columns: 1fr; } .stage { padding: var(--s4); } }
+</style>
+</head>
+<body>
+<header class="mast">
+  <span class="mark">ERGANE</span>
+  <nav><a href="desk.html">Desk</a><a href="showfloor.html" aria-current="page">Showfloor</a></nav>
+  <span class="floorline"><span class="live">live floor</span> · 2 epics running · read 12:04:31 <a class="badge" href="desk.html">2 waiting on you → Desk</a></span>
+</header>
+
+<main class="stage">
+
+  <section class="route" aria-labelledby="e1">
+    <div>
+      <h2 id="e1">001-trip-expenses</h2>
+      <p class="meta">5 stories · every route a merge rail<br><code>us3 → us4 → us5</code> inferred from shared files<br>3 merged · us4 paged while verifying · us5 pending</p>
+    </div>
+    <div class="mapwrap"><svg class="map" viewBox="0 0 1040 300" role="img" aria-label="Route map for 001-trip-expenses: us1, us2, us3 merged; us4 verifying and paged; us5 pending; landing line on the right with us4 short of PR_OPEN">
+      <defs><linearGradient id="half" x1="0" x2="1"><stop offset="50%" stop-color="var(--olive)"/><stop offset="50%" stop-color="var(--panel)"/></linearGradient><linearGradient id="most" x1="0" x2="1"><stop offset="78%" stop-color="var(--olive)"/><stop offset="78%" stop-color="var(--panel)"/></linearGradient><pattern id="cross" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="var(--panel)"/><path d="M6 6 L34 34 M34 6 L6 34" stroke="var(--ink)" stroke-width="2"/></pattern><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--panel)"/><rect width="2" height="6" fill="var(--aqua-ink)"/></pattern></defs>
+      <!-- merge rails (double line) -->
+      <path class="rail merged" d="M90 150 H210 M250 150 H370 M410 150 H530 M570 150 H690"/>
+      <path class="rail2" d="M90 150 H210 M250 150 H370 M410 150 H530 M570 150 H690"/>
+      <!-- landing line -->
+      <g transform="translate(930,0)">
+        <path class="landing" d="M0 260 V40"/><path class="landing-gap" d="M0 260 V40"/>
+        <text class="legendline" x="0" y="22" text-anchor="middle">landing line</text>
+        <g transform="translate(0,240)"><rect class="station PASSED" x="-8" y="-8" width="16" height="16" transform="skewX(-12)"/><text class="lab" x="16" y="4">PASSED</text></g>
+        <g transform="translate(0,176)"><rect class="station PR_OPEN" x="-8" y="-8" width="16" height="16" transform="skewX(-12)"/><text class="lab" x="16" y="4">PR_OPEN</text></g>
+        <g transform="translate(0,112)"><rect class="station ENQUEUED" x="-8" y="-8" width="16" height="16" transform="skewX(-12)"/><text class="lab" x="16" y="4">ENQUEUED</text></g>
+        <g transform="translate(0,48)"><rect class="station MERGED" x="-8" y="-8" width="16" height="16" transform="skewX(-12)"/><text class="lab" x="16" y="4">MERGED ×3</text></g>
+      </g>
+      <!-- stations -->
+      <g transform="translate(70,150)"><rect class="station MERGED" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us1</text><text class="cap MERGED" x="0" y="44" text-anchor="middle">merged</text></g>
+      <g transform="translate(230,150)"><rect class="station MERGED" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us2</text><text class="cap MERGED" x="0" y="44" text-anchor="middle">merged</text></g>
+      <g transform="translate(390,150)"><rect class="station MERGED" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us3</text><text class="cap MERGED" x="0" y="44" text-anchor="middle">merged</text></g>
+      <g transform="translate(550,150)"><rect class="paged-ring" x="-28" y="-28" width="56" height="56" transform="skewX(-12)"/><rect class="station VERIFYING" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-36" text-anchor="middle">us4</text><text class="cap VERIFYING" x="0" y="48" text-anchor="middle">verifying · paged</text><text class="lab" x="0" y="62" text-anchor="middle">attempt 3 of 6</text></g>
+      <g transform="translate(710,150)"><rect class="station PENDING" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us5</text><text class="cap PENDING" x="0" y="44" text-anchor="middle">pending</text></g>
+      <!-- token: us4 short of the landing line -->
+      <circle class="token" cx="830" cy="150" r="7"/><text class="lab" x="830" y="176" text-anchor="middle">us4 · held</text>
+      <path d="M735 150 H820" stroke="var(--rule)" stroke-width="1.5" fill="none"/>
+    </svg></div>
+  </section>
+
+  <section class="route" aria-labelledby="e2">
+    <div>
+      <h2 id="e2">077-a-scanner-the-operator-chooses</h2>
+      <p class="meta">5 stories · both edge kinds<br><code>us1</code> and <code>us2</code> same rank · <code>us3 ⇢ us2</code> on verification · <code>us4 ═ us2</code> on merge<br>us1 merged · us2 in the queue · us3 waiting on you · us4 running</p>
+    </div>
+    <div class="mapwrap"><svg class="map" viewBox="0 0 1040 400" role="img" aria-label="Route map for 077: us1 merged and us2 enqueued share the first column (same rank); us3 waits on us2's verification and is waiting on the operator; us4 is running; us5 waits on us4; landing line on the right with us2 between PR_OPEN and ENQUEUED">
+      <!-- dashed verification routes: us2⇢us3, us3⇢us4, us4⇢us5 -->
+      <path class="dep" d="M150 290 H370 M410 290 H610 M650 290 H850"/>
+      <!-- merge rail us2 ═ us4 (routed above the dashed line) -->
+      <path class="rail merged" d="M150 270 V200 H630 V270"/><path class="rail2" d="M150 270 V200 H630 V270"/>
+      <!-- landing line -->
+      <g transform="translate(930,0)">
+        <path class="landing" d="M0 340 V40"/><path class="landing-gap" d="M0 340 V40"/>
+        <text class="legendline" x="0" y="22" text-anchor="middle">landing line</text>
+        <g transform="translate(0,320)"><rect class="station PASSED" x="-8" y="-8" width="16" height="16" transform="skewX(-12)"/><text class="lab" x="16" y="4">PASSED</text></g>
+        <g transform="translate(0,230)"><rect class="station PR_OPEN" x="-8" y="-8" width="16" height="16" transform="skewX(-12)"/><text class="lab" x="16" y="4">PR_OPEN</text></g>
+        <g transform="translate(0,140)"><rect class="station ENQUEUED" x="-8" y="-8" width="16" height="16" transform="skewX(-12)"/><text class="lab" x="16" y="4">ENQUEUED · 4m</text></g>
+        <g transform="translate(0,48)"><rect class="station MERGED" x="-8" y="-8" width="16" height="16" transform="skewX(-12)"/><text class="lab" x="16" y="4">MERGED ×1</text></g>
+        <g class="travel"><circle class="token queue" cx="0" cy="230" r="7"/></g>
+        <text class="lab" x="-14" y="190" text-anchor="end">us2</text>
+      </g>
+      <!-- same-rank pair: one column, stacked -->
+      <g transform="translate(130,150)"><rect class="station MERGED" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us1</text><text class="cap MERGED" x="0" y="44" text-anchor="middle">merged</text></g>
+      <g transform="translate(130,290)"><rect class="station ENQUEUED" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us2</text><text class="cap ENQUEUED" x="0" y="44" text-anchor="middle">enqueued</text></g>
+      <text class="lab" x="130" y="228" text-anchor="middle">same rank</text>
+      <g transform="translate(390,290)"><rect class="station WAITING_OPERATOR" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us3</text><text class="cap WAITING_OPERATOR" x="0" y="44" text-anchor="middle">waiting on you</text><text class="lab" x="0" y="58" text-anchor="middle">question · 6h 58m</text></g>
+      <g transform="translate(630,290)"><rect class="station RUNNING" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us4</text><text class="cap RUNNING" x="0" y="44" text-anchor="middle">running</text><text class="lab" x="0" y="58" text-anchor="middle">attempt 1 · 12m</text></g>
+      <g transform="translate(870,290)"><rect class="station PENDING" x="-20" y="-20" width="40" height="40" transform="skewX(-12)"/><text class="id" x="0" y="-32" text-anchor="middle">us5</text><text class="cap PENDING" x="0" y="44" text-anchor="middle">pending</text></g>
+      <!-- legend for the two edge kinds, drawn once -->
+      <g transform="translate(130,372)">
+        <path class="rail merged" d="M0 0 H40"/><path class="rail2" d="M0 0 H40"/><text class="legendline" x="48" y="4">unlocks on merge</text>
+        <path class="dep" d="M200 0 H240"/><text class="legendline" x="248" y="4">unlocks on verification</text>
+      </g>
+    </svg></div>
+  </section>
+
+  <p class="quiet">One epic is open but refused its query (epic-053-worker-skew): shown here as a route with no stations, not hidden.</p>
+</main>
+<span class="comp-tag">COMP · synthetic states on real graphs</span>
+</body>
+</html>

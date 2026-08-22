@@ -502,6 +502,10 @@ and a non-responder identity and assert UNAUTHORIZED renders unsoftened.
 
 ## Assumptions
 
+- Answer's appearance — the clock, the choice buttons carrying their payloads, the
+  reply field, the ruling line — is governed by `DESIGN.md` (constitution VIII,
+  D-012). Scenarios here say *what* is shown and *what is sent*; DESIGN.md says
+  *how it looks*.
 - This spec depends on 001 landing first (`depends_on_landed`, D-008/D-010):
   its base contains the scaffold, gates, Fixture floor, and the Desk's
   attention read before any of its worktrees are cut. The repository contains no application code today;

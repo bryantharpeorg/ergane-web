@@ -271,3 +271,39 @@ builder's blind spots — D-008's reasoning, now applied to model choice); a
 `closer` on the metered alias "just in case" (a default that can bill is not
 opt-in; constitution VII's registry rule means the only safe absence is omission).
 
+## D-012 · A design system the factory's nodes inherit (decided)
+
+Decided 2026-08-22, between wiring and fixture capture, when the operator asked
+that the pane inherit a visual system rather than leave appearance to each
+implementer. No system existed in ergane to inherit (its `.impeccable/` is a hook
+cache), so one was set for this repository through a design interview and two
+rolled direction rounds with operator steers.
+
+1. **The world**: a launch-telemetry *mission timeline* — T-minus clocks for
+   attention items (anchored on the factory's `expires_at`), one milestone bar every
+   epic shares (PASSED → PR_OPEN → ENQUEUED → MERGED), large tabular numerals — fused
+   on the Showfloor with a *visible transit* staging: the work graph as a route map,
+   the landing run as a line with stations a node's token travels through.
+2. **The palette**: mid-century modern on a light **sage** ground — the operator
+   ruled out cream/beige ("anything but Claude beige") and red, and asked for a tame,
+   calm primary. Teal is the one accent; mustard, olive, clay carry verifying,
+   landing, and waiting-on-you; aqua carries upstream states. Every state is a glyph
+   plus a caption, never colour alone.
+3. **Where it lives**: `PRODUCT.md` (product truth), `DESIGN.md` (the visual
+   authority, recorded from the built comps), `.impeccable/mocks/` (the two comps and
+   `tokens.css`), `.impeccable/surfaces/` (the Desk and Showfloor briefs). All
+   committed so dispatched nodes, which cannot see the operator's home, read them
+   from the worktree.
+4. **Constitution amended**: Principle VIII binds every rendering diff to
+   `DESIGN.md`; the environment constraints name the pre-existing `web/public/fonts/`
+   (Red Hat Display/Text/Mono, OFL, vendored as variable woff2) that the scaffold
+   must keep. No roster change: the faces are files, not packages.
+5. **Specs**: 001 (US4), 002, and 003 reference DESIGN.md in their Assumptions; their
+   functional requirements and work graphs are unchanged — appearance is governed by
+   the constitution, not re-specified per story.
+
+Rejected: inheriting another repository's system (kalshi-trader's, tokenomics'):
+neither was made for an operator pane, and a borrowed identity is a borrowed
+argument. Rejected: leaving appearance to the implementer — eleven states, two edge
+kinds, and a paged-while-verifying case are exactly what an agent guesses wrong.
+

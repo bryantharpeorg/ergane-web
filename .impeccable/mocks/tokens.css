@@ -1,0 +1,102 @@
+/* Ergane pane — design tokens (source of truth for DESIGN.md; comps import this file).
+   World: launch-telemetry mission timeline, dressed in a mid-century modern palette on a
+   light sage ground (not cream, not beige). No red anywhere. State is never colour alone: every hue is doubled
+   by a glyph and a one-word caption. */
+
+@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:ital,wght@0,400;0,500;1,400&family=Red+Hat+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ground + ink */
+  --ground: #E3E8E0;        /* sage — a cool mid-century ground; never cream or beige */
+  --panel: #F4F6F1;         /* mist — near-white with a green cast */
+  --panel-deep: #D2D9CE;    /* moss grey, for wells and timeline tracks */
+  --ink: #23292A;           /* graphite with a green cast */
+  --ink-soft: #5C6962;      /* tinted secondary text (never neutral grey) */
+  --rule: #BDC7BA;          /* hairline */
+  --walnut: #3E4A3C;        /* headings, the Ergane mark: deep moss, not brown */
+
+  /* the four state hues (mid-century) */
+  --teal: #1F7A78;          /* live / RUNNING / the one accent */
+  --teal-ink: #0E4F4D;
+  --mustard: #D9A521;       /* VERIFYING / attention medium */
+  --mustard-ink: #7A5A06;
+  --olive: #6E7F3E;         /* landing run / MERGED */
+  --olive-ink: #415022;
+  --orange: #B9774F;        /* WAITING_OPERATOR / escalation high — muted clay, never red */
+  --orange-ink: #7A4A2B;
+  --aqua: #8FB8C9;          /* PENDING / KEY_ISSUED — upstream, not yet live */
+  --aqua-ink: #3E6C80;
+
+  /* type */
+  --display: "Red Hat Display", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --text: "Red Hat Text", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --mono: "Red Hat Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --fs-clock: clamp(1.9rem, 2.6vw, 2.6rem);
+  --fs-display: 1.5rem;
+  --fs-readout: 1.25rem;     /* epic readout numerals: between body and display, mono, tabular */
+  --fs-body: 0.95rem;
+  --fs-small: 0.8125rem;
+  --fs-micro: 0.6875rem;
+
+  /* rhythm */
+  --s1: 0.25rem; --s2: 0.5rem; --s3: 0.75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2rem; --s7: 3rem;
+  --radius: 3px;             /* mid-century: tight radii, no pills except chips */
+  --chip: 999px;
+  --shadow: 0 2px 6px rgba(42, 42, 38, 0.12), 0 10px 24px -12px rgba(42, 42, 38, 0.18);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; }
+html { background: var(--ground); color: var(--ink); }
+body { margin: 0; font-family: var(--text); font-size: var(--fs-body); line-height: 1.45; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--walnut); text-wrap: balance; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.micro { font-size: var(--fs-micro); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); font-weight: 500; }
+a { color: var(--teal-ink); }
+
+/* ——— masthead: the two rooms, one line ——— */
+.mast { display: flex; align-items: baseline; gap: var(--s5); padding: var(--s4) var(--s6) var(--s3); border-bottom: 1px solid var(--rule); }
+.mast .mark { font-family: var(--display); font-weight: 700; font-size: 1.125rem; color: var(--walnut); letter-spacing: 0.02em; }
+.mast .mark::before { content: ""; display: inline-block; width: 0.55em; height: 0.55em; background: var(--teal); transform: rotate(45deg); margin-right: 0.6em; vertical-align: 0.05em; }
+.mast nav { display: flex; gap: var(--s4); font-family: var(--display); font-weight: 500; }
+.mast nav a { color: var(--ink-soft); text-decoration: none; padding-bottom: 2px; border-bottom: 2px solid transparent; }
+.mast nav a[aria-current] { color: var(--ink); border-bottom-color: var(--teal); }
+.mast .floorline { margin-left: auto; font-size: var(--fs-small); color: var(--ink-soft); display: flex; gap: var(--s3); align-items: center; }
+.live { display: inline-flex; align-items: center; gap: 0.4em; color: var(--teal-ink); font-weight: 500; }
+.live::before { content: ""; width: 0.5em; height: 0.5em; border-radius: 50%; background: var(--teal); animation: breathe 2.4s var(--ease-out) infinite; }
+@keyframes breathe { 0%, 100% { transform: scale(1); opacity: 1 } 50% { transform: scale(0.6); opacity: 0.55 } }
+@media (prefers-reduced-motion: reduce) { .live::before { animation: none; } }
+
+@media (max-width: 900px) { .mast { flex-wrap: wrap; padding: var(--s3) var(--s4); } .mast .floorline { margin-left: 0; width: 100%; flex-wrap: wrap; } }
+
+/* ——— state chevrons: the one glyph family ——— */
+.chev { display: inline-grid; grid-auto-flow: column; align-items: center; gap: 0.45em; font-family: var(--display); font-weight: 600; font-size: var(--fs-small); letter-spacing: 0.02em; white-space: nowrap; }
+.chev i { width: 0.95em; height: 0.95em; display: inline-block; clip-path: polygon(0 0, 70% 0, 100% 50%, 70% 100%, 0 100%, 30% 50%); background: currentColor; }
+.st-PENDING { color: var(--aqua-ink); } .st-PENDING i { background: transparent; box-shadow: inset 0 0 0 2px currentColor; clip-path: none; transform: skewX(-20deg); }
+.st-KEY_ISSUED { color: var(--aqua-ink); } .st-KEY_ISSUED i { background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 5px); }
+.st-RUNNING { color: var(--teal-ink); } .st-RUNNING i { background: var(--teal); animation: breathe 2.4s var(--ease-out) infinite; }
+.st-VERIFYING { color: var(--mustard-ink); } .st-VERIFYING i { background: var(--mustard); }
+.st-PASSED { color: var(--olive-ink); } .st-PASSED i { background: transparent; box-shadow: inset 0 0 0 2px var(--olive); clip-path: none; transform: skewX(-20deg); }
+.st-PR_OPEN { color: var(--olive-ink); } .st-PR_OPEN i { background: linear-gradient(90deg, var(--olive) 50%, transparent 50%); box-shadow: inset 0 0 0 2px var(--olive); clip-path: none; transform: skewX(-20deg); }
+.st-ENQUEUED { color: var(--olive-ink); } .st-ENQUEUED i { background: linear-gradient(90deg, var(--olive) 78%, transparent 78%); box-shadow: inset 0 0 0 2px var(--olive); clip-path: none; transform: skewX(-20deg); }
+.st-MERGED { color: var(--olive-ink); } .st-MERGED i { background: var(--olive); clip-path: none; transform: skewX(-20deg); }
+.st-FAILED { color: var(--ink); } .st-FAILED i { background: transparent; clip-path: none; position: relative; }
+.st-FAILED i::before, .st-FAILED i::after { content: ""; position: absolute; inset: 45% -10%; height: 2px; background: currentColor; transform: rotate(45deg); }
+.st-FAILED i::after { transform: rotate(-45deg); }
+.st-KILLED { color: var(--ink-soft); text-decoration: line-through; } .st-KILLED i { background: var(--ink-soft); opacity: 0.5; }
+.st-WAITING_OPERATOR { color: var(--orange-ink); } .st-WAITING_OPERATOR i { background: var(--orange); clip-path: none; border-radius: 50% 50% 2px 2px; }
+/* paged while verifying: the state stays VERIFYING; the page is a ring around it */
+.paged i { outline: 2px solid var(--orange); outline-offset: 2px; }
+.paged::after { content: "paged"; font-family: var(--text); font-weight: 500; font-size: var(--fs-micro); color: var(--orange-ink); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ——— buttons (Desk only; the Showfloor has none) ——— */
+.btn { font-family: var(--display); font-weight: 600; font-size: var(--fs-small); border: 1.5px solid var(--ink); background: var(--panel); color: var(--ink); padding: 0.5em 0.9em; border-radius: var(--radius); cursor: pointer; transition: transform 0.18s var(--ease-out), background 0.18s; }
+.btn:hover { background: var(--panel-deep); transform: translateY(-1px); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn-answer { background: var(--teal); border-color: var(--teal-ink); color: #fff; }
+.btn-answer:hover { background: var(--teal-ink); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.comp-tag { position: fixed; left: var(--s4); bottom: var(--s4); font: 500 var(--fs-micro)/1 var(--mono); letter-spacing: 0.08em; color: var(--ink-soft); background: var(--panel); border: 1px solid var(--rule); padding: 0.4em 0.6em; border-radius: var(--radius); }
