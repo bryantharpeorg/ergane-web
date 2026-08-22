@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Browsers installed by the postinstall script live inside node_modules so that
+// a fresh HOME (the factory gate sandbox) still finds them.
+process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || "0";
+
 export default defineConfig({
   testDir: "tests/smoke",
   reporter: "list",
