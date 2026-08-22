@@ -4,7 +4,7 @@
   "seam": "WorkflowHandle.query(\"epic_status\") after COMPLETED",
   "workflow_id": "epic-fx-question-e8c371",
   "notes": "the question was answered through CallbackBridge.handle_relay; attempt 2 passed and landed",
-  "document": "epic-status/fx-question-e8c371-final.json",
+  "document": "epic-status/question/final.json",
   "run_id": "run-20260822T174042Z-a692e2",
   "recorder": "scripts/record-fixtures-harness.py",
   "ergane_checkout_revision": "6443221",

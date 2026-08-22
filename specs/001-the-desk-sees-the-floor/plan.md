@@ -113,13 +113,16 @@ rationale, alternatives.
   `"status": "pending"`. Any other exception propagates: a bug is not a
   degraded read. *Rejected*: a boolean `degraded` flag (loses the 052 distinction).
 - **R-003 · The demo floor is composed from recorded documents, declared in code.**
-  `floor/floor-live.json` was captured while one epic ran; the on-cue scenes
-  (paged-while-verifying, refusal, skew, landing run) were provoked separately and
-  are not listed by that floor. Constitution V forbids editing the recording to
-  list them, so `FixtureReader.read_floor()` returns the recorded FloorStatus
-  verbatim *and* a running-epic list composed from a committed scene table in
-  `pane/fixture_floor.py` (one entry per recorded `epic_status` document the
-  Desk must show, bound to its `workgraph.json`; a polled directory contributes
+  `fixtures/floor/floor-live.json` was captured while one epic ran; the on-cue
+  scenes (paged-while-verifying, refusal, skew, landing run) were provoked
+  separately and are not listed by that floor. Constitution V forbids editing the
+  recording to list them, so `FixtureReader.read_floor()` returns the recorded
+  FloorStatus verbatim *and* a running-epic list composed from a committed scene
+  table in `pane/fixture_floor.py` (one entry per recorded `epic_status` document
+  the Desk must show, bound to its `workgraph.json` **where one was recorded** —
+  only the polled `002-expense-notes` scene and the skew scene have one, and the
+  skew pairing is the operator's, declared in that document's envelope under
+  `pair_with`; a polled directory contributes
   its highest `sequence`). In live mode the running list is the projection
   `[epic.epic_id for epic in floor.epics]` — no re-derivation. A document entry
   composed from a scene carries `scene: "<file stem>"` so two scenes recorded
@@ -157,8 +160,14 @@ rationale, alternatives.
   falling back to the floor envelope) in demo mode and `null` live; the Desk
   computes against it when present and against the wall clock otherwise. Only a
   factory-written `expires_at` yields a clock; an item without one shows no
-  deadline (every recorded Question payload in 001). *Rejected*: minting an
-  expiry from receipt time (FR-019 forbids it).
+  deadline — in 001 that is the recorded webhook Question payload
+  (`fixtures/webhook/question.json`), which carries none. *Rejected*: minting an
+  expiry from receipt time (FR-019 forbids it). *Forward note*: spec 003/US3
+  replaces 001's stand-in Question source with the questions store's
+  factory-written `expires_at` (`fixtures/questions/pending_questions.json`,
+  live `factory.verify.store`) and amends the 001 tests and smoke wording that
+  assert "no deadline" — 003 declares those amendments task by task; 001 asserts
+  the stand-in as it stands.
 - **R-009 · No build backend, no `@types/node`, tsc scoped to the app and unit
   tests.** `pyproject.toml` sets `[tool.uv] package = false` and
   `[tool.pytest.ini_options] pythonpath = ["."]`; `uvicorn` and Playwright run
@@ -235,7 +244,9 @@ web/
 │   ├── styles/tokens.css        # US1: DESIGN.md tokens as CSS custom properties (comp names kept)
 │   ├── styles/global.css        # US1: ground, body, headings, masthead, chevron grammar, wells, tables, motion
 │   ├── api/floorDocument.ts     # US3: TS types mirroring contracts/floor-document.md
-│   ├── api/events.ts            # US3: SSE consumer; ignores unknown event types
+│   ├── api/events.ts            # US3: SSE consumer; ignores unknown event types.
+│   │                            #      subscribeFloor(url, onFloor, onAttention?): 003 adds the third
+│   │                            #      argument; it is optional, so 001's and 002's call sites compile unchanged
 │   └── desk/
 │       ├── Desk.tsx             # US4: fetch /api/floor, subscribe /api/events, fixed section order
 │       ├── AttentionStrip.tsx   # US4
@@ -315,18 +326,29 @@ The loader reads every document through the layout `fixtures/README.md` fixes:
 
 | Read | Fixture | Failure mapping |
 |---|---|---|
-| `read_floor()` | `floor/floor-live.json` (running list from `SCENES` ∪ its `epics`) | missing/pending → `TransportFailed("floor")` |
-| `epic_status(workflow_id)` | the scene's `epic-status/**/<file>.json` | a `refusal` key → `QueryRefused(doc["refusal"])`; missing → `TransportFailed` |
-| `workgraph(epic_id)` | `workgraphs/<epic_id>.json` (or the scene's `workgraphs/skew-*.json`) | missing → `TransportFailed` |
-| `open_escalations()` | `escalations/open_escalations.json` | missing/pending → `TransportFailed("attention")` |
-| `stored_questions()` | `webhook/question.json` (each recorded Question payload) | missing → `[]` plus a transport entry |
-| `list_findings()` | `doctor/findings.json` | missing/pending → `TransportFailed("health")` |
-| `rollup()` | `usage/rollup-by-persona.json` | missing/pending → `TransportFailed("spend")` |
+| `read_floor()` | `fixtures/floor/floor-live.json` (running list from `SCENES` ∪ its `epics`) | missing/pending → `TransportFailed("floor")` |
+| `epic_status(workflow_id)` | the scene's document under `fixtures/epic-status/**/` (tasks.md T023 names each) | a `refusal` key → `QueryRefused(doc["refusal"])`; missing → `TransportFailed` |
+| `workgraph(ref)` | `fixtures/workgraphs/<ref>.json` — only `002-expense-notes.json` is reachable this way: it is the polled scene's own graph and, per its envelope's `pair_with`, the skew scene's | **no recorded graph for the landing, paged, question and refusal scenes** → the read of the absent `fixtures/workgraphs/<epic_id>.json` raises the loader's missing-document `TransportFailed`, one `degraded` entry per scene, and those scenes' nodes render `declared: false` |
+| `open_escalations()` | `fixtures/escalations/open_escalations.json` | missing/pending → `TransportFailed("attention")` |
+| `stored_questions()` | `fixtures/webhook/question.json` — the one recorded Question payload, which carries no expiry (003 replaces this source with the questions store) | missing → `[]` plus a transport entry |
+| `list_findings()` | `fixtures/doctor/findings.json` | missing/pending → `TransportFailed("health")` |
+| `rollup()` | `fixtures/usage/rollup-by-persona.json` | missing/pending → `TransportFailed("spend")` |
 
-`floor/floor-quiet.json` is not served by the demo route; it is loaded directly by
-tests (FR-025). The webhook Escalation and Notice payloads, the stored Question
-document, and the bridge rulings are validated by US2's shape tests and left for
-003. `PANE_DEMO_TRANSPORT_FAIL` (R-004) is honoured only when `PANE_DEMO=1`.
+**The demo floor is degraded by construction, and that is the point.**
+`fixtures/workgraphs/` holds exactly three graphs (`001-trip-expenses`,
+`002-expense-notes`, `077-a-scanner-the-operator-chooses-runs-in-the-loop`); four
+of the six staged scenes have none, because a scene provoked through the harness
+never had a `workgraph.json` to record. Constitution V forbids inventing one and
+constitution III requires the missing read to be said out loud, so a clean
+`PANE_DEMO=1` run carries five `degraded` entries — one transport entry per
+scene with no recorded graph (landing, paged, question, refusal) plus the refusal
+scene's own `epic_status` refusal entry — and no test may assert `degraded == []`.
+
+`fixtures/floor/floor-quiet.json` is not served by the demo route; it is loaded
+directly by tests (FR-025). The webhook Escalation and Notice payloads, the stored
+Question documents under `fixtures/questions/`, and the bridge rulings are
+validated by US2's shape tests and left for 003. `PANE_DEMO_TRANSPORT_FAIL`
+(R-004) is honoured only when `PANE_DEMO=1`.
 
 ## Gates, per story
 
@@ -359,8 +381,11 @@ page headless and asserts the stylesheet set.
 recorded document against ergane's contracts by importing ergane's own types
 (`factory.workgraph.models.WorkNode`, `NodeState`, `factory.doctor.models.Finding`)
 where they exist and by field assertions where the contract is a JSON shape. The
-credential sweep covers every byte under `fixtures/`. README edits document the
-scene table and the loader's missing-document rule. **No payload is added or
+credential sweep covers every byte under `fixtures/`. The one README edit is
+**additive**: a new section documenting the scene table, the scene→workgraph
+pairing, and the loader's missing-document rule. `fixtures/README.md`'s layout
+table and its Re-recording block already match the committed tree and are not
+rewritten. **No payload is added or
 modified**; a test asserts `git` sees no change under `fixtures/**/*.json` other
 than `README.md` is not possible from inside a diff, so the tasks forbid it in words
 and the judge reads the diff.

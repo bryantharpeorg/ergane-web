@@ -1,10 +1,10 @@
 {
   "captured_at": "2026-08-22T17:40:43Z",
   "scene": "landing",
-  "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+  "seam": "WorkflowHandle.query(\"epic_status\") \u2014 raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
   "workflow_id": "epic-fx-landing-f0a0d6",
   "notes": "distinct snapshot #1 of epic fx-landing-f0a0d6, polled every 0.5s",
-  "document": "epic-status/fx-landing-f0a0d6-01-RUNNING_.json",
+  "document": "epic-status/landing/01-RUNNING_.json",
   "run_id": "run-20260822T174042Z-a692e2",
   "recorder": "scripts/record-fixtures-harness.py",
   "ergane_checkout_revision": "6443221",

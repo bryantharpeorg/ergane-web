@@ -61,7 +61,7 @@ Rules:
   "epic_state": "RUNNING" | "unknown",                         // from the epic_status answer; "unknown" when absent
   "nodes": [ NodeCard, ... ],                                   // workgraph order first, then undeclared nodes
   "status_seam": "EpicWorkflow.epic_status on epic-<epic_id>",
-  "workgraph_seam": "<specs_root>/<epic_id>/workgraph.json"
+  "workgraph_seam": "<specs_root>/<epic_id>/workgraph.json"   // demo: fixtures/workgraphs/<ref>.json
 }
 ```
 
@@ -69,6 +69,12 @@ An epic whose `epic_status` read failed still appears with `nodes` built from th
 workgraph alone (every live field defaulted) and a `DegradedEntry` naming it. An
 epic whose workgraph read failed appears with `nodes` built from the answer alone
 (every node `declared: false`).
+
+That second case is the normal demo case, not an exotic one: `fixtures/workgraphs/`
+holds three recorded graphs, and four of the six staged scenes (landing, paged,
+question, refusal) have none, so their entries carry `declared: false` cards and a
+transport `DegradedEntry` apiece. A consumer that assumes `degraded` is empty, or
+that every card is declared, is wrong against the committed set.
 
 ### `NodeCard`
 
@@ -103,13 +109,22 @@ epic whose workgraph read failed appears with `nodes` built from the answer alon
 }
 ```
 
+001's `stored_questions` source is a stand-in: the recorded webhook payload
+`fixtures/webhook/question.json`, which carries no expiry, hence `expires_at: null`
+and no clock on the Desk. Spec 003/US3 replaces that source with the questions
+store (`factory.verify.store`; recorded at
+`fixtures/questions/pending_questions.json`, whose rows carry a factory-written
+`expires_at`), adds the `notice` kind, and amends the 001 tests that pin the
+stand-in. The field's rule does not change: `expires_at` is copied from the
+factory's document or is `null` — never minted (FR-019).
+
 ### `DegradedEntry`
 
 ```jsonc
 {
   "section": "floor" | "epics" | "attention" | "health" | "spend_to_date",
   "mode": "transport" | "refusal",
-  "epic_id": "053-worker-skew" | null,            // set for per-epic reads
+  "epic_id": "fx-landing-f0a0d6" | null,          // set for per-epic reads
   "read": "epic_status" | "workgraph" | "collect_floor" | "open_escalations" | "stored_questions" | "list_findings" | "rollup",
   "detail": "the seam's own message, verbatim"
 }
@@ -130,6 +145,10 @@ never merged into one entry, and a view renders them with different words.
   event on any subscription is a full snapshot, so a reconnecting client never
   applies a diff against state it no longer holds.
 - Consumers ignore an event whose `type` they do not know, without error.
+- The consumer seam is `subscribeFloor(url, onFloor)` in `web/src/api/events.ts`.
+  Spec 003 extends it to `subscribeFloor(url, onFloor, onAttention?)`; the third
+  parameter is optional and reserved for 003's `attention` event, so 001's and
+  002's call sites compile unchanged.
 - The poll interval is `PANE_POLL_INTERVAL_S` (float seconds; committed default
   `15`).
 - No credential value ever appears in an event.

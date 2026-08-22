@@ -135,8 +135,8 @@ carry *what* is shown.
 | `.edge-pass` + `[data-edge-kind="pass"]` | the rendered edge | FR-009: dashed pass-edge |
 | `.edge-merge` + `[data-edge-kind="merge"]` | the rendered edge | FR-009: solid merge-edge |
 | `[data-legend]` with `[data-legend-kind="pass"]` and `[data-legend-kind="merge"]` | once per epic map | US2-S5: each names its kind and quotes its glossary definition verbatim (the strings in §3) |
-| `[data-attention-badge]` | an `<a>` in the masthead | FR-017: present iff open attention items > 0; text is the count; `href` is the Desk route (`/desk`, 001 R-010) |
-| `[data-attention-degraded][data-mode="transport"\|"refusal"]` | in the badge's place | FR-017: the attention read degraded; text names what could not be learned; never the numeral 0 |
+| `[data-attention-badge]` | an `<a>` in the masthead | FR-017: present iff open attention items > 0; text is the count — `attention.items.length`, unfiltered, because 003's `contracts/api.md` declares that list carries only unsettled items; `href` is the Desk route (`/desk`, 001 R-010) |
+| `[data-attention-degraded][data-mode="transport"\|"refusal"]` | in the badge's place | FR-017: the attention section carries a degraded entry — present whether or not items are also present, and no count renders beside it; text names what could not be learned; never the numeral 0 |
 
 Rules:
 

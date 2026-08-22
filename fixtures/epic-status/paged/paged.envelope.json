@@ -4,7 +4,7 @@
   "seam": "WorkflowHandle.query(\"epic_status\") while the node is parked on an EscalationWorkflow child",
   "workflow_id": "epic-fx-paged-5e2e8a",
   "notes": "state == VERIFYING and awaiting_operator == true: the ladder returned ESCALATE after 2 failing attempts (max_attempts=2, debugger_cycles=0)",
-  "document": "epic-status/fx-paged-5e2e8a-paged.json",
+  "document": "epic-status/paged/paged.json",
   "run_id": "run-20260822T174042Z-a692e2",
   "recorder": "scripts/record-fixtures-harness.py",
   "ergane_checkout_revision": "6443221",

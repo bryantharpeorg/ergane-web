@@ -1,10 +1,10 @@
 {
   "captured_at": "2026-08-22T17:41:13Z",
   "scene": "question",
-  "seam": "WorkflowHandle.query(\"epic_status\") — raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+  "seam": "WorkflowHandle.query(\"epic_status\") \u2014 raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
   "workflow_id": "epic-fx-question-e8c371",
   "notes": "distinct snapshot #3 of epic fx-question-e8c371, polled every 0.5s",
-  "document": "epic-status/fx-question-e8c371-03-PAUSED_us1-WAITING_OPERATOR+op.json",
+  "document": "epic-status/question/03-PAUSED_us1-WAITING_OPERATOR+op.json",
   "run_id": "run-20260822T174042Z-a692e2",
   "recorder": "scripts/record-fixtures-harness.py",
   "ergane_checkout_revision": "6443221",

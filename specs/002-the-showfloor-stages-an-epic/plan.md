@@ -134,15 +134,16 @@ the README 001 wrote.
 ### Source Code (repository root)
 
 Files this spec **creates** are marked `+`; files 001 landed that this spec
-**edits** are marked `~`. 001's names are taken from its plan
-(`specs/001-the-desk-sees-the-floor/plan.md`) and contracts; the landed tree
-is the final word, and a task names the role beside the path.
+**edits** are marked `~`; a file the concurrently-built 003 also writes is
+marked `‖003` (Decision 11 — keep the hunks disjoint). 001's names are taken
+from its plan (`specs/001-the-desk-sees-the-floor/plan.md`) and contracts; the
+landed tree is the final word, and a task names the role beside the path.
 
 ```text
 pane/
 ├── readers.py                   (001) Reader protocol, TransportFailed, QueryRefused — imported, never edited
-├── fixture_floor.py             ~ (001) SCENES table — edited only if no scene stages a both-edge-kinds workgraph (Risks)   [US2]
-├── floor_document.py            ~ (001's assemble_floor_document) call assemble_stage per running epic; attach `stage`   [US1]
+├── fixture_floor.py             ~ (001) SCENES table — edited only if no scene stages a both-edge-kinds workgraph (Risks)   [US2]  ‖003
+├── floor_document.py            ~ (001's assemble_floor_document) call assemble_stage per running epic; attach `stage`   [US1]  ‖003
 └── stage.py                     + assemble_stage(epic_id, workgraph_or_failure, live_outcome) -> dict   [US1]
 
 tests/                           (001's pytest directory; pythonpath = ["."])
@@ -155,7 +156,7 @@ web/
 ├── src/
 │   ├── App.tsx                  ~ (001's room switch on window.location.pathname) add the /showfloor case   [US2]
 │   ├── Masthead.tsx             + the shared masthead extracted from App.tsx if 001 left it inline, with an optional `trailing` slot   [US2; slot filled in US4]
-│   ├── api/floorDocument.ts     ~ (001's TS mirror of the floor document) add `stage?: StageDocument` to EpicEntry   [US2]
+│   ├── api/floorDocument.ts     ~ (001's TS mirror of the floor document) add `stage?: StageDocument` to EpicEntry   [US2]  ‖003
 │   ├── api/events.ts            (001's SSE consumer) imported, never forked
 │   ├── styles/tokens.css        (001's DESIGN.md tokens) imported, never forked
 │   ├── showfloor/
@@ -188,7 +189,7 @@ web/
     │   ├── states.test.ts           + [US3]
     │   └── AttentionBadge.test.tsx  + [US4]
     └── smoke/
-        └── showfloor.spec.ts        + stages the Fixture floor headless: nodes once each, both edge kinds, legend; full-bleed in US3; sweep in US4   [US2]
+        └── showfloor.spec.ts        + stages the Fixture floor headless: nodes once each, both edge kinds, legend; full-bleed in US3; sweep in US4   [US2]  ‖003
 ```
 
 **Structure Decision**: the backend gains one pure module and no route; the
@@ -197,7 +198,11 @@ tree in exactly four places (the room switch, the masthead, the `EpicEntry`
 type, and the floor-document assembler). Everything that renders lives under
 `web/src/showfloor/` — the surface brief's `primary_target` — so US3 and US4,
 which edit the room US2 creates, edit one directory and the merge-edge chain
-in the work graph orders them.
+in the work graph orders them. Three of those four touches into 001's tree,
+plus the smoke spec this spec creates, are also written by the concurrently
+built 003 (`‖003` above); nothing in the work graph can order those, so each
+task line names its sibling writer instead (Decision 11, tasks.md §
+Concurrent epic).
 
 ## Decisions
 
@@ -308,6 +313,30 @@ FR-016's non-interactive flow props land in US4's diff, not US2's, because
 FR-016 is US4's requirement and the judge grades a node's diff against its own
 FRs; US2 mounts no chrome and nothing writes in the interval.
 
+**11. 003 is concurrent, so the shared hunks are kept apart by hand.**
+`ergane.yaml` declares `roadmap.max_concurrent_epics: 2` and both 002 and 003
+carry exactly `depends_on_landed: [001-the-desk-sees-the-floor]`. The roadmap
+grammar has no ordering edge between two specs and the workgraph grammar
+scopes edges to one spec, so no graph change can sequence them: once 001
+lands, both dispatch and every node branches from `dev`. Four files take a
+diff from each epic — `pane/floor_document.py` (this spec's `stage` key in the
+per-epic join loop vs 003's rebuild of the attention section),
+`web/src/api/floorDocument.ts` (`stage?` on `EpicEntry` vs 003's
+`AttentionItem` extension), `pane/fixture_floor.py` (at most one SCENES row vs
+003's store seeding and four `FixtureReader` seam halves), and
+`web/tests/smoke/showfloor.spec.ts` (created here, authenticated by 003's
+token gate). The mitigation is the only one available: keep each hunk as small
+and as far from the sibling's as the file allows, and name the sibling writer
+on the task line so the implementer knows what not to touch (T006, T016,
+T033). Two shared *shapes* are handled the same way — 001's `subscribeFloor`
+gains an optional third argument in 003, so T025 calls it with two and never
+re-types it; and the floor document's `attention.items` carries only unsettled
+items per 003's `contracts/api.md`, which is what lets T049 keep
+`items.length` as the count and what T053 deliberately stops short of
+re-asserting. Rejected: a `depends_on_landed` edge from 003 to 002 (it would
+serialise two independent epics to buy nothing this roster does not already
+buy, and neither spec's stories need the other's code).
+
 ## Story-by-story approach
 
 **US1 — the join (backend).** `pane/stage.py` exports `assemble_stage`. It
@@ -347,27 +376,48 @@ the three CSS motions under the reduced-motion gate; the theme axis of
 **US4 — the badge.** `AttentionBadge` reads the floor document's `attention`
 section and its `degraded` entries for section `attention` — a count, or a
 `transport` / `refusal` entry — and renders one `<a href="/desk">` or a
-`[data-attention-degraded]` note in the masthead's `trailing` slot. The
+`[data-attention-degraded]` note in the masthead's `trailing` slot. The count
+is `attention.items.length` with no filtering in the component: 003's
+`contracts/api.md` declares that list carries only unsettled items, settled
+ones being reachable through `GET /api/attention`, so the length is the number
+waiting on the operator whichever epic lands first (Decision 11). The
 `event-source-double` lets a test push `floor` events and watch the count
 move. `EpicStage` gets its non-interactive flow props. The sweep runs in
 Playwright against the finished room; the flow-props test reads the double's
-recorded mount props.
+recorded mount props. The backend-side test pins only the section's `degraded`
+entries — the half of the attention section 003 does not redesign.
 
 ## Risks and traps
 
 - **The demo floor must stage an epic carrying both edge kinds.** 001 R-003
-  composes the demo running list from `floor/floor-live.json`'s epics plus a
-  committed scene table in `pane/fixture_floor.py` (code, not a payload).
-  SC-001's "both edge kinds" clause needs a staged workgraph that carries both
-  — `workgraphs/077-…json` does; `002-expense-notes` carries only a merge-edge.
-  If the landed scene table stages no such workgraph, US2 adds one scene row
-  binding 077 to its recorded `epic_status` document if one exists by then, or
-  — the honest fallback — stages 077 with its status read reported as the
-  loader's missing-document `TransportFailed` (a `transport` note on a static
-  graph, exactly what US1-S3 proves); either touches 001's code, never a
-  payload (constitution V), and the Desk's degraded well then names one more
+  composes the demo running list from `fixtures/floor/floor-live.json`'s epics
+  plus a committed scene table in `pane/fixture_floor.py` (code, not a
+  payload). SC-001's "both edge kinds" clause needs a staged workgraph that
+  carries both — `fixtures/workgraphs/077-a-scanner-the-operator-chooses-runs-in-the-loop.json`
+  does (five nodes, three pass-edges, one merge-edge, and the `us1`/`us2`
+  same-rank pair); `fixtures/workgraphs/002-expense-notes.json` carries only a
+  merge-edge. If the landed scene table stages no such
+  workgraph, US2 adds one scene row binding 077 to its recorded `epic_status`
+  document if one exists by then — `fixtures/epic-status/` records
+  `002-expense-notes/`, `landing/`, `paged/`, `question/`, `refusal.json`,
+  `refusal-exception.json` and `skew/`, and nothing for 077, so today it does
+  not — or, the honest fallback, stages 077 with its status read reported as
+  the loader's missing-document `TransportFailed` (a `transport` note on a
+  static graph, exactly what US1-S3 proves); either touches 001's code, never
+  a payload (constitution V), and the Desk's degraded well then names one more
   transport fact, which 001's tests must still accept. The unit tests over
-  the 077 workgraph hold regardless.
+  the 077 workgraph hold regardless. The same honest degradation is the
+  landing, paged, question, and refusal scenes' normal state: none of them has
+  a recorded workgraph, so their workgraph read is the loader's
+  missing-document `TransportFailed` and their nodes render `declared: false`
+  — a fact the spec's US1-S6 already names, not a defect to design around.
+- **Two epics write four of these files.** 002 and 003 run concurrently
+  (Decision 11); `pane/floor_document.py`, `web/src/api/floorDocument.ts`,
+  `pane/fixture_floor.py`, and `web/tests/smoke/showfloor.spec.ts` each have a
+  writer in both. The trap is a diff that is *correct* and *wider than its
+  task*: a reformatted import block, a signature tidied in passing, a
+  test-file reorganisation. Whichever epic lands second then rebases by hand
+  in the merge queue. tasks.md § Concurrent epic is the roster.
 - **A test the gate does not collect proves nothing.** pytest collects
   `tests/` from the root; vitest collects `web/tests/unit/`; Playwright
   collects `web/tests/smoke/`. Check each gate's output names the new file.

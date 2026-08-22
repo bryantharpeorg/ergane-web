@@ -68,13 +68,24 @@ Notice per DESIGN.md's attention ranking), then `in_flight`, then `settled`. An 
 whose `expires_at` has passed stays in its rank, reads expired, and keeps its controls
 (FR-013).
 
+**Which surface carries which items** (declared in contracts/api.md § Attention list ›
+What each surface carries): the floor document's `attention` section carries only the
+items whose state is not `settled`; `GET /api/attention` carries all of them, settled
+last. No row is ever deleted (invariant 5), so without that split 002's Showfloor badge
+— which counts `attention.items.length` as "waiting on you" — would count settled work
+forever.
+
 ## The joins (read time, outermost reader seams)
 
 | Stored kind | Factory read | Fields taken | Demo source |
 |---|---|---|---|
-| escalation | `Reader.read_escalation_fate(correlation_id)` — `LiveReader`: the `escalation_status` query on workflow `correlation_id`, falling back to the `open_escalations` entry 001 already reads | `expires_at`, `resolution` | `FixtureReader`: `fixtures/escalations/open_escalations.json` |
-| question | `Reader.read_question(correlation_id)` — `LiveReader`: `get_question(connect_readonly(<resolved questions store>), correlation_id)` | `expires_at`, `resolution` | `FixtureReader`: `fixtures/questions/pending_questions.json` |
+| escalation | `Reader.read_escalation_fate(correlation_id)` — `LiveReader`: the `escalation_status` query on workflow `correlation_id`, falling back to the `open_escalations` entry 001 already reads | `expires_at`, `resolution` | `FixtureReader`: `fixtures/escalations/open_escalations.json` — a bare JSON **array**; its one entry is `d10263341dac`, the correlation id of `fixtures/webhook/escalation.json` |
+| question | `Reader.read_question(correlation_id)` — `LiveReader`: `get_question(connect_readonly(<resolved questions store>), correlation_id)` | `expires_at`, `resolution` | `FixtureReader`: `fixtures/questions/pending_questions.json` — an **object** with keys `pending_questions` (list of rows) and `get_question` (one row), not a bare array; its one row is `800ee6b4c7df`, the correlation id of `fixtures/webhook/question.json`, carrying the factory-written `expires_at` `2026-08-23T01:41:13Z` (`sent_at` + 28800 s) |
 | notice | none | — | — |
+
+The stored attention item the Desk reads never carries an `expires_at` of the pane's
+own making: before the join it is `null`, after the join it is whatever the factory
+reported, and a failed join leaves it `null` with a `degraded` entry beside it.
 
 A read that fails (`TransportFailed` / `QueryRefused`, 001's two modes) is a degraded
 entry on the item; the item still renders, with no deadline (FR-012) and its delivered

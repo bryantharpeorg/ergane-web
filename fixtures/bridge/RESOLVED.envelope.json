@@ -4,7 +4,7 @@
   "seam": "factory.notify.service.CallbackBridge(db_path, client, authorized_responders=()).handle_relay(InboundRelay)",
   "workflow_id": "800ee6b4c7df",
   "notes": "the open question answered with the harness's ANSWER_TEXT; signals the QuestionWorkflow, then the guarded UPDATE",
-  "document": "bridge/resolved.json",
+  "document": "bridge/RESOLVED.json",
   "run_id": "run-20260822T174042Z-a692e2",
   "recorder": "scripts/record-fixtures-harness.py",
   "ergane_checkout_revision": "6443221",
