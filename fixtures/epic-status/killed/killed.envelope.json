@@ -1,0 +1,10 @@
+{
+  "captured_at": "2026-08-22T20:55:06+00:00",
+  "seam": "EpicWorkflow.epic_status (Temporal query, polled)",
+  "source": "workflow_id=epic-001-the-desk-sees-the-floor @ 127.0.0.1:7233/ergane",
+  "host": "tharpebox",
+  "ergane_version": "0.2.0",
+  "notes": "KILLED, every node, from the real floor: 001-the-desk-sees-the-floor after the operator answered its escalation KILL_EPIC (the N26 deadlock). us1 carries the full six-attempt history \u2014 3 implementer then 3 debugger, every one FAIL/RETRY \u2014 which is what a killed node's history actually looks like; us2..us4 are KILLED at attempt 0, never dispatched. This is the eleventh state the recorded floor was missing.",
+  "sequence": 41,
+  "document": "epic-status/killed/killed.json"
+}

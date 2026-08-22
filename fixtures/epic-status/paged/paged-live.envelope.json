@@ -1,0 +1,10 @@
+{
+  "captured_at": "2026-08-22T20:44:55+00:00",
+  "seam": "EpicWorkflow.epic_status (Temporal query, polled)",
+  "source": "workflow_id=epic-001-the-desk-sees-the-floor @ 127.0.0.1:7233/ergane",
+  "host": "tharpebox",
+  "ergane_version": "0.2.0",
+  "notes": "awaiting_operator: true while state: VERIFYING, from the LIVE floor rather than the harness \u2014 the same shape as paged.json, recorded from a real ladder exhaustion on 001-the-desk-sees-the-floor/us1 rather than an on-cue one. Pairs with paged.json.",
+  "sequence": 40,
+  "document": "epic-status/paged/paged-live.json"
+}

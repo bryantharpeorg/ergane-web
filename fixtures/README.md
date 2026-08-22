@@ -35,7 +35,8 @@ Two capture families, both real:
 | `workgraph.json` ×3 | `workgraphs/002-expense-notes.json` (2 nodes, merge edge), `workgraphs/077-…-runs-in-the-loop.json` (5 nodes, **both edge kinds, a same-rank pair**), `workgraphs/001-trip-expenses.json` (inferred merge edges, `inferred_edges` populated) | `ergane spec derive` |
 | `epic_status` through the landing run on a live floor | `epic-status/002-expense-notes/*.json` — 13 distinct answers polled at 3 s: RUNNING → VERIFYING (four judge FAIL/retry cycles) → PASSED → ENQUEUED → MERGED, epic COMPLETED | Temporal query `epic_status` |
 | `epic_status` through the landing run, every transition | `epic-status/landing/*.json` — 14 answers: PASSED, PR_OPEN, ENQUEUED, MERGED for each of three nodes | harness landing scene |
-| `awaiting_operator: true` while `state: VERIFYING` | `epic-status/paged/paged.json` | ladder exhausted → real EscalationWorkflow child open |
+| `awaiting_operator: true` while `state: VERIFYING` | `epic-status/paged/paged.json` (harness), `epic-status/paged/paged-live.json` (**live floor**, same shape) | ladder exhausted → real EscalationWorkflow child open |
+| `KILLED`, every node, with a killed node's real attempt history | `epic-status/killed/killed.json` | this repository's own 001 after the operator answered `KILL_EPIC` |
 | `WAITING_OPERATOR` (question park) | `epic-status/question/waiting-operator.json` | `## OPERATOR QUESTION` marker → QuestionWorkflow |
 | `epic_status` refusal variant | `epic-status/refusal.json` (the `ergane build status --json` document: `refusal`, `nodes: {}`), `epic-status/refusal-exception.json` | closed execution queried under `NOT_OPEN` through the CLI's own `_query_status` |
 | `epic_status` naming a node its `workgraph.json` does not declare (FR-026) | `epic-status/skew/status-names-us3.json` paired with `workgraphs/002-expense-notes.json` | two verbatim documents; the pairing is the operator's (see envelope) |
@@ -47,9 +48,18 @@ Two capture families, both real:
 | Bridge rulings | `bridge/{RESOLVED,ALREADY_RESOLVED,UNKNOWN,EXPIRED,UNAUTHORIZED}.json` (each named for the ruling it records), `bridge/malformed-relay.json` | `CallbackBridge.handle_relay` |
 
 States observed across all `epic_status` documents: PENDING, RUNNING, VERIFYING, PASSED,
-PR_OPEN, ENQUEUED, MERGED, WAITING_OPERATOR (eight of eleven; KEY_ISSUED is transient,
-FAILED is written by nothing in 0.2.0, KILLED needs a killed epic — none recorded).
-The shape test asserts membership in the eleven, not coverage.
+PR_OPEN, ENQUEUED, MERGED, WAITING_OPERATOR, **KILLED** (nine of eleven). KEY_ISSUED is
+transient and was never caught between polls; FAILED is written by nothing in 0.2.0.
+KILLED was recorded on 2026-08-22 from this repository's own epic after the operator
+answered `KILL_EPIC` on the N26 deadlock — the factory building the pane supplied the
+pane's own worst-case fixture. The shape test asserts membership in the eleven, not
+coverage.
+
+`killed.json` is worth reading for its `history` array specifically: a killed node keeps
+every attempt it spent (here six — three `implementer`, then three `debugger`, each
+`FAIL`/`RETRY`, each with its `model_alias`), while the nodes downstream of it are KILLED
+at `attempt: 0` with `persona: ""` and `model_alias: "<unresolved>"`. A Showfloor that
+renders a killed epic has to say those two things differently.
 
 Sweep note: the credential sweep must anchor secret-looking prefixes on a word boundary —
 `the-desk-sees-the-floor` contains the substring `sk-sees`.
