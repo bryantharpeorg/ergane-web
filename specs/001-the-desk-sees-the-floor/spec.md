@@ -32,6 +32,17 @@ state: ready
 # ergane's constitution VIII via D-003: the judge sees the diff and these
 # criteria, never a screen. A scenario only an eye could score was rewritten
 # until a committed test could score it instead.
+#
+# AND THE DIFF IS NOT THE TREE (D-014). The judge is handed the requirement,
+# the scenarios, the previous attempt's feedback and the diff — and nothing
+# else. Not the gate results, though the gate rung has already run and recorded
+# them; not the base tree the diff applies to. So a scenario whose Then-clause
+# is a *runtime* outcome ("the command exits 0") asks the judge to simulate a
+# run it cannot observe, and a scenario phrased "a checkout containing this
+# diff" invites it to conclude that anything absent from the changed-file list
+# does not exist. US1-S1 was written both ways and deadlocked this spec for
+# nine attempts across two dispatches with all four gates green every time.
+# Score the wiring, let the gate rung score the run.
 ---
 
 # Feature Specification: the desk sees the floor
@@ -76,11 +87,15 @@ resolving `ergane-cli` from the pinned source `pyproject.toml` names — and
 
 **Acceptance Scenarios**:
 
-1. **Given** a fresh checkout containing this diff, **When** `uv sync` and
-   `npm ci --prefix web` have run, **Then** `uv run pytest -q`,
-   `npm --prefix web run typecheck`, `npm --prefix web run test:unit`, and
-   `npm --prefix web run test:smoke` all exit 0 — each gate runs at least one
-   real committed test, none exits 0 by matching nothing.
+1. **Given** the diff and the four gate commands `ergane.yaml` names, **When**
+   each command is traced to what the diff commits, **Then** every one resolves
+   to a script or entry point this diff defines (`pyproject.toml` for
+   `uv run pytest -q`; `web/package.json` scripts for `typecheck`, `test:unit`
+   and `test:smoke`) and each collects at least one real committed test file in
+   this diff, so none can exit 0 by matching nothing. *(The gates' actual exit
+   codes are measured by the gate rung before this scenario is ever scored:
+   score the wiring the diff commits, not a simulated run, and treat a file the
+   diff does not touch as already present in the base tree.)*
 2. **Given** the diff, **When** `web/tsconfig.json` and `web/package.json` are
    read, **Then** the compiler runs with `strict: true` and the `typecheck`
    script is `tsc --noEmit` — decidable from the committed files alone.

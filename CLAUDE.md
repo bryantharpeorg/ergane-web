@@ -147,7 +147,15 @@ npm --prefix web run dev                               # Vite dev server against
 - **`docs/dags/`** — the derived work graphs, archived for review before dispatch.
 - **`fixtures/`** — the recorded Fixture floor with `README.md` provenance. Recorded,
   never invented (constitution V). Credential sweep before every commit.
-- **`.claude/skills/`** — 10 Spec Kit skills, committed so dispatched nodes can see them
+- **`.claude/skills/`** — 10 Spec Kit skills, committed so dispatched nodes can see them,
+  plus five operator skills inherited from ergane's own `.claude/skills` and repointed at
+  this repo's paths (`~/.config/ergane/ergane-env.sh`, `$ERGANE_ROOT` in place of
+  `.factory/`): `floor-status` (measured status and an ETA from chain depth),
+  `escalation-triage` (a decision brief; it never presses a button), `away-mode` (the
+  self-paced overnight loop — park beats guess), `build-metrics` (LOC, commit sizes,
+  rework rate; its `reference/baseline-2026-08-19.md` holds *ergane's* numbers, labelled
+  as such), and `spec-html` (a spec trio as one page with the Work Graph drawn). `[operator]`
+  in practice — a node has no CLI, no `gh`, and no runtime root
   (worktrees carry committed files; the operator's `~/.claude` is invisible to a node).
 - **`.specify/`** — Spec Kit templates, scripts and `memory/constitution.md`.
 - **`.ergane/`** — gitignored runtime root. Never commit it.

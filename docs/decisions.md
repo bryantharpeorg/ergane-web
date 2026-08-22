@@ -334,3 +334,48 @@ posture, but not the boundary between an attempt's filesystem and its gate's. Re
 Ergane agent as finding N20 with the suggestion that the attempt prompt, or the gate's own
 failure detail, carry this sentence so no target repository has to learn it by burning attempts.
 
+
+## D-014 · The judge sees the diff, not the tree, and never the gate results (decided)
+
+Decided 2026-08-22 during the third dispatch of spec 001, under the Governance rule that the
+constitution changes by superseding entry and never by silent edit.
+
+001/US1 failed nine consecutive attempts — six implementer, then all three debugger cycles —
+across two dispatches. Every one of those nine records is identical in the two places that
+matter: `gate_results` is `test PASS · typecheck PASS · unit PASS · smoke PASS`, and
+`output_check` is `{"passed": true, "hygiene_violations": [], "size_refusal": null}`. The pytest
+gate's own tail reads `12 passed in 0.14s`. The judge nevertheless failed US1-S1 every time, with
+the same reasoning: that `uv run pytest -q` *would* fail, because `tests/test_scaffold.py` asserts
+the five vendored faces exist under `web/public/fonts/` and no font file appears in the
+changed-file list.
+
+The fonts are in the base tree — this repository's own D-012 commit put them there — so they are
+correctly absent from a diff that does not touch them. The claim is a counterfactual the same
+record disproves one field earlier.
+
+**Why it happened, in ergane.** `factory/verify/judge.py:240` assembles the judge's prompt from
+four things: the requirement, its acceptance scenarios, the previous attempt's feedback, and the
+diff. The gate results are not among them, although the loop order is `[gates, diff_check, judge]`
+and the gates have therefore already run and been recorded. The system prompt
+(`judge.py:133`) then instructs: *"if the evidence is not in the diff, the scenario does not
+pass."* A scenario whose Then-clause is a runtime outcome consequently asks the judge to simulate
+a run it is forbidden to observe, against a tree it was never shown.
+
+**Why it happened, in this repository.** US1-S1 was written *"Given a fresh checkout containing
+this diff … Then [the four gate commands] all exit 0."* That is a runtime outcome, and the phrase
+"containing this diff" positively invites the reading that a file absent from the changed-file
+list is absent from the checkout. It was the only scenario across all three specs phrased that
+way, and it is the only scenario that deadlocked. The spec's own frontmatter already required
+every criterion to be decidable from the diff; this one was not, and the rule failed to catch its
+own violation.
+
+**The rule.** An acceptance scenario asserts what the diff *commits*, never what a command would
+*do*. The gate rung measures the run; the judge scores the wiring. Where a scenario's subject
+depends on a file the diff does not touch, the scenario says so explicitly, because the judge
+cannot see the base tree and will otherwise assume the file does not exist.
+
+US1-S1 was rewritten to that rule and the epic re-dispatched. No requirement is relaxed: FR
+coverage is unchanged, and the four gates still have to exit 0 — they are simply proved by the
+rung that actually runs them. Reported to the Ergane agent as finding N26 with the suggestion
+that `build_prompt` include the gate outcomes it already holds, so a judge asked about a gate can
+read the answer instead of predicting it.

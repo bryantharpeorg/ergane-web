@@ -50,6 +50,17 @@ pytest, `tsc --noEmit`, vitest, Playwright against the fixture floor — never t
 "looks right" or a screenshot a human must read. A criterion only an eye can score
 is a defect in the spec, not in the agent that failed it.
 
+**And the diff is not the tree** (D-014). The judge receives the requirement, its
+scenarios, the previous attempt's feedback and the diff — not the gate results, and
+not the base tree the diff applies to. Two consequences bind every scenario written
+here. A scenario asserts what the diff **commits**, never what a command would **do**:
+the gate rung measures the run, the judge scores the wiring, and a Then-clause of the
+form "the command exits 0" asks the judge to simulate what it is forbidden to observe.
+And where a scenario's subject depends on a file the diff does not touch, the scenario
+says so in words — absent from the changed-file list reads to the judge as absent from
+the repository. A criterion only a full checkout can score is the same defect as one
+only an eye can score.
+
 ### V. Fixtures Are Recorded, Never Invented
 
 The fixture floor is captured from real factory documents whose shapes come from
