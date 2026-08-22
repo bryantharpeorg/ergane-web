@@ -41,13 +41,19 @@ standards: .specify/memory/constitution.md
 # the operator chose `dev`; `main` is promoted from it after the build validates.
 landing_branch: dev
 
-# The verification ladder (schema v2). Six attempts per story before the
-# factory escalates, with up to three debugger diagnoses in between. The
-# implementer rung rides a flat-rate model; the ceiling is about wall clock and
-# operator attention, not spend. Nothing promotes to a closer automatically.
+# The verification ladder (schema v2), at ergane's own defaults. The 6/3 this
+# repo carried through epic 001 was a mistake worth recording: `max_attempts` is
+# shadowed by `max_judge_retries` (default 2) whenever the failure is
+# judge-driven, so the judge regime caps at three attempts no matter what this
+# says. The dial is live only where the judge never ran -- gate failures and
+# diff_check refusals -- which are the deterministic ones, where re-running the
+# same persona on the same input cannot change the answer. 001/us4 spent nine
+# rungs that way, the last four byte-identical. Raising the ceiling lengthens
+# exactly the fights that cannot converge. Nothing promotes to a closer
+# automatically; no promotion_persona is configured.
 ladder:
-  max_attempts: 6
-  debugger_cycles: 3
+  max_attempts: 3
+  debugger_cycles: 1
 
 # Roadmap dials (schema v2). Two epics may build at once so 002 and 003 — which
 # both depend only on 001 landing — run concurrently after it does (D-011,

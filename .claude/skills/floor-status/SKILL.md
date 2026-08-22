@@ -222,6 +222,18 @@ A range without its assumptions is a guess wearing a decimal point. Always say:
 - **Sample size.** One day of data with 2–3× variance is a planning number, not
   a commitment. Say so.
 
+### Every clock time is Dallas local
+
+The operator is in Dallas. Report ETAs, forecasts and deadlines in
+`America/Chicago` (`TZ=America/Chicago date`) and label them `CT` — "001 complete
+by 5:10 PM CT", never "22:10Z". A UTC ETA makes the reader do arithmetic on every
+row, which defeats a table meant to be skimmed.
+
+Machine timestamps quoted **as evidence** — log lines, `epic_status` answers,
+verification-store rows, GitHub API fields — stay verbatim in UTC, because
+rewriting them breaks the search that would confirm them. Put the CT time beside
+such a value, never in place of it.
+
 ### Then give the one number you would actually bet on
 
 End with a single narrow claim backed by why — "048 complete within two hours,
