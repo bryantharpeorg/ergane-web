@@ -1,0 +1,50 @@
+:root {
+  /* ground + ink */
+  --ground: #E3E8E0;
+  --panel: #F4F6F1;
+  --panel-deep: #D2D9CE;
+  --ink: #23292A;
+  --ink-soft: #5C6962;
+  --rule: #BDC7BA;
+  --walnut: #3E4A3C;
+
+  /* the four state hues */
+  --teal: #1F7A78;
+  --teal-ink: #0E4F4D;
+  --mustard: #D9A521;
+  --mustard-ink: #7A5A06;
+  --olive: #6E7F3E;
+  --olive-ink: #415022;
+  --orange: #B9774F;
+  --orange-ink: #7A4A2B;
+  --aqua: #8FB8C9;
+  --aqua-ink: #3E6C80;
+  --white: #FFFFFF;
+
+  /* type */
+  --display: "Red Hat Display", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --text: "Red Hat Text", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --mono: "Red Hat Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --fs-clock: clamp(1.9rem, 2.6vw, 2.6rem);
+  --fs-display: 1.5rem;
+  --fs-readout: 1.25rem;
+  --fs-body: 0.95rem;
+  --fs-small: 0.8125rem;
+  --fs-micro: 0.6875rem;
+
+  /* rhythm */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+
+  /* shapes + depth */
+  --radius: 3px;
+  --chip: 999px;
+  --shadow: 0 2px 6px rgba(42, 42, 38, 0.12), 0 10px 24px -12px rgba(42, 42, 38, 0.18);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
