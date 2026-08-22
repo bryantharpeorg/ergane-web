@@ -1,0 +1,53 @@
+:root {
+  /* ground + ink */
+  --ground: #E3E8E0;        /* sage — a cool mid-century ground; never cream or beige */
+  --panel: #F4F6F1;         /* mist — near-white with a green cast */
+  --panel-deep: #D2D9CE;    /* moss grey, for wells and timeline tracks */
+  --ink: #23292A;           /* graphite with a green cast */
+  --ink-soft: #5C6962;      /* tinted secondary text (never neutral grey) */
+  --rule: #BDC7BA;          /* hairline */
+  --walnut: #3E4A3C;        /* headings, the Ergane mark: deep moss, not brown */
+
+  /* the four state hues (mid-century) */
+  --teal: #1F7A78;          /* live / RUNNING / the one accent */
+  --teal-ink: #0E4F4D;
+  --mustard: #D9A521;       /* VERIFYING / attention medium */
+  --mustard-ink: #7A5A06;
+  --olive: #6E7F3E;         /* landing run / MERGED */
+  --olive-ink: #415022;
+  --orange: #B9774F;        /* WAITING_OPERATOR / escalation high — muted clay, never red */
+  --orange-ink: #7A4A2B;
+  --aqua: #8FB8C9;          /* PENDING / KEY_ISSUED — upstream, not yet live */
+  --aqua-ink: #3E6C80;
+
+  /* type */
+  --display: "Red Hat Display", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --text: "Red Hat Text", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --mono: "Red Hat Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --fs-clock: clamp(1.9rem, 2.6vw, 2.6rem);
+  --fs-display: 1.5rem;
+  --fs-headline: 1.125rem;
+  --fs-body: 0.95rem;
+  --fs-small: 0.8125rem;
+  --fs-micro: 0.6875rem;
+
+  /* rhythm */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+
+  /* shapes */
+  --radius: 3px;             /* mid-century: tight radii, no pills except chips */
+  --chip: 999px;
+
+  /* elevation & depth */
+  --shadow: 0 2px 6px rgba(42, 42, 38, 0.12), 0 10px 24px -12px rgba(42, 42, 38, 0.18);
+
+  /* motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
