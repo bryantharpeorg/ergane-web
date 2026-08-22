@@ -84,3 +84,37 @@ systemctl --user start ergane-worker
 
 When a contract gains a field, re-record; never hand-edit a payload (FR-008).
 Credential sweep (`uv run pytest -q -k credential`) must pass before commit (FR-012).
+
+## How the loader replays this set
+
+US2's `FixtureReader` loads `fixtures/floor/floor-live.json` verbatim and then
+composes the running-epic list from the scene table below.  Each row is an
+`EpicRef`; the `workgraph_ref` is the row's recorded graph stem when one exists,
+otherwise the epic id.  When a graph path is absent, the loader's
+`load_document` raises `TransportFailed("workgraph", "<path>: not recorded yet
+(fixtures/README.md)")`; the assembly catches that and emits one degraded entry
+per scene.  This is honest degradation, not a defect: constitution V forbids
+inventing a graph, and constitution III requires the failed read to be named.
+
+| scene | epic id | status document | workgraph | what it stages |
+|---|---|---|---|---|
+| `polled` | `002-expense-notes` | `fixtures/epic-status/002-expense-notes/002-expense-notes-013-us1=MERGED-MERGED_us2=MERGED-MERGED.json` | `fixtures/workgraphs/002-expense-notes.json` | the live Kimi epic; `us1`/`us2` MERGED, epic COMPLETED |
+| `landing` | `fx-landing-f0a0d6` | `fixtures/epic-status/landing/final.json` | — none recorded | the landing run's end state, three nodes MERGED |
+| `paged-while-verifying` | `fx-paged-5e2e8a` | `fixtures/epic-status/paged/paged.json` | — none recorded | `us1` `VERIFYING` with `awaiting_operator: true` |
+| `question` | `fx-question-e8c371` | `fixtures/epic-status/question/waiting-operator.json` | — none recorded | `us1` `WAITING_OPERATOR`, epic `PAUSED` |
+| `refusal` | `fx-landing-f0a0d6` | `fixtures/epic-status/refusal.json` | — none recorded | `refusal` key → `QueryRefused`; the recorded string is `Query rejected, status: 2` |
+| `skew` | `fx-landing-f0a0d6` | `fixtures/epic-status/skew/status-names-us3.json` | `fixtures/workgraphs/002-expense-notes.json` (its envelope's `pair_with`) | the answer names `us3`; the paired graph declares only `us1`, `us2` |
+
+Three rows share the epic id `fx-landing-f0a0d6`; `scene` is what keeps them
+distinct.  A clean `PANE_DEMO=1` run therefore carries five degraded entries:
+four transport entries for the missing workgraphs above, plus one refusal entry
+for the `refusal` scene.
+
+`reference_instant` is the `captured_at` value of
+`fixtures/escalations/open_escalations.envelope.json`, falling back to
+`fixtures/floor/floor-live.envelope.json` when the escalations envelope is not
+present.
+
+`PANE_DEMO_TRANSPORT_FAIL` accepts a comma-separated list of section names from
+`{floor, epics, attention, health, spend}` and makes the named demo reads raise
+`TransportFailed` before touching disk.
