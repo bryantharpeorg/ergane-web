@@ -1,5 +1,5 @@
 ---
-state: draft
+state: ready
 # Drafted 2026-08-21 by an operator-session interview; see docs/decisions.md
 # (D-001…D-009 are that interview's record; every decision cited below is one of
 # its entries).
