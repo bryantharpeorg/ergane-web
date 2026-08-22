@@ -1,11 +1,3 @@
-/**
- * The Desk room.
- *
- * Fetches the floor document on mount, subscribes to SSE updates, and renders the
- * fixed section order required by DESIGN.md: attention, floor, degraded wells,
- * then Health | Spend. Nothing on this route issues a write.
- */
-
 import { useEffect, useState } from "react";
 import type { FloorDocument } from "../api/floorDocument";
 import { subscribeFloor } from "../api/events";
@@ -25,33 +17,20 @@ export default function Desk() {
   useEffect(() => {
     let cancelled = false;
     let close: (() => void) | null = null;
-
-    async function load() {
-      try {
-        const response = await fetch("/api/floor");
+    fetch("/api/floor")
+      .then(async (response) => {
         if (!response.ok) {
           setErrorStatus(response.status);
-          setIsLoading(false);
           return;
         }
         const initial = (await response.json()) as FloorDocument;
-        if (!cancelled) {
-          setDoc(initial);
-          setIsLoading(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setErrorStatus(0);
-          setIsLoading(false);
-        }
-      }
-    }
-
-    load();
+        if (!cancelled) setDoc(initial);
+      })
+      .catch(() => setErrorStatus(0))
+      .finally(() => setIsLoading(false));
     if (typeof EventSource !== "undefined") {
       close = subscribeFloor("/api/events", setDoc);
     }
-
     return () => {
       cancelled = true;
       if (close) close();
@@ -61,18 +40,11 @@ export default function Desk() {
   useEffect(() => {
     const floorline = document.querySelector(".mast .floorline");
     if (!floorline) return;
-
     if (isLoading) {
       floorline.innerHTML = "<em>Reading the floor…</em>";
-      return;
-    }
-
-    if (errorStatus !== null) {
-      floorline.innerHTML = `<span class="live"></span> <span class="num">${errorStatus}</span> · read failed`;
-      return;
-    }
-
-    if (doc) {
+    } else if (errorStatus !== null) {
+      floorline.innerHTML = `<span class="live"></span> <span class="num">${errorStatus || "—"}</span> · read failed`;
+    } else if (doc) {
       const data = doc.floor.data as { epics?: unknown[] } | null;
       const running = Array.isArray(data?.epics) ? data.epics.length : 0;
       const instant = doc.reference_instant
@@ -106,9 +78,7 @@ export default function Desk() {
     );
   }
 
-  if (!doc) {
-    return null;
-  }
+  if (!doc) return null;
 
   const summary = floorSummary(doc);
   const floorDegraded = doc.degraded.find((d) => d.section === "floor");
@@ -136,31 +106,18 @@ export default function Desk() {
             {epicCount} running · queue {queueWord} · {draftCount} drafts
           </span>
         </div>
-        {summary === "unreachable" && floorDegraded && (
-          <DegradedWell entry={floorDegraded} />
-        )}
+        {summary === "unreachable" && floorDegraded && <DegradedWell entry={floorDegraded} />}
         {summary === "quiet" && (
-          <p className="quiet">
-            Quiet floor: nothing is running and nothing is waiting on you.
-          </p>
+          <p className="quiet">Quiet floor: nothing is running and nothing is waiting on you.</p>
         )}
-        {summary === "busy" &&
-          doc.epics.map((epic) => <EpicRow key={epic.epic_id} epic={epic} />)}
+        {summary === "busy" && doc.epics.map((epic) => <EpicRow key={epic.epic_id} epic={epic} />)}
         {epicDegraded.map((entry, index) => (
           <DegradedWell key={index} entry={entry} />
         ))}
       </section>
       <div className="lower">
-        {healthDegraded ? (
-          <DegradedWell entry={healthDegraded} />
-        ) : (
-          <HealthStrip doc={doc} />
-        )}
-        {spendDegraded ? (
-          <DegradedWell entry={spendDegraded} />
-        ) : (
-          <SpendStrip doc={doc} />
-        )}
+        {healthDegraded ? <DegradedWell entry={healthDegraded} /> : <HealthStrip doc={doc} />}
+        {spendDegraded ? <DegradedWell entry={spendDegraded} /> : <SpendStrip doc={doc} />}
       </div>
     </main>
   );
