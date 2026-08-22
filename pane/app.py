@@ -1,14 +1,31 @@
-import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+
+from pane.config import Settings
+from pane.fixture_floor import FixtureReader
+from pane.floor_document import assemble_floor_document
+from pane.readers import UnconfiguredReader
 
 
-def create_app() -> FastAPI:
+def create_app(settings: Settings | None = None) -> FastAPI:
+    if settings is None:
+        settings = Settings.from_env()
+
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-    dist_root = Path(os.environ.get("PANE_WEB_DIST", Path(__file__).resolve().parents[1] / "web" / "dist"))
+    if settings.demo:
+        reader = FixtureReader(settings.fixtures_root, transport_fail=settings.transport_fail)
+    else:
+        reader = UnconfiguredReader()
+
+    @app.get("/api/floor")
+    async def api_floor():
+        document = await assemble_floor_document(reader)
+        return JSONResponse(document)
+
+    dist_root = settings.web_dist
 
     resolved_root = dist_root.resolve()
 
