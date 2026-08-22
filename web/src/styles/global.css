@@ -1,0 +1,141 @@
+@import "./tokens.css";
+
+* { box-sizing: border-box; }
+
+html {
+  background: var(--ground);
+  color: var(--ink);
+}
+
+body {
+  margin: 0;
+  font-family: var(--text);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--walnut);
+  text-wrap: balance;
+}
+
+.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.micro {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+a {
+  color: var(--teal-ink);
+}
+
+/* masthead */
+.mast {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s5);
+  padding: var(--s4) var(--s6) var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.mast .mark {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: var(--fs-headline);
+  color: var(--walnut);
+  letter-spacing: 0.02em;
+}
+
+.mast .mark::before {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  background: var(--teal);
+  transform: rotate(45deg);
+  margin-right: 0.6em;
+  vertical-align: 0.05em;
+}
+
+.mast nav {
+  display: flex;
+  gap: var(--s4);
+  font-family: var(--display);
+  font-weight: 500;
+}
+
+.mast nav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.mast nav a[aria-current] {
+  color: var(--ink);
+  border-bottom-color: var(--teal);
+}
+
+.mast .floorline {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+  font-style: italic;
+  display: flex;
+  gap: var(--s3);
+  align-items: center;
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  color: var(--teal-ink);
+  font-weight: 500;
+  font-style: normal;
+}
+
+.live::before {
+  content: "";
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: breathe 2.4s var(--ease-out) infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.6); opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live::before {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .mast {
+    flex-wrap: wrap;
+    padding: var(--s3) var(--s4);
+  }
+  .mast .floorline {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}

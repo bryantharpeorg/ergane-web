@@ -1,0 +1,1 @@
+"""Ergane web operator pane."""
