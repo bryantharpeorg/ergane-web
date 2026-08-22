@@ -1,26 +1,26 @@
 import { describe, it, expect } from "vitest";
-import tokensRaw from "../../src/styles/tokens.css?inline";
-import globalRaw from "../../src/styles/global.css?inline";
+import tokensRaw from "../../src/styles/tokens.css?raw";
+import globalRaw from "../../src/styles/global.css?raw";
 
 const DESIGN_COLORS = [
-  ["#E3E8E0"],
-  ["#F4F6F1"],
-  ["#D2D9CE"],
-  ["#23292A"],
-  ["#5C6962"],
-  ["#BDC7BA"],
-  ["#3E4A3C"],
-  ["#1F7A78"],
-  ["#0E4F4D"],
-  ["#D9A521"],
-  ["#7A5A06"],
-  ["#6E7F3E"],
-  ["#415022"],
-  ["#B9774F"],
-  ["#7A4A2B"],
-  ["#8FB8C9"],
-  ["#3E6C80"],
-  ["#FFFFFF"],
+  "#E3E8E0",
+  "#F4F6F1",
+  "#D2D9CE",
+  "#23292A",
+  "#5C6962",
+  "#BDC7BA",
+  "#3E4A3C",
+  "#1F7A78",
+  "#0E4F4D",
+  "#D9A521",
+  "#7A5A06",
+  "#6E7F3E",
+  "#415022",
+  "#B9774F",
+  "#7A4A2B",
+  "#8FB8C9",
+  "#3E6C80",
+  "#FFFFFF",
 ] as const;
 
 describe("tokens.css carries DESIGN.md colours", () => {
@@ -32,7 +32,7 @@ describe("tokens.css carries DESIGN.md colours", () => {
   });
 
   it.each(DESIGN_COLORS)("contains %s", (hex) => {
-    expect(tokensRaw).toContain(hex.toLowerCase());
+    expect(tokensRaw.toLowerCase()).toContain(hex.toLowerCase());
   });
 
   it("contains all token names from DESIGN.md", () => {

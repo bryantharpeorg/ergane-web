@@ -4,9 +4,9 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node run-unit-tests.mjs",
-    "test:smoke": "vite build && playwright test",
-    "postinstall": "playwright install chromium"
+    "test:unit": "vitest run",
+    "test:smoke": "PLAYWRIGHT_BROWSERS_PATH=0 vite build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
+    "postinstall": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium"
   },
   "dependencies": {
     "react": "^18.0.0",
