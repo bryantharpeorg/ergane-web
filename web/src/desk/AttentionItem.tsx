@@ -1,12 +1,3 @@
-/**
- * A single attention item on the Desk.
- *
- * Ranks high (Escalation = clay), medium (Question = mustard), low (Notice = aqua)
- * via kind word, stripe, and optional border. Time left anchors on the factory's
- * expires_at against the document's reference instant; a Question with no expiry
- * shows "no deadline from the factory" instead of a minted one.
- */
-
 import type { AttentionItem, FloorDocument } from "../api/floorDocument";
 import { referenceInstant, timeLeft } from "./timeLeft";
 
@@ -27,9 +18,7 @@ const RANK_CLASSES: Record<AttentionItem["kind"], string> = {
 
 export default function AttentionItemView({ item, doc }: AttentionItemProps) {
   const kind = item.kind;
-  const reference = referenceInstant(doc);
-  const left = timeLeft(item.expires_at, reference);
-
+  const left = timeLeft(item.expires_at, referenceInstant(doc));
   const document = (item.document || {}) as {
     epic_id?: string;
     node_id?: string;
@@ -38,18 +27,11 @@ export default function AttentionItemView({ item, doc }: AttentionItemProps) {
     escalation_id?: string;
     correlation_id?: string;
   };
-
-  const epicId =
-    document.epic_id ?? (item as unknown as { epic_id?: string }).epic_id;
-  const nodeId =
-    document.node_id ?? (item as unknown as { node_id?: string }).node_id;
+  const epicId = document.epic_id;
+  const nodeId = document.node_id;
   const prose = document.question ?? document.text ?? "";
   const id = item.id ?? document.escalation_id ?? document.correlation_id;
-
-  const whereParts: string[] = [];
-  if (epicId) whereParts.push(epicId);
-  if (nodeId) whereParts.push(nodeId);
-  const where = whereParts.length ? whereParts.join(" / ") : null;
+  const where = [epicId, nodeId].filter(Boolean).join(" / ");
 
   return (
     <article
@@ -60,30 +42,17 @@ export default function AttentionItemView({ item, doc }: AttentionItemProps) {
     >
       <div className="clock-col">
         <span className="kind">{KIND_LABELS[kind]}</span>
-        {left.kind === "remaining" && (
-          <span className="clock num">{left.text}</span>
-        )}
-        {left.kind === "expired" && (
-          <span className="clock num expired">expired</span>
-        )}
-        {left.kind === "none" && (
-          <span className="no-deadline">no deadline from the factory</span>
-        )}
+        {left.kind === "remaining" && <span className="clock num">{left.text}</span>}
+        {left.kind === "expired" && <span className="clock num expired">expired</span>}
+        {left.kind === "none" && <span className="no-deadline">no deadline from the factory</span>}
         {item.expires_at && <span className="until">until {item.expires_at}Z</span>}
       </div>
       <div className="body-col">
-        {where && (
-          <span className="where num">
-            {where}
-            {id && <> · {id}</>}
-          </span>
-        )}
+        {where && <span className="where num">{where}{id && <> · {id}</>}</span>}
         <p className="prose">{prose}</p>
       </div>
       <div className="answer-col">
-        <span className="answer-note">
-          answered from the CLI until spec 003 lands
-        </span>
+        <span className="answer-note">answered from the CLI until spec 003 lands</span>
       </div>
     </article>
   );
