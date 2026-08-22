@@ -19,6 +19,7 @@
   --orange-ink: #7A4A2B;
   --aqua: #8FB8C9;          /* PENDING / KEY_ISSUED — upstream, not yet live */
   --aqua-ink: #3E6C80;
+  --white: #FFFFFF;
 
   /* type */
   --display: "Red Hat Display", "Avenir Next", "Segoe UI", system-ui, sans-serif;
