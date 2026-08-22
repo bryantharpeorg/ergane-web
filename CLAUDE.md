@@ -46,10 +46,11 @@ every gate command exist and exit 0; until it lands, `ergane.yaml` is a promise.
 **A gate does not inherit the attempt's `HOME`** (D-013). Gates run in the factory's sandbox
 with a fresh tmpfs `HOME`; only the worktree survives from the attempt into the gate. Whatever a
 gate needs must be inside the worktree or fetched by the gate command itself (the boundary has
-egress). The Playwright browser is the case that bites: install it with
-`PLAYWRIGHT_BROWSERS_PATH=0` so it lands in `web/node_modules`, or install it as the smoke
-script's first step — a `postinstall` hook warms the *attempt's* cache and the gate still fails
-with "please run `npx playwright install`".
+egress). The Playwright browser is the case that bites. `PLAYWRIGHT_BROWSERS_PATH=0` puts it in
+`web/node_modules`, which persists into the gate — but Playwright reads that variable from the
+environment on **every** invocation, so setting it only in `postinstall` installs the browser into
+the worktree and then fails to look for it there. Set it on the test run too:
+`"test:smoke": "PLAYWRIGHT_BROWSERS_PATH=0 vite build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test"`.
 
 - The backend depends on `ergane-cli==0.2.0` from PyPI (D-011) and imports its seams
   (`factory.cli.status.collect_floor`, the `epic_status` Temporal query,

@@ -116,11 +116,15 @@ shown*, the spec wins.
   worktree** or be fetched by the gate command itself — the boundary does have
   network egress. Concretely, `playwright install` run during an attempt (or from a
   `postinstall` hook) puts the browser in `$HOME/.cache/ms-playwright`, which the
-  smoke gate cannot see: set `PLAYWRIGHT_BROWSERS_PATH=0` so the download lands in
-  `web/node_modules`, or have the smoke script install the browser as its first
-  step. A gate that passes locally and fails in the factory with "just installed —
-  please run `npx playwright install`" is this, and reinstalling harder will not
-  fix it.
+  smoke gate cannot see. `PLAYWRIGHT_BROWSERS_PATH=0` moves the download into
+  `web/node_modules`, which does persist — **but the variable is read from the
+  environment on every Playwright invocation, so it must be set on the test run as
+  well as on the install.** Setting it only in `postinstall` puts the browser in the
+  worktree and then fails to look for it there. Set it inline in both scripts, e.g.
+  `"test:smoke": "PLAYWRIGHT_BROWSERS_PATH=0 vite build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test"`,
+  or have the smoke script install the browser as its own first step. A gate that
+  passes locally and fails in the factory with "just installed — please run
+  `npx playwright install`" is this, and reinstalling harder will not fix it.
 - `web/public/fonts/` (four OFL woff2 files and `fonts.css`) and `PRODUCT.md`,
   `DESIGN.md`, `.impeccable/` pre-exist the scaffold; the scaffold story keeps them.
 
