@@ -10,12 +10,38 @@ date. The pane renders state and carries exactly one verb — **Answer**, for th
 Questions and Escalations the factory routes to its operator. Everything else an
 operator does still belongs to the `ergane` CLI.
 
+## Running and gating
+
+In a fresh checkout:
+
+```bash
+uv sync
+npm ci --prefix web
+```
+
+The `postinstall` script installs the Playwright Chromium binary, so no third
+setup command is needed. Then run the four gates:
+
+```bash
+uv run pytest -q
+npm --prefix web run typecheck
+npm --prefix web run test:unit
+npm --prefix web run test:smoke
+```
+
+Run the pane in fixture-backed demo mode after building the frontend:
+
+```bash
+npm --prefix web run build
+PANE_DEMO=1 uv run uvicorn pane.app:app --port 8787
+```
+
 ## Status
 
-**Specs authored; nothing built.** This repository currently contains no
-application code — deliberately. It is a wireable target repository for the sibling
-factory, and the factory will build its own pane from the specs in `specs/`
-(D-003). The pane watching the factory build the pane is the point.
+**Specs authored; scaffold in progress.** This repository is a wireable target
+repository for the sibling factory, and the factory is building its own pane from
+the specs in `specs/` (D-003). The pane watching the factory build the pane is the
+point.
 
 ## The shape, in one paragraph
 
