@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -6,19 +7,27 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from pane.config import Settings
 from pane.fixture_floor import FixtureReader
 from pane.floor_document import assemble_floor_document
-from pane.readers import UnconfiguredReader
+from pane.readers import LiveReader, Reader
+
+
+def _make_reader(settings: Settings) -> Reader:
+    if settings.demo:
+        return FixtureReader(settings.fixtures_root, transport_fail=settings.transport_fail)
+    return LiveReader(settings.specs_root)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     if settings is None:
         settings = Settings.from_env()
 
-    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    reader = _make_reader(settings)
 
-    if settings.demo:
-        reader = FixtureReader(settings.fixtures_root, transport_fail=settings.transport_fail)
-    else:
-        reader = UnconfiguredReader()
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        yield
+        await reader.aclose()
+
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
     @app.get("/api/floor")
     async def api_floor():
