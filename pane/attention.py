@@ -31,6 +31,7 @@ def assemble_attention(
             degraded.append(item["degraded"])
         items.append(item)
 
+    items.sort(key=_rank_key)
     return items, degraded
 
 
