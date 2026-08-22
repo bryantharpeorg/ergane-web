@@ -1,0 +1,105 @@
+# Ergane Web Constitution
+
+Ergane Web is the operator pane for an Ergane factory: one application, two rooms —
+the Showfloor (spectacle) and the Desk (attention) — that renders the factory's
+state and carries exactly one verb. It is built *by* the factory it watches. The
+decision log lives in `docs/decisions.md` (D-001…D-009); this constitution distills
+the non-negotiables that every spec, plan, and implementation in this repository
+must honor. Factory-side standards for how agents work (test-first, salvage,
+attribution) are ergane's constitution and are not repeated here.
+
+## Core Principles
+
+### I. A Glass With One Verb (NON-NEGOTIABLE)
+
+The pane displays; the operator CLI acts. The single exception is **Answer** —
+resolving a Question or an Escalation through the factory's existing answer seam.
+No story, plan, or implementation may add a second write path, however small: no
+pause buttons, no dispatch forms, no spec editing. A requirement that needs one is a
+defect in the requirement (D-001).
+
+### II. Borrowed Seams, Never Re-Derived Logic
+
+Every read and every write rides a surface the ergane distribution already exports:
+`collect_floor`, `open_escalations`, `rollup`, the doctor store's read-only reader,
+the verify store's Question reader over `connect_readonly`, the Temporal queries
+the factory's workflows answer (`epic_status`, `roadmap_status`,
+`escalation_status`), `CallbackBridge.handle_relay`, the `escalation_resolved`
+signal (list amended by D-010). Re-implementing
+readiness, blockers, escalation listing, or answer settlement in this repository is
+a defect by construction — ergane's spec 046 names the re-derivation of "ready" as
+one, and D-005 extends that doctrine to every seam. Never shell `ergane doctor` from
+the pane: it writes, and it has no `--json`.
+
+### III. Every Read Degrades Honestly
+
+Ergane's 052 doctrine is binding on this repository. Transport failure and query
+refusal are two different failure modes and are rendered differently, in-section,
+naming what could not be learned. Any Temporal answer may be partial; a missing key
+never crashes a view; a value the factory did not record is shown as unknown, never
+as zero — spend is **spend to date** (ledger-truth, written at teardown), and no
+view may label it live. A pane that renders a beautiful floor and lies when the
+floor is unreachable has failed at its one job.
+
+### IV. Provable From the Diff, Checkable Headless (NON-NEGOTIABLE)
+
+Inherited from ergane's constitution VIII and sharpened for a visual surface: every
+acceptance criterion must be decidable by the judge from the diff alone, and every
+gate must run headless. Visual behaviour is asserted through committed tests —
+pytest, `tsc --noEmit`, vitest, Playwright against the fixture floor — never through
+"looks right" or a screenshot a human must read. A criterion only an eye can score
+is a defect in the spec, not in the agent that failed it.
+
+### V. Fixtures Are Recorded, Never Invented
+
+The fixture floor is captured from real factory documents whose shapes come from
+ergane's published contracts (`FloorStatus`, the workgraph schema, `epic_status`
+answers, the webhook payload). Hand-inventing a shape because it is convenient
+creates a pane that renders the fixture and not the factory. When a contract gains a
+field, the fixture is re-recorded, not edited to taste.
+
+### VI. The Token Guards Every Route; Identity Belongs to the Factory
+
+Every route — the Showfloor included — sits behind the single shared bearer token
+(D-007), with two recorded qualifications (D-010): the webhook intake route is
+guarded by the credential carried in the operator-configured `ERGANE_WEBHOOK_URL`
+instead, because the factory sends a bare POST with no headers; and spec 001 ships
+its single auth seam open as a dated interim that spec 003 closes before any
+deployment. The pane's token decides who can see; the factory's
+`escalation.authorized_responders` decides whose answers count, and the pane renders
+the factory's ruling — including UNAUTHORIZED, EXPIRED, and SIGNAL_FAILED — without
+softening it. No credential value (token, intake credential, master key, virtual
+key) may appear in a rendered page, an SSE event, a log line, or a committed
+fixture.
+
+### VII. Ask Before Adding Dependencies
+
+No new dependency — package, service, or tool — is added without explicit operator
+approval first. Approved to date, Python: `fastapi`, `uvicorn`, `sse-starlette`,
+`httpx`, `pytest` (+`pytest-asyncio`), and the `ergane-cli` distribution itself.
+Node: `react`, `react-dom`, `typescript`, `vite`, `@xyflow/react`,
+`@dagrejs/dagre`, `framer-motion`, `vitest`, `@playwright/test`, and — ratified by
+D-010 — `@types/react`, `@types/react-dom`, `@vitejs/plugin-react`, and `jsdom`
+(the typings ride their runtime package's approval; strict `tsc` cannot pass
+without them). TypeScript runs
+`strict`; a looser compiler option is a new dependency in spirit and needs the same
+approval.
+
+## Environment Constraints
+
+- The backend runs on the factory host as a systemd user unit: it needs the factory
+  checkout's filesystem — stores resolved through ergane's own resolvers (runtime
+  root `.ergane/`, legacy `.factory/`; the ledger via its env chain) and
+  `specs/*/workgraph.json` — plus Temporal reachable, per D-007 (paths corrected by
+  D-010).
+- The factory's `ERGANE_WEBHOOK_URL` points at the backend; the factory has no
+  inbound listener of its own, and the pane must never expect one.
+- Two package worlds live in one repository: `uv` owns the backend, `npm` owns
+  `web/`. Gates are declared in `factory.yaml` and nowhere else.
+
+## Governance
+
+This constitution changes by superseding entry in `docs/decisions.md`, never by
+silent edit. Where this repository's vocabulary and ergane's disagree about a
+factory-side word, ergane's `CONTEXT.md` wins; pane-side words live in this
+repository's `CONTEXT.md`.

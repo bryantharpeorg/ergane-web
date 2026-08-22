@@ -1,0 +1,43 @@
+# What "green" means for ergane-web.
+#
+# This repo is a target of the sibling factory (D-003): its specs are dispatched by
+# ergane against this checkout, and every node that works here reads this file to
+# learn which commands decide its fate. Declared, never auto-detected.
+#
+# DRAFT until the repository is wired (`ergane init --wire`): spec 001's scaffold
+# story is what makes each command below exist and exit 0 in a fresh checkout. A
+# gate whose command is not installed is a FAIL, not a skip — so this file lands
+# with the scaffold, not before it.
+#
+# Schema v2 — ergane specs/002-verification-gating/contracts/factory-yaml.md.
+# v2, not v1: schema v1 fixes the gate names to test/lint/typecheck and refuses
+# anything else as CONFIG_ERROR; the pane needs unit and smoke, and v2 accepts
+# declared, non-reserved gate names.
+
+version: 2
+
+runtime: bwrap
+
+# Four gates, two package worlds. `uv` owns the backend, `npm` owns web/ (D-006,
+# constitution VII). The npm gates assume dependencies are installed — the CI
+# workflow that wiring scaffolds runs `npm ci --prefix web` before the checks, and
+# spec 001's scaffold story owes a fresh checkout the same courtesy locally.
+#
+# Setup needs network egress: `uv sync` resolves ergane-cli from a git source and
+# `npm ci` fetches packages plus the Playwright chromium binary. A sandbox that
+# denies egress at gate time fails US1 by construction (001's Assumptions name
+# this); provide a cached channel before dispatch if the runtime is sealed.
+gates:
+  test: "uv run pytest -q"
+  typecheck: "npm --prefix web run typecheck"
+  unit: "npm --prefix web run test:unit"
+  smoke: "npm --prefix web run test:smoke"
+
+# The document every agent attempt in this repo is told to read and obey.
+standards: .specify/memory/constitution.md
+
+# Mirrors ergane's two-branch model: a continuous landing branch the queue owns,
+# with `main` promoted by the operator at milestones. Assumed, not yet decided —
+# adjust at wiring if the operator wants a different name; absent, the factory
+# would treat `main` as the landing branch.
+landing_branch: buildout
