@@ -15,19 +15,22 @@ def test_create_app_returns_fastapi():
     assert isinstance(app, FastAPI)
 
 
-def test_spa_serves_index_html(tmp_path):
+def test_spa_serves_index_html(tmp_path, auth_headers):
     dist = tmp_path / "dist"
     dist.mkdir()
     (dist / "index.html").write_text("<html>desk</html>")
     os.environ["PANE_WEB_DIST"] = str(dist)
-    client = TestClient(create_app())
+    # Spec 003 US4 (T056): 001 mounted the catch-all behind the same dependency
+    # as every API route, so the shell itself now needs the token.  `auth_headers`
+    # is built from the value `tests/conftest.py` mints per run.
+    client = TestClient(create_app(), headers=auth_headers)
     for path in ("/", "/desk"):
         resp = client.get(path)
         assert resp.status_code == 200
         assert resp.text == "<html>desk</html>"
 
 
-def test_spa_rejects_escape(tmp_path):
+def test_spa_rejects_escape(tmp_path, auth_headers):
     dist = tmp_path / "dist"
     dist.mkdir()
     (dist / "index.html").write_text("<html>desk</html>")
@@ -43,7 +46,10 @@ def test_spa_rejects_escape(tmp_path):
             "path": "/../secret.txt",
             "raw_path": b"/../secret.txt",
             "query_string": b"",
-            "headers": [(b"host", b"testserver")],
+            "headers": [
+                (b"host", b"testserver"),
+                (b"authorization", auth_headers["Authorization"].encode("ascii")),
+            ],
             "server": ("testserver", 80),
             "client": None,
             "scheme": "http",
@@ -69,11 +75,11 @@ def test_spa_rejects_escape(tmp_path):
     assert start["status"] in (404, 403)
 
 
-def test_spa_unbuilt_returns_503(tmp_path):
+def test_spa_unbuilt_returns_503(tmp_path, auth_headers):
     empty = tmp_path / "empty"
     empty.mkdir()
     os.environ["PANE_WEB_DIST"] = str(empty)
-    client = TestClient(create_app())
+    client = TestClient(create_app(), headers=auth_headers)
     resp = client.get("/")
     assert resp.status_code == 503
     assert "web/dist" in resp.text

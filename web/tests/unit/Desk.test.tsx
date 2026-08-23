@@ -72,6 +72,31 @@ describe("Desk", () => {
     document.body.removeChild(c);
   });
 
+  it("renders a refused token as its own well, not as an unreachable floor", async () => {
+    // Spec 003 US4 (T058): the words are the well's, and they name the token
+    // rather than the read. No hue, no red, and nothing of the floor.
+    const c = document.createElement("div");
+    document.body.appendChild(c);
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+    await act(async () => {
+      createRoot(c).render(<Desk />);
+      await Promise.resolve();
+    });
+
+    const well = c.querySelector(".degraded[data-mode='unauthorized']");
+    expect(well).not.toBeNull();
+    expect(well?.querySelector(".lead")?.textContent).toBe("The pane's token was refused.");
+    expect(well?.textContent).toContain("Nothing can be read until one is presented.");
+    // Distinct from the transport well a 503 renders (the two failures are two
+    // different facts, constitution III).
+    expect(c.querySelector(".degraded[data-mode='transport']")).toBeNull();
+    expect(well?.textContent).not.toContain("could not be reached");
+    // And nothing token-shaped is on the page: the browser holds the credential,
+    // the Desk never does (FR-017).
+    expect(c.innerHTML).not.toMatch(/Bearer |Basic |Authorization/);
+    document.body.removeChild(c);
+  });
+
   it("renders an undeclared node card", async () => {
     const c = await renderDesk(
       buildDoc({

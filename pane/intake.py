@@ -12,6 +12,7 @@ call, no settlement seam, no factory-store read.  The factory's ten-second
 window is spent on storage alone (FR-001, US1-S6).
 """
 
+import logging
 import re
 import sqlite3
 from datetime import datetime, timezone
@@ -33,6 +34,13 @@ CORRELATION_ID = re.compile(r"^[0-9a-f]{12}$")
 ACTION_PAYLOAD = re.compile(r"^esc:[0-9a-f]{12}:[A-Za-z0-9_]+$")
 
 Kind = Literal["question", "escalation", "notice"]
+
+#: Intake identifies its work by correlation id and by nothing else (FR-017).
+#: The credential is in the path this handler was reached through and never in a
+#: line it writes; `create_app` also registers it with `factory.notify.redact`,
+#: so a line written by any other logger in the process — uvicorn's access log,
+#: which does print the request path — has it removed at record creation.
+log = logging.getLogger("pane.intake")
 
 
 class Malformed(Exception):
@@ -95,11 +103,17 @@ def create_intake_router(
     """Build the intake router over one open store and one broadcaster."""
     router = APIRouter()
 
-    @router.post("/intake/{credential}")
+    # `:path`, so the credential-less `POST /intake/` reaches the one gate and
+    # gets the one refusal rather than a router 404 or 405 that no other refused
+    # request produces (US4-S3).  It also matches how the factory sees the URL:
+    # `factory/notify/webhook.py` redacts *everything* after the origin, so the
+    # whole tail is the secret, and the whole tail is what `require_viewer`
+    # compares with `secrets.compare_digest`.
+    @router.post("/intake/{credential:path}")
     async def intake(credential: str, request: Request) -> JSONResponse:
-        # `credential` is carried, not yet compared: 001 ships its single auth
-        # seam open as a dated interim and US4 closes it, here and everywhere
-        # else, with `secrets.compare_digest` against PANE_INTAKE_CREDENTIAL.
+        # Already compared, by `pane.auth.require_viewer`, before this handler
+        # was reached.  Comparing it again here would be the second auth path
+        # D-P11 forbids, so the handler only carries it (FR-015).
         del credential
 
         try:
@@ -126,6 +140,13 @@ def create_intake_router(
             # awaited in between (FR-005).  A re-delivery of a served request
             # publishes nothing: the item the Desk holds is already this one.
             broadcaster.publish(assemble_attention([item], [])[0])
+
+        log.info(
+            "intake stored a %s, correlation_id=%s, created=%s",
+            kind,
+            item.correlation_id,
+            created,
+        )
 
         return JSONResponse(
             {"stored": kind, "correlation_id": item.correlation_id},

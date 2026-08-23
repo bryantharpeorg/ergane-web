@@ -135,8 +135,8 @@ def intake_app(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def client(intake_app):
-    return TestClient(intake_app)
+def client(intake_app, auth_headers):
+    return TestClient(intake_app, headers=auth_headers)
 
 
 @pytest.fixture
@@ -380,7 +380,9 @@ def test_an_item_stored_with_no_stream_connected_is_in_the_list(client):
     assert in_floor["actions"] == payload["actions"]
 
 
-def test_demo_floor_lists_the_recorded_deliveries_through_the_intake_path(tmp_path, monkeypatch):
+def test_demo_floor_lists_the_recorded_deliveries_through_the_intake_path(
+    tmp_path, monkeypatch, auth_headers
+):
     """The demo seed rides `upsert_delivery`, so it produces the shapes intake does."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PANE_DEMO", "1")
@@ -388,7 +390,7 @@ def test_demo_floor_lists_the_recorded_deliveries_through_the_intake_path(tmp_pa
     monkeypatch.delenv("PANE_ATTENTION_DB", raising=False)
     monkeypatch.delenv("PANE_INTAKE_CREDENTIAL", raising=False)
 
-    client = TestClient(create_app(Settings.from_env()))
+    client = TestClient(create_app(Settings.from_env()), headers=auth_headers)
     body = client.get("/api/attention").json()
 
     kinds = [item["kind"] for item in body["items"]]

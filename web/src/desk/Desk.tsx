@@ -67,6 +67,30 @@ export default function Desk() {
     );
   }
 
+  // Spec 003 US4 (T058): a refused token is not an unreachable floor, and the
+  // two do not read alike. It sits in the same moss-grey well as every other
+  // honest degradation — DESIGN.md § Elevation & Depth › The Well Rule, a bold
+  // Display lead-in and no hue at all (§ Colors › The No-Red Rule) — and says in
+  // words what happened and what would fix it. The browser carries the token
+  // itself, through the challenge `require_viewer` advertises, so no file under
+  // `web/src/` reads, stores, or renders one (FR-014, FR-017).
+  //
+  // `GET /api/floor` is the status this reads: it is the Desk's first request,
+  // and the attention list rides the same document. An `EventSource` reports no
+  // HTTP status to its `error` handler at all, so a refused stream is shown
+  // through the refused read beside it rather than through a status the browser
+  // never hands us (constitution III: no claim the pane cannot observe).
+  if (errorStatus === 401) {
+    return (
+      <main id="room" className="desk">
+        <div className="degraded" role="status" data-mode="unauthorized" data-section="token">
+          <p className="lead">The pane's token was refused.</p>
+          <p>Nothing can be read until one is presented.</p>
+        </div>
+      </main>
+    );
+  }
+
   if (errorStatus !== null) {
     return (
       <main id="room" className="desk">

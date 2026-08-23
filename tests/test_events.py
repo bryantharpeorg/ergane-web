@@ -75,7 +75,7 @@ def test_poll_loop_queries_each_running_epic(demo_settings):
             assert call["workflow_id"] == f"epic-{ref.epic_id}"
 
 
-def test_api_events_stream_one_event(demo_settings, tmp_path, monkeypatch):
+def test_api_events_stream_one_event(demo_settings, tmp_path, monkeypatch, auth_headers):
     monkeypatch.setenv("PANE_POLL_INTERVAL_S", "0.01")
     settings = Settings.from_env()
     app = create_app(settings)
@@ -87,7 +87,12 @@ def test_api_events_stream_one_event(demo_settings, tmp_path, monkeypatch):
             "path": "/api/events",
             "raw_path": b"/api/events",
             "query_string": b"",
-            "headers": [(b"host", b"testserver")],
+            # Spec 003 US4 (T056): `GET /api/events` is behind the closed gate
+            # like every other route, so the stream is opened with the token.
+            "headers": [
+                (b"host", b"testserver"),
+                (b"authorization", auth_headers["Authorization"].encode("ascii")),
+            ],
             "server": ("testserver", 80),
             "client": None,
             "scheme": "http",

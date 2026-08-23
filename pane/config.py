@@ -28,6 +28,12 @@ class Settings:
     # Last, and with a default, so a caller that predates spec 003 US2 — 002's
     # `tests/test_stage.py` builds a `Settings` by hand — still constructs one.
     demo_ruling: str = "RESOLVED"
+    # The one shared token every route but intake requires (D-007, FR-014).  The
+    # dataclass default is empty rather than absent for the same reason
+    # `demo_ruling` has one — a hand-built `Settings` still constructs.  Empty is
+    # not permissive: `create_app` refuses to build an app without a token, in
+    # every mode, so the backend never serves open (T054).
+    token: str = ""
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> "Settings":
@@ -73,6 +79,10 @@ class Settings:
         # invented ruling and never a stand-in file (constitution V).
         demo_ruling = environ.get("PANE_DEMO_RULING") or "RESOLVED"
 
+        # Who can see.  Distinct from `answer_identity`, which decides whose
+        # answers count and is the factory's to judge, never the pane's (FR-016).
+        token = environ.get("PANE_TOKEN", "")
+
         raw_attention_db = environ.get("PANE_ATTENTION_DB")
         if raw_attention_db:
             attention_db = Path(raw_attention_db)
@@ -94,4 +104,5 @@ class Settings:
             answer_identity=answer_identity,
             attention_db=attention_db,
             demo_ruling=demo_ruling,
+            token=token,
         )

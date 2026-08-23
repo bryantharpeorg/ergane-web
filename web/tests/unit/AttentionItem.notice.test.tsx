@@ -67,6 +67,24 @@ describe("the Notice kind", () => {
     document.body.removeChild(container);
   });
 
+  it("renders no credential and nothing token-shaped (spec 003 US4-S5)", () => {
+    // FR-017: the browser holds the token, having answered the challenge once;
+    // no file under `web/src/` reads, stores, or renders one, so nothing that
+    // could be a credential can reach the markup an item produces.
+    const container = render(noticeItem);
+    const html = container.innerHTML;
+
+    expect(html).not.toContain("Authorization");
+    expect(html).not.toMatch(/Bearer\s/);
+    expect(html).not.toMatch(/Basic\s/);
+    // The same token shape `tests/test_credential_sweep.py` defines: a long hex
+    // or base64url run is what a real credential looks like once rendered.
+    expect(html).not.toMatch(/[0-9a-fA-F]{16,}/);
+    expect(html).not.toMatch(/[A-Za-z0-9+/=_-]{20,}/);
+
+    document.body.removeChild(container);
+  });
+
   it("carries the one italic line and not a single control", () => {
     const container = render(noticeItem);
 

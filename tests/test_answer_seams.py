@@ -163,8 +163,8 @@ def answer_app(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def client(answer_app):
-    return TestClient(answer_app)
+def client(answer_app, auth_headers):
+    return TestClient(answer_app, headers=auth_headers)
 
 
 @pytest.fixture
@@ -356,7 +356,9 @@ def test_a_signal_that_raised_is_recorded_as_signal_failed_and_nothing_else(clie
 # --- US2-S5: at most one settlement call per item is in flight ---------------
 
 
-async def test_a_second_answer_while_one_is_in_flight_reaches_no_seam(answer_app, reader):
+async def test_a_second_answer_while_one_is_in_flight_reaches_no_seam(
+    answer_app, reader, auth_headers
+):
     """One call goes out; the other is refused 409 and the list says why.
 
     The recorder blocks inside `settle_question`, so the second request arrives
@@ -367,7 +369,9 @@ async def test_a_second_answer_while_one_is_in_flight_reaches_no_seam(answer_app
     correlation_id = QUESTION["correlation_id"]
 
     transport = httpx.ASGITransport(app=answer_app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://pane") as ac:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://pane", headers=auth_headers
+    ) as ac:
         first = asyncio.create_task(ac.post(answer_url(correlation_id), json={"text": "first"}))
         await asyncio.wait_for(reader.entered.wait(), timeout=5)
 
@@ -393,13 +397,15 @@ async def test_a_second_answer_while_one_is_in_flight_reaches_no_seam(answer_app
     assert reader.settled == [(correlation_id, "first", IDENTITY)]
 
 
-async def test_the_slot_is_released_even_when_the_seam_raised(answer_app, reader):
+async def test_the_slot_is_released_even_when_the_seam_raised(answer_app, reader, auth_headers):
     """A crashed call leaves nothing in flight, which is the truth (D-P5)."""
     reader.signal_raises = RuntimeError("the workflow could not be signalled")
     delivered = ESCALATION["actions"][0]["payload"]
 
     transport = httpx.ASGITransport(app=answer_app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://pane") as ac:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://pane", headers=auth_headers
+    ) as ac:
         first = await ac.post(
             answer_url(ESCALATION["correlation_id"]), json={"payload": delivered}
         )

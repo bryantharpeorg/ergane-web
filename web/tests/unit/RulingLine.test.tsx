@@ -112,6 +112,23 @@ describe("every ruling renders verbatim, on the item, in the body column", () =>
     const refusal = render(questionRuled("UNAUTHORIZED"));
     const line = refusal.querySelector(".body-col .ruling-line") as HTMLElement;
     expect(line).not.toBeNull();
+
+    // Spec 003 US4-S4: the factory's ruling on whose answers count renders as
+    // itself. Not "not permitted", not "could not be accepted", not a word the
+    // pane chose to be kinder with — the operator reads what the factory said.
+    expect(refusal.querySelector(".ruling")?.textContent).toBe("UNAUTHORIZED");
+    for (const softer of [
+      "not permitted",
+      "not allowed",
+      "no permission",
+      "denied",
+      "could not be accepted",
+      "unrecognised",
+      "unrecognized",
+      "sorry",
+    ]) {
+      expect(refusal.textContent?.toLowerCase()).not.toContain(softer);
+    }
     expect(line.className).not.toMatch(/error|danger|red|alert/);
     expect(refusal.querySelector('[role="alert"]')).toBeNull();
     expect(globalCss).toMatch(/\.attention \.ruling-line \{[^}]*var\(--olive-ink\)/);
