@@ -12,6 +12,7 @@ call, no settlement seam, no factory-store read.  The factory's ten-second
 window is spent on storage alone (FR-001, US1-S6).
 """
 
+import logging
 import re
 import sqlite3
 from datetime import datetime, timezone
@@ -33,6 +34,13 @@ CORRELATION_ID = re.compile(r"^[0-9a-f]{12}$")
 ACTION_PAYLOAD = re.compile(r"^esc:[0-9a-f]{12}:[A-Za-z0-9_]+$")
 
 Kind = Literal["question", "escalation", "notice"]
+
+#: Intake identifies its work by correlation id and by nothing else (FR-017).
+#: The credential is in the path this handler was reached through and never in a
+#: line it writes; `create_app` also registers it with `factory.notify.redact`,
+#: so a line written by any other logger in the process — uvicorn's access log,
+#: which does print the request path — has it removed at record creation.
+log = logging.getLogger("pane.intake")
 
 
 class Malformed(Exception):
@@ -132,6 +140,13 @@ def create_intake_router(
             # awaited in between (FR-005).  A re-delivery of a served request
             # publishes nothing: the item the Desk holds is already this one.
             broadcaster.publish(assemble_attention([item], [])[0])
+
+        log.info(
+            "intake stored a %s, correlation_id=%s, created=%s",
+            kind,
+            item.correlation_id,
+            created,
+        )
 
         return JSONResponse(
             {"stored": kind, "correlation_id": item.correlation_id},

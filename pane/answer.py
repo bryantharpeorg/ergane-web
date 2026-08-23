@@ -18,6 +18,7 @@ nothing — so this local refusal is load-bearing rather than redundant (FR-006)
 """
 
 import asyncio
+import logging
 import sqlite3
 from typing import Any
 
@@ -28,6 +29,12 @@ from pane.attention import assemble_attention
 from pane.attention_store import get_item, record_press, record_ruling
 from pane.events import AttentionBroadcaster
 from pane.intake import utc_now
+
+
+#: Settlement identifies its work by correlation id and by nothing else
+#: (FR-017).  The identity is a configured value the factory judges, not a
+#: credential, and the token never reaches this module at all.
+log = logging.getLogger("pane.answer")
 
 
 class InFlightRegistry:
@@ -118,6 +125,11 @@ def create_answer_router(
             if item.kind == "question":
                 ruling = await reader.settle_question(correlation_id, text, identity)
                 record_ruling(store, correlation_id, ruling, utc_now())
+                log.info(
+                    "answer settled a question, correlation_id=%s, ruling=%s",
+                    correlation_id,
+                    ruling,
+                )
                 result = {"kind": "question", "ruling": ruling}
             else:
                 escalation_id, choice = _parse_payload(payload)
@@ -133,6 +145,11 @@ def create_answer_router(
                 else:
                     signal_state = "accepted"
                 record_press(store, correlation_id, choice, signal_state, utc_now())
+                log.info(
+                    "answer signalled an escalation, correlation_id=%s, signal=%s",
+                    correlation_id,
+                    signal_state,
+                )
                 result = {"kind": "escalation", "signal": signal_state}
         finally:
             await registry.release(correlation_id)
