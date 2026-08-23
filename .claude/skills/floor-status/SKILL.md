@@ -113,57 +113,68 @@ dispatched**, because the roadmap derives its own graph in-process and never
 writes it back: on 2026-08-20 the on-disk graph read `implementer` for all three
 068 nodes while the running epic was `opus-closer` throughout.
 
-The authority is the epic's own **start payload**, the same place `spec derive`
-arguments are checked. Then resolve the persona against the registry for the
-model and the route:
+**Pivot on persona, not on node.** A node-per-row table repeats `persona`,
+`model` and `route` identically down every row of an epic — four nodes is the
+same three values four times, and the repeated columns are exactly the ones
+carrying the cost story. Name each persona once with the five or six fields
+common to every node it runs, and collapse the nodes to one line:
 
 ```bash
-EPIC=epic-<feature>
-python3 - "$EPIC" <<'PY'
-import subprocess,sys,json,base64,re
-epic=sys.argv[1]
-st=json.loads(subprocess.run(["uv","run","ergane","build","status",epic,"--json"],
-                             capture_output=True,text=True).stdout)
-ev=json.loads(subprocess.run(["temporal","workflow","show","--workflow-id",epic,"-o","json"],
-                             capture_output=True,text=True).stdout)
-ev=ev.get("events",ev)
-raw="".join(base64.b64decode(p["data"]).decode("utf8","replace")
-            for p in ev[0]["workflowExecutionStartedEventAttributes"]["input"]["payloads"])
-persona=dict(re.findall(r'"id":\s*"(us\d+)"[^}]*?"persona":\s*"([^"]+)"',raw))
-sys.path.insert(0,".")
-from factory.config import load_personas
-reg=load_personas()
-hdr=["node","state","att","persona","model","route"]
-rows=[]
-for nid,n in sorted(st.get("nodes",{}).items()):
-    p=persona.get(nid,"?"); r=reg.get(p)
-    rows.append([nid,n["state"],str(n["attempt"]),p,(r.model if r else "?"),
-                 "subscription" if (r and r.agent=="subscription") else ("gateway" if r else "?")])
-w=[max(len(h),*(len(r[i]) for r in rows)) if rows else len(h) for i,h in enumerate(hdr)]
-line=lambda l,m,rt: l+m.join("─"*(x+2) for x in w)+rt
-row=lambda c: "│ "+" │ ".join(c[i].ljust(w[i]) for i in range(len(hdr)))+" │"
-print(line("┌","┬","┐")); print(row(hdr)); print(line("├","┼","┤"))
-for r in rows: print(row(r))
-print(line("└","┴","┘"))
-PY
+eval "$(~/.config/ergane/ergane-env.sh)"
+python3 .claude/skills/floor-status/scripts/running-by-persona.py
 ```
 
-It renders bordered, so a multi-epic floor stays readable when two of these are
-printed back to back:
-
 ```
-┌──────┬──────────┬─────┬─────────────┬───────────────┬──────────────┐
-│ node │ state    │ att │ persona     │ model         │ route        │
-├──────┼──────────┼─────┼─────────────┼───────────────┼──────────────┤
-│ us1  │ MERGED   │ 1   │ opus-closer │ claude-opus-5 │ subscription │
-│ us2  │ ENQUEUED │ 2   │ opus-closer │ claude-opus-5 │ subscription │
-│ us3  │ RUNNING  │ 1   │ opus-closer │ claude-opus-5 │ subscription │
-└──────┴──────────┴─────┴─────────────┴───────────────┴──────────────┘
+  implementer
+    model      claude-opus-5
+    route      subscription — unmetered
+    fallback   none
+    write      worktree
+    timeout    14400s (4h)
+    context    1,000,000
+    nodes      002/us1 MERGED·1  002/us2 MERGED·1  002/us3 RUNNING·1  003/us1 RUNNING·1
+    AT RUN     claude-opus-5, ollama-cloud/kimi-k2.7-code  ← differs from the registry
+
+  debugger
+    model      claude-opus-5
+    ...
+    nodes      003/us3 VERIFYING·2
+
+  not yet dispatched
+    nodes      002/us4 PENDING·0
 ```
 
-Widths are computed from the data rather than fixed, because `state` runs from
-`RUNNING` to `ENQUEUED` and a persona name is operator-chosen — a hardcoded width
-truncates the column that carries the finding.
+Personas running live work sort first; undispatched nodes fall to their own
+group rather than filling the table with em-dashes.
+
+**The `AT RUN` line is the point of the pivot.** Grouping makes a model that
+disagrees with the registry a single visible row instead of something you find
+by diffing two columns by eye. It fires whenever the models observed on a
+persona's nodes differ from what the registry names — which happens for real in
+two ways: the DEBUGGER rung relabels the persona for the key alias and the
+history record but never re-resolves `model_alias`, and an epic snapshots its
+persona→model resolution at dispatch (`resolve_persona` is "called once at epic
+start"), so a registry edit never reaches a running epic. Report the rung and
+the model separately; they disagree.
+
+**Where the data comes from, and two dead ends.** The script reads `ergane
+status`, which prints persona *and* model per node and needs no Temporal CLI —
+that matters under `temporal.mode = "managed"`, where no `temporal` binary
+exists on the host. **`build status --json` does not carry `persona` at all**
+— its node keys are attempt/branch/landing_history/landing_state/pr_number/
+provenance/recovery_cycles/state/terminal_reason/verified. And the on-disk
+`specs/<dir>/workgraph.json` **lies for anything the roadmap dispatched**,
+because the roadmap derives its own graph in-process and never writes it back:
+on 2026-08-20 the on-disk graph read `implementer` for all three 068 nodes while
+the running epic was `opus-closer` throughout. Never run `ergane spec derive`
+to find out — it writes `workgraph.json` into the checkout even with `--json`
+and no `-o`, and that write trips the worktree-boundary detector against
+whatever agent is running (N35).
+
+The registry supplies everything below the persona name. `factory` lives in the
+tool venv rather than on the system path, so the script locates
+`~/.local/share/uv/tools/ergane-cli/lib/python*/site-packages` itself — you
+should not have to remember which interpreter to run it with.
 
 **`route` is the column that matters for cost.** `gateway` bills per token
 through LiteLLM; `subscription` runs on the operator's own Claude Code login and
