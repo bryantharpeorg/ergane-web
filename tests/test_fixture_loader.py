@@ -118,9 +118,9 @@ def _assert_full_fixture_document(document: dict) -> None:
     # Spec 003 US1: 001 asserted the recorded Question payload straight out of
     # the loader.  The demo floor is now *seeded* from the three recorded
     # deliveries through the same `upsert_delivery` intake uses, so all three
-    # appear here in the shape `assemble_attention` produces.  The Question
-    # still carries no `expires_at` in this story — US3's questions-store join
-    # supplies it.
+    # appear here in the shape `assemble_attention` produces.  US3's
+    # questions-store join now supplies the Question's `expires_at` — the value
+    # the factory wrote at send time, taken from the recording below.
     attention = document["attention"]["items"]
     kinds = {item["kind"] for item in attention}
     assert kinds == {"escalation", "question", "notice"}
@@ -130,7 +130,11 @@ def _assert_full_fixture_document(document: dict) -> None:
     assert question["correlation_id"] == recorded_question["correlation_id"]
     assert question["text"] == recorded_question["text"]
     assert question["actions"] == []
-    assert question["expires_at"] is None
+    stored_question = json.loads(
+        (FIXTURES / "questions" / "pending_questions.json").read_text()
+    )["pending_questions"][0]
+    assert stored_question["question_id"] == recorded_question["correlation_id"]
+    assert question["expires_at"] == stored_question["expires_at"]
 
     recorded_escalation = json.loads((FIXTURES / "webhook" / "escalation.json").read_text())
     escalation = next(item for item in attention if item["kind"] == "escalation")
@@ -213,6 +217,25 @@ class StubLiveReader:
 
     def stored_items(self) -> list[StoredItem]:
         return seeded_items(self.root)
+
+    async def read_question(self, correlation_id: str) -> dict | None:
+        """The same recorded row the demo reader serves, read the same way.
+
+        `pending_questions.json` is an object, so the list under
+        `pending_questions` is what is matched — never the document as an array.
+        """
+        doc = json.loads((self.root / "questions" / "pending_questions.json").read_text())
+        for row in doc["pending_questions"]:
+            if row.get("question_id") == correlation_id:
+                return row
+        return None
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        doc = json.loads((self.root / "escalations" / "open_escalations.json").read_text())
+        for entry in doc:
+            if entry.get("escalation_id") == correlation_id:
+                return entry
+        return None
 
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())

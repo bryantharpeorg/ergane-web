@@ -279,6 +279,43 @@ class FixtureReader:
         """
         return None
 
+    async def read_question(self, correlation_id: str) -> dict | None:
+        """The recorded `QuestionRecord` for this id, from the questions store read.
+
+        `questions/pending_questions.json` is an **object**, not a bare array:
+        `pending_questions` holds the list the seam returned and `get_question`
+        holds the single row it answered for that id.  The list is what is
+        matched on, so a document that grows a second pending question needs no
+        change here.  An id in neither is `None` — the factory's store has no
+        such question, and the item keeps no deadline (FR-012).
+        """
+        self._check_fail("attention", "read_question")
+        doc, _ = load_document(
+            self.root / "questions" / "pending_questions.json", read="read_question"
+        )
+        for row in doc["pending_questions"]:
+            if row.get("question_id") == correlation_id:
+                return row
+        return None
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        """The matching entry of the recorded `open_escalations` array, or None.
+
+        A bare JSON array, recorded from the seam 001 already reads.  Its one
+        entry carries `resolution: null`, so a pressed fixture Escalation stays
+        in flight — the demo floor has no workflow to change its mind, and
+        inventing a resolution here would be the pane minting a ruling for a
+        press (FR-010).
+        """
+        self._check_fail("attention", "escalation_status")
+        doc, _ = load_document(
+            self.root / "escalations" / "open_escalations.json", read="escalation_status"
+        )
+        for entry in doc:
+            if entry.get("escalation_id") == correlation_id:
+                return entry
+        return None
+
     def list_findings(self) -> list[dict]:
         self._check_fail("health", "list_findings")
         doc, _ = load_document(self.root / "doctor" / "findings.json", read="list_findings")

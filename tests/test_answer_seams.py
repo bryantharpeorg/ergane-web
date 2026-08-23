@@ -112,6 +112,16 @@ class RecordingReader:
         finally:
             conn.close()
 
+    # US3's two joins.  This reader's factory reports nothing about either kind,
+    # so every item here keeps `expires_at: null` — the Escalation still falls
+    # back to the recorded `open_escalations` entry the assembly already had, and
+    # nothing in this file's scenarios acquires a deadline it did not have.
+    async def read_question(self, correlation_id: str) -> dict | None:
+        return None
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        return None
+
     def list_findings(self) -> list[dict]:
         return []
 

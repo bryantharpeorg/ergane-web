@@ -128,6 +128,12 @@ class _StubReaderWithRollupFailure:
     def stored_items(self) -> list[StoredItem]:
         return seeded_items(self.root)
 
+    async def read_question(self, correlation_id: str) -> dict | None:
+        return None
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        return None
+
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())
 
@@ -158,6 +164,12 @@ class _BuggyReader:
 
     def stored_items(self) -> list[StoredItem]:
         return []
+
+    async def read_question(self, correlation_id: str) -> dict | None:
+        return None
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        return None
 
     def list_findings(self) -> list[dict]:
         return []

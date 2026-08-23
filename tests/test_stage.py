@@ -218,6 +218,12 @@ async def _run_dead_workgraph_test():
         def stored_items(self) -> list[StoredItem]:
             return []
 
+        async def read_question(self, correlation_id: str) -> dict | None:
+            return None
+
+        async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+            return None
+
         def list_findings(self) -> list[dict]:
             return []
 
