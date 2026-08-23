@@ -20,7 +20,7 @@ nowhere in a key, seam, or label.
 import re
 from typing import TYPE_CHECKING, Any
 
-from pane.attention import assemble_attention
+from pane.attention import read_attention
 
 if TYPE_CHECKING:
     from pane.readers import EpicRef, Reader
@@ -44,29 +44,9 @@ async def assemble_floor_document(reader: "Reader", *, reference_instant: str | 
         floor_data = None
         floor_read = None
 
-    # attention
-    try:
-        escalations = await reader.open_escalations()
-    except Exception as exc:
-        mode, detail, read, epic_id = _classify(exc)
-        if mode is None:
-            raise
-        degraded.append(_degraded_entry("attention", mode, read, detail, epic_id))
-        escalations = []
-
-    try:
-        stored_items = reader.stored_items()
-    except Exception as exc:
-        mode, detail, read, epic_id = _classify(exc)
-        if mode is None:
-            raise
-        degraded.append(_degraded_entry("attention", mode, read, detail, epic_id))
-        stored_items = []
-
-    attention_items, attention_degraded = assemble_attention(stored_items, escalations)
+    # attention — every rule of the list lives in pane/attention.py (T008, D-P16)
+    attention_items, attention_degraded = await read_attention(reader, unsettled_only=True)
     degraded.extend(attention_degraded)
-    # Only unsettled items belong in the floor document's attention section.
-    attention_items = [item for item in attention_items if item["settlement"]["state"] != "settled"]
 
     # health
     try:

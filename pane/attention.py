@@ -9,13 +9,20 @@ in later stories.
 from typing import Any, Sequence
 
 
-async def read_attention(reader: Any, *, in_flight: frozenset[str] = frozenset()) -> tuple[list[dict], list[dict]]:
+async def read_attention(
+    reader: Any,
+    *,
+    in_flight: frozenset[str] = frozenset(),
+    unsettled_only: bool = False,
+) -> tuple[list[dict], list[dict]]:
     """Read both attention sources through the `Reader` seam and assemble the list.
 
-    Returns `(items, degraded)` with every item in rank order, settled included —
-    the whole list `GET /api/attention` carries (D-P15). Each read degrades in
-    001's two modes rather than failing the route or, worse, quietly returning a
-    shorter list that reads as a calmer floor (constitution III).
+    Returns `(items, degraded)` in rank order. `GET /api/attention` carries the
+    whole list, settled included; the floor document's section passes
+    `unsettled_only=True` because 002's Showfloor badge counts its length as
+    "waiting on you", and nothing here ever deletes a row (D-P15). Each read
+    degrades in 001's two modes rather than failing the surface or, worse, quietly
+    returning a shorter list that reads as a calmer floor (constitution III).
     """
     from pane.floor_document import _classify, _degraded_entry
 
@@ -40,6 +47,8 @@ async def read_attention(reader: Any, *, in_flight: frozenset[str] = frozenset()
         stored = []
 
     items, item_degraded = assemble_attention(stored, escalations, in_flight=in_flight)
+    if unsettled_only:
+        items = [item for item in items if item["settlement"]["state"] != "settled"]
     return items, degraded + item_degraded
 
 
