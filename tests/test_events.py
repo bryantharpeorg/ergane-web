@@ -200,6 +200,14 @@ class _RecordingReader:
         self.calls.append({"method": "stored_items"})
         return self._reader.stored_items()
 
+    async def read_question(self, correlation_id: str):
+        self.calls.append({"method": "read_question", "correlation_id": correlation_id})
+        return await self._reader.read_question(correlation_id)
+
+    async def read_escalation_fate(self, correlation_id: str):
+        self.calls.append({"method": "read_escalation_fate", "correlation_id": correlation_id})
+        return await self._reader.read_escalation_fate(correlation_id)
+
     def list_findings(self):
         self.calls.append({"method": "list_findings"})
         return self._reader.list_findings()

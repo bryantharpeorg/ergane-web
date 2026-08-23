@@ -12,6 +12,7 @@ Nothing here deletes a row and nothing here mints a settlement: a press or a
 submit moves nothing.  `settled` is the factory's word alone (D-P8).
 """
 
+import dataclasses
 from typing import TYPE_CHECKING, Any, Sequence
 
 from pane.attention_store import StoredItem
@@ -19,6 +20,22 @@ from pane.readers import QueryRefused, TransportFailed
 
 if TYPE_CHECKING:
     from pane.readers import Reader
+
+
+@dataclasses.dataclass(frozen=True)
+class FactoryJoin:
+    """What one factory read said about one item — or why it could not say.
+
+    The two fields are the two only the factory may write: the `expires_at` it
+    wrote at send time and the `resolution` it wrote when the item settled.  A
+    join carrying neither is a factory that has nothing to report about this
+    item, which is not a failure — the item keeps no deadline rather than one
+    the pane arithmetic'd out of its own receipt clock (FR-012).
+    """
+
+    expires_at: str | None = None
+    resolution: str | None = None
+    degraded: dict | None = None
 
 
 # The rank DESIGN.md § Colors › The Attention Ranking Rule states: high =
@@ -80,15 +97,24 @@ def assemble_attention(
     open_escalations: Sequence[dict],
     *,
     in_flight: frozenset[str] = frozenset(),
+    joins: dict[str, FactoryJoin] | None = None,
 ) -> list[dict]:
     """Build the Desk's Attention items from what was delivered and what is open.
 
     The union is by correlation id: a stored Escalation and its
     `open_escalations` entry are one item, and the open entry's `expires_at` and
-    `resolution` ride along — 001 already reads that seam.  A Question or a
-    Notice carries `expires_at: null` here; the questions-store join is US3's,
-    and intake never writes an expiry of the pane's own making (D-P9).
+    `resolution` ride along — 001 already reads that seam.
+
+    `joins` is what the factory reads reported, one entry per answerable item,
+    assembled by `assemble_attention_section` through the `Reader`.  A join
+    **replaces** whatever the open-escalations entry carried, because it is the
+    later and more specific word from the same factory; an item with no join
+    falls back to that entry, and an item with neither keeps `expires_at: null`.
+    `received_at` appears nowhere in this function, and that is the whole of
+    FR-012: there is no code path here that could anchor a countdown on the
+    pane's own clock (D-P9).
     """
+    joins = joins or {}
     by_correlation: dict[str, dict] = {}
     for entry in open_escalations:
         escalation_id = entry.get("escalation_id")
@@ -100,8 +126,13 @@ def assemble_attention(
 
     for item in stored:
         open_entry = by_correlation.get(item.correlation_id) if item.kind == "escalation" else None
-        resolution = open_entry.get("resolution") if open_entry else None
-        expires_at = open_entry.get("expires_at") if open_entry else None
+        join = joins.get(item.correlation_id) if item.kind != "notice" else None
+        if join is not None:
+            resolution = join.resolution
+            expires_at = join.expires_at
+        else:
+            resolution = open_entry.get("resolution") if open_entry else None
+            expires_at = open_entry.get("expires_at") if open_entry else None
         state = settlement_state(
             item,
             resolution=resolution,
@@ -122,7 +153,11 @@ def assemble_attention(
                     "pressed_choice": item.pressed_choice,
                     "resolution": resolution,
                 },
-                "degraded": None,
+                # The join that could not be learned, named on the item that
+                # lost it.  The item still renders, with its delivered text and
+                # no deadline: what is missing is said, not filled in
+                # (constitution III, FR-012).
+                "degraded": join.degraded if join is not None else None,
                 "_seq": item.seq,
             }
         )
@@ -203,10 +238,65 @@ async def assemble_attention_section(
         degraded.append(_degraded_entry(exc))
         stored = []
 
-    items = assemble_attention(stored, escalations, in_flight=in_flight)
+    by_correlation = {
+        entry.get("escalation_id"): entry
+        for entry in escalations
+        if isinstance(entry.get("escalation_id"), str)
+    }
+    joins = {
+        item.correlation_id: await _join(
+            reader, item, by_correlation.get(item.correlation_id)
+        )
+        for item in stored
+        if item.kind != "notice"
+    }
+
+    items = assemble_attention(stored, escalations, in_flight=in_flight, joins=joins)
     if unsettled_only:
         items = [item for item in items if item["settlement"]["state"] != "settled"]
     return items
+
+
+async def _join(
+    reader: "Reader", item: StoredItem, open_entry: dict | None
+) -> FactoryJoin:
+    """Ask the factory what it knows about one item; never guess on its behalf.
+
+    One read per answerable item, through the seam: a Question's stored record
+    (FR-019) and an Escalation's fate.  Three outcomes and no fourth — the
+    factory reported something, the factory has nothing to report (`None`, so no
+    deadline), or the read failed in one of 001's two modes and says so on the
+    item.  A Notice never reaches here: it asks for nothing, so there is nothing
+    to join.
+    """
+    try:
+        if item.kind == "question":
+            record = await reader.read_question(item.correlation_id)
+        else:
+            record = await reader.read_escalation_fate(item.correlation_id)
+            if record is None:
+                # 001's list remains the fallback for an Escalation: a second
+                # seam over the same fact, already read for this document.
+                record = open_entry
+    except (TransportFailed, QueryRefused) as exc:
+        return FactoryJoin(degraded=_item_degraded(exc))
+
+    if record is None:
+        return FactoryJoin()
+    return FactoryJoin(
+        expires_at=record.get("expires_at"),
+        resolution=record.get("resolution"),
+    )
+
+
+def _item_degraded(exc: TransportFailed | QueryRefused) -> dict:
+    """The `{mode, what}` the item carries when its join could not be made."""
+    from pane.floor_document import _redact_secrets
+
+    return {
+        "mode": "transport" if isinstance(exc, TransportFailed) else "refusal",
+        "what": _redact_secrets(str(exc)),
+    }
 
 
 def _rank_key(item: dict) -> tuple[Any, ...]:

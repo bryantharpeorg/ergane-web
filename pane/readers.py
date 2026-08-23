@@ -111,6 +111,32 @@ class Reader(Protocol):
         """
         ...
 
+    async def read_question(self, correlation_id: str) -> dict | None:
+        """Return the factory's stored `QuestionRecord` for this id, or None.
+
+        The two fields the Desk takes from it are the ones only the factory can
+        write: the `expires_at` it wrote at send time, and the `resolution` it
+        wrote when the question settled (FR-019, FR-012).  The record is carried
+        as a plain document, the way `open_escalations` already carries
+        `OpenEscalation` — the pane reads fields off it and re-derives nothing.
+
+        `None` means the factory's store has no such question, which is not a
+        failure: the item keeps no deadline (FR-012).  A store that cannot be
+        opened is `TransportFailed` and a query that errors is `QueryRefused` —
+        001's two modes, and neither is ever a missing deadline in disguise.
+        """
+        ...
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        """Return what the factory reports about this Escalation, or None.
+
+        Same two fields as `read_question`, and the same rule: `resolution` is
+        the factory's word, passed through verbatim.  A press never reaches this
+        read — a signal returns nothing, so an Escalation's fate arrives here or
+        not at all (FR-010, FR-012).
+        """
+        ...
+
     def list_findings(self) -> list[dict]:
         """Return doctor findings."""
         ...
@@ -307,6 +333,80 @@ class LiveReader:
         handle = client.get_workflow_handle(correlation_id)
         await handle.signal(SIGNAL_NAME, args=[escalation_id, choice, identity])
 
+    async def read_question(self, correlation_id: str) -> dict | None:
+        """`get_question` over `connect_readonly`, and nothing else (FR-019).
+
+        The store path is resolved through ergane's own chain, exactly as
+        `settle_question` resolves it and exactly as `ergane answer` does, so a
+        deployment that moved its runtime root moved this read with it.  The
+        connection is read-only by construction — the factory's stores are the
+        factory's, and the pane only ever looks.
+        """
+        from factory.activities.verify_activities import DEFAULT_VERIFICATION_DB_PATH
+        from factory.env import (
+            ERGANE_VERIFICATION_DB_PATH_ENV,
+            FACTORY_VERIFICATION_DB_PATH_ENV,
+            resolve_env_path,
+        )
+        from factory.verify import store as verify_store
+
+        path = resolve_env_path(
+            ERGANE_VERIFICATION_DB_PATH_ENV,
+            FACTORY_VERIFICATION_DB_PATH_ENV,
+            DEFAULT_VERIFICATION_DB_PATH,
+        )
+        try:
+            conn = verify_store.connect_readonly(path)
+        except (sqlite3.OperationalError, OSError) as exc:
+            raise TransportFailed("read_question", str(exc)) from exc
+        try:
+            record = verify_store.get_question(conn, correlation_id)
+        except sqlite3.Error as exc:
+            # The store answered, and what it answered was a refusal.  001's
+            # second mode, and a different sentence on the item than a store
+            # that could not be opened at all (constitution III).
+            raise QueryRefused("read_question", str(exc)) from exc
+        finally:
+            conn.close()
+
+        return self._plain(record) if record is not None else None
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        """The `escalation_status` query, falling back to the open-escalations list.
+
+        The workflow id *is* the correlation id (ergane 041 FR-004).  A refused
+        query is not the end of what can be honestly learned: `open_escalations`
+        is a second seam over the same fact, already read by 001, so the refusal
+        falls back to it and only becomes a `QueryRefused` on the item when that
+        list has nothing to say either.  A transport failure does not fall back,
+        because the fallback rides the same dead client.
+        """
+        from factory.cli.nouns import build
+        from factory.escalation.workflow import ESCALATION_STATUS_QUERY
+
+        client = await self._open_client()
+        try:
+            handle = client.get_workflow_handle(correlation_id)
+            answer = await handle.query(ESCALATION_STATUS_QUERY)
+        except build.TRANSPORT_FAILED as exc:
+            raise TransportFailed("escalation_status", str(exc)) from exc
+        except build.QUERY_REFUSED as exc:
+            fallback = await self._open_escalation_entry(correlation_id)
+            if fallback is None:
+                raise QueryRefused("escalation_status", str(exc)) from exc
+            return fallback
+
+        if answer is None:
+            return await self._open_escalation_entry(correlation_id)
+        return self._plain(answer)
+
+    async def _open_escalation_entry(self, correlation_id: str) -> dict | None:
+        """The matching `open_escalations` row, or None: 001's read, reused."""
+        for entry in await self.open_escalations():
+            if entry.get("escalation_id") == correlation_id:
+                return entry
+        return None
+
     def list_findings(self) -> list[dict]:
         from factory.cli.nouns import build
         from factory.doctor import cli as doctor_cli
@@ -374,6 +474,12 @@ class UnconfiguredReader:
         self, correlation_id: str, escalation_id: str, choice: str, identity: str
     ) -> None:
         raise TransportFailed("press_escalation", "no live reader is configured in this build")
+
+    async def read_question(self, correlation_id: str) -> dict | None:
+        raise TransportFailed("read_question", "no live reader is configured in this build")
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        raise TransportFailed("escalation_status", "no live reader is configured in this build")
 
     def list_findings(self) -> list[dict]:
         raise TransportFailed("list_findings", "no live reader is configured in this build")

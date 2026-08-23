@@ -68,7 +68,14 @@ def test_floor_document_sections_and_seams(demo_client):
     kinds = {item["kind"] for item in items}
     assert kinds == {"escalation", "question", "notice"}
     question = next(item for item in items if item["kind"] == "question")
-    assert question["expires_at"] is None
+    # Spec 003 US3 (T042, FR-019): the questions-store join gives the seeded demo
+    # Question the `expires_at` the factory wrote at send time, where US1 left it
+    # null.  The expected value is read out of the recording rather than typed,
+    # so this asserts the join and not a constant.
+    stored_question = json.loads(
+        (FIXTURES / "questions" / "pending_questions.json").read_text()
+    )["pending_questions"][0]
+    assert question["expires_at"] == stored_question["expires_at"]
     assert question["settlement"]["state"] == "waiting"
     notice = next(item for item in items if item["kind"] == "notice")
     assert notice["expires_at"] is None
@@ -241,6 +248,12 @@ class _StubReader:
 
     def stored_items(self) -> list[StoredItem]:
         return seeded_items(self.root)
+
+    async def read_question(self, correlation_id: str) -> dict | None:
+        return None
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        return None
 
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())

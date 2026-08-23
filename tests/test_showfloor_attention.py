@@ -54,6 +54,12 @@ class _ReaderWithAttentionFailure:
     def stored_items(self) -> list[StoredItem]:
         return []
 
+    async def read_question(self, correlation_id: str) -> dict | None:
+        raise AssertionError("nothing was delivered, so nothing is joined")
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        raise AssertionError("nothing was delivered, so nothing is joined")
+
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())
 

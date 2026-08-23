@@ -73,6 +73,14 @@ class RecordingReader:
         finally:
             conn.close()
 
+    async def read_question(self, correlation_id: str) -> dict | None:
+        self.calls.append("read_question")
+        return None
+
+    async def read_escalation_fate(self, correlation_id: str) -> dict | None:
+        self.calls.append("read_escalation_fate")
+        return None
+
     def list_findings(self) -> list[dict]:
         self.calls.append("list_findings")
         return []
