@@ -66,6 +66,18 @@ ERGANE_WEBHOOK_URL=http://<pane-host>:8787/intake/<PANE_INTAKE_CREDENTIAL>
 Set `PANE_INTAKE_CREDENTIAL` on the pane to the same value. With it unset the pane
 logs `intake closed: PANE_INTAKE_CREDENTIAL is not set` once and refuses every POST.
 
+### Whose answers count — and the gap the pane does not close
+
+The token decides who can *see*; the factory decides whose answers *count*. The pane
+passes `PANE_ANSWER_IDENTITY` verbatim to both settlement seams and performs no
+responder check of its own: for a Question, `CallbackBridge.handle_relay` checks the
+identity against `escalation.authorized_responders` and returns `UNAUTHORIZED`, which
+the pane renders unsoftened. The escalation signal seam performs no such check —
+`EscalationWorkflow._answer` accepts the first offered choice whatever identity rides
+with it, so an unauthorized identity's direct signal would settle an escalation. That
+is a factory-side gap this pane surfaces rather than closes: a pane-side responder
+check would be the second source of truth D-001 forbids.
+
 ### Routes
 
 - `GET /api/floor` — the full floor document (JSON).
