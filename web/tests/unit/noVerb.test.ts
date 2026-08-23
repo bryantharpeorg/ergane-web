@@ -17,45 +17,36 @@
 
 import { describe, expect, it } from "vitest";
 
-const WRITER = "../../src/api/answer.ts";
+/** The one file permitted to write, and the one route it may write to. */
+const WRITER = "src/api/answer.ts";
 const WRITE_ROUTE = "/api/attention/";
 
-function sources(pattern: Record<string, string>): Record<string, string> {
-  return pattern;
-}
-
-const deskFiles = sources(
-  import.meta.glob("../../src/desk/**/*.tsx", {
-    query: "?raw",
-    import: "default",
-    eager: true,
-  }) as Record<string, string>,
-);
-const appFile = sources(
-  import.meta.glob("../../src/App.tsx", {
-    query: "?raw",
-    import: "default",
-    eager: true,
-  }) as Record<string, string>,
-);
-const apiFiles = sources(
-  import.meta.glob("../../src/api/*.ts", {
-    query: "?raw",
-    import: "default",
-    eager: true,
-  }) as Record<string, string>,
-);
+const deskFiles = import.meta.glob("../../src/desk/**/*.tsx", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+const appFile = import.meta.glob("../../src/App.tsx", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+const apiFiles = import.meta.glob("../../src/api/*.ts", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
 
 const allFiles = { ...deskFiles, ...appFile, ...apiFiles };
 
 /** Every file except the one permitted writer. */
 function othersOnly(): [string, string][] {
-  return Object.entries(allFiles).filter(([path]) => !path.endsWith("api/answer.ts"));
+  return Object.entries(allFiles).filter(([path]) => !path.endsWith(WRITER));
 }
 
 describe("the Desk has exactly one verb", () => {
   it("issues its one write from web/src/api/answer.ts and from nowhere else", () => {
-    const writer = Object.entries(allFiles).find(([path]) => path.endsWith("api/answer.ts"));
+    const writer = Object.entries(allFiles).find(([path]) => path.endsWith(WRITER));
     expect(writer, `${WRITER} is the file that must carry the one write`).toBeDefined();
 
     const source = (writer as [string, string])[1];
