@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 import secrets
-from fastapi.routing import APIRoute
 from starlette.routing import Mount
+from support import registered_api_routes, routes_with_enclosing_dependencies
 
 from pane.app import create_app
 from pane.auth import require_viewer
@@ -33,31 +33,34 @@ def demo_settings(tmp_path, monkeypatch, credentials) -> Settings:
     return Settings.from_env()
 
 
-def _walk_dependant(dependant, found=None):
-    if found is None:
-        found = set()
-    if dependant in found:
-        return
-    found.add(dependant)
-    if dependant.call is require_viewer:
-        yield True
-    for dep in dependant.dependencies:
-        yield from _walk_dependant(dep, found)
-
-
 def test_every_route_behind_require_viewer(demo_settings):
+    """The rule 001 landed, over routes the walk actually reaches.
+
+    Spec 003 US4 changed the walk, not the rule. FastAPI ≥ 0.141 keeps an
+    included router's routes behind a wrapper rather than on
+    `app.router.routes`, so reading only the top level found no `APIRoute` at
+    all and this assertion passed over an empty list; and it applies an
+    enclosing router's `dependencies` at dispatch rather than baking them into a
+    sub-router's `dependant`, so reading only the dependant tree called
+    `pane/intake.py`'s and `pane/answer.py`'s routes unguarded when they are not.
+    `routes_with_enclosing_dependencies` reads both places. What is asserted is
+    still exactly what 001 asserted: every route is behind `require_viewer`, and
+    no `Mount` sits beside them.
+    """
     app = create_app(demo_settings)
+    guarded = routes_with_enclosing_dependencies(app)
+    assert guarded, "no route was enumerated; the rule below would be vacuous"
+
+    for route, dependencies in guarded:
+        assert require_viewer in dependencies, f"{route.path} is not behind require_viewer"
+
     for route in app.router.routes:
-        if isinstance(route, APIRoute):
-            has_viewer = any(_walk_dependant(route.dependant))
-            assert has_viewer, f"{route.path} is not behind require_viewer"
-        elif isinstance(route, Mount):
-            assert False, f"static mount {route.path} bypasses the auth seam"
+        assert not isinstance(route, Mount), f"static mount {route.path} bypasses the auth seam"
 
 
 def test_no_docs_routes_exist(demo_settings):
     app = create_app(demo_settings)
-    paths = {route.path for route in app.router.routes if isinstance(route, APIRoute)}
+    paths = {route.path for route in registered_api_routes(app)}
     assert "/docs" not in paths
     assert "/redoc" not in paths
     assert "/openapi.json" not in paths
