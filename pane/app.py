@@ -27,6 +27,7 @@ def _make_reader(settings: Settings) -> Reader:
             settings.fixtures_root,
             transport_fail=settings.transport_fail,
             attention_db=settings.attention_db,
+            demo_ruling=settings.demo_ruling,
         )
     return LiveReader(settings.specs_root, attention_db=settings.attention_db)
 

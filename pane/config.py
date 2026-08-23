@@ -25,6 +25,9 @@ class Settings:
     intake_credential: str | None
     answer_identity: str
     attention_db: Path
+    # Last, and with a default, so a caller that predates spec 003 US2 — 002's
+    # `tests/test_stage.py` builds a `Settings` by hand — still constructs one.
+    demo_ruling: str = "RESOLVED"
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> "Settings":
@@ -64,6 +67,12 @@ class Settings:
         # responder check of its own; `escalation.authorized_responders` does.
         answer_identity = environ.get("PANE_ANSWER_IDENTITY") or UNKNOWN_SENDER
 
+        # Demo mode only: which recorded `fixtures/bridge/<RULING>.json` a
+        # Question answer replays.  Five rulings were recorded and no more; a
+        # name that is not on disk is a degraded read in words, never an
+        # invented ruling and never a stand-in file (constitution V).
+        demo_ruling = environ.get("PANE_DEMO_RULING") or "RESOLVED"
+
         raw_attention_db = environ.get("PANE_ATTENTION_DB")
         if raw_attention_db:
             attention_db = Path(raw_attention_db)
@@ -84,4 +93,5 @@ class Settings:
             intake_credential=intake_credential,
             answer_identity=answer_identity,
             attention_db=attention_db,
+            demo_ruling=demo_ruling,
         )

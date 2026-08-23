@@ -89,6 +89,28 @@ class Reader(Protocol):
         """
         ...
 
+    async def settle_question(self, correlation_id: str, text: str, identity: str) -> str:
+        """Settle one Question through the factory and return its ruling, verbatim.
+
+        The only way a Question is ever answered: an `InboundRelay` of exactly
+        three terms handed to `CallbackBridge.handle_relay`, whose
+        `BridgeOutcome` string comes back as the call's return.  The pane never
+        judges validity, expiry, or authorization — the factory rules and this
+        seam carries the word (FR-006).
+        """
+        ...
+
+    async def press_escalation(
+        self, correlation_id: str, escalation_id: str, choice: str, identity: str
+    ) -> None:
+        """Send one `escalation_resolved` signal; return nothing, because a signal does.
+
+        A Temporal signal has no return, so a press can only be accepted or have
+        raised.  Raising is the caller's SIGNAL_FAILED — the one ruling the pane
+        derives, because it is the one fact it can observe (FR-008).
+        """
+        ...
+
     def list_findings(self) -> list[dict]:
         """Return doctor findings."""
         ...
@@ -232,6 +254,59 @@ class LiveReader:
             self._store = attention_store.open_store(self.attention_db)
         return self._store
 
+    async def settle_question(self, correlation_id: str, text: str, identity: str) -> str:
+        """`CallbackBridge.handle_relay`, and nothing else, ever (FR-006).
+
+        The questions store is resolved the way `ergane answer` resolves it —
+        through ergane's own `resolve_env_path` over its modern and legacy
+        variable names — so a deployment that moved its runtime root moved this
+        with it.  The adapter is named explicitly rather than left to the
+        configured default, so constructing the bridge resolves no other
+        transport's config.
+        """
+        from factory.activities.verify_activities import DEFAULT_VERIFICATION_DB_PATH
+        from factory.env import (
+            ERGANE_VERIFICATION_DB_PATH_ENV,
+            FACTORY_VERIFICATION_DB_PATH_ENV,
+            resolve_env_path,
+        )
+        from factory.notify.adapter import InboundRelay, resolve_adapter
+        from factory.notify.service import CallbackBridge
+        from factory.notify.webhook import WEBHOOK_ADAPTER
+
+        client = await self._open_client()
+        bridge = CallbackBridge(
+            db_path=resolve_env_path(
+                ERGANE_VERIFICATION_DB_PATH_ENV,
+                FACTORY_VERIFICATION_DB_PATH_ENV,
+                DEFAULT_VERIFICATION_DB_PATH,
+            ),
+            client=client,
+            adapter=resolve_adapter(WEBHOOK_ADAPTER),
+        )
+        relay = InboundRelay(
+            correlation_id=correlation_id,
+            reply_text=text,
+            sender_identity=identity,
+        )
+        outcome = await bridge.handle_relay(relay)
+        return outcome.value
+
+    async def press_escalation(
+        self, correlation_id: str, escalation_id: str, choice: str, identity: str
+    ) -> None:
+        """The `escalation_resolved` signal on the workflow the correlation id names.
+
+        The workflow id *is* the correlation id (ergane 041 FR-004); nothing is
+        invented here and nothing is caught — a raising RPC is the caller's
+        SIGNAL_FAILED, which is an observation rather than a ruling.
+        """
+        from factory.notify.service import SIGNAL_NAME
+
+        client = await self._open_client()
+        handle = client.get_workflow_handle(correlation_id)
+        await handle.signal(SIGNAL_NAME, args=[escalation_id, choice, identity])
+
     def list_findings(self) -> list[dict]:
         from factory.cli.nouns import build
         from factory.doctor import cli as doctor_cli
@@ -291,6 +366,14 @@ class UnconfiguredReader:
 
     def stored_items(self) -> list["StoredItem"]:
         raise TransportFailed("stored_items", "no live reader is configured in this build")
+
+    async def settle_question(self, correlation_id: str, text: str, identity: str) -> str:
+        raise TransportFailed("settle_question", "no live reader is configured in this build")
+
+    async def press_escalation(
+        self, correlation_id: str, escalation_id: str, choice: str, identity: str
+    ) -> None:
+        raise TransportFailed("press_escalation", "no live reader is configured in this build")
 
     def list_findings(self) -> list[dict]:
         raise TransportFailed("list_findings", "no live reader is configured in this build")
