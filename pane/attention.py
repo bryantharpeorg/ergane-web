@@ -145,7 +145,7 @@ async def assemble_attention_section(
     *,
     degraded: list[dict],
     unsettled_only: bool = False,
-    in_flight: frozenset[str] = frozenset(),
+    in_flight: frozenset[str] | None = None,
 ) -> list[dict]:
     """Read both sources through the seam and assemble; degrade honestly.
 
@@ -156,7 +156,19 @@ async def assemble_attention_section(
     list › What each surface carries: the floor document carries only unsettled
     items, because 002's Showfloor badge counts them as "waiting on you" and this
     data model never deletes a row; `GET /api/attention` carries every item.
+
+    `in_flight` left unnamed reads the live registry, so both surfaces and every
+    `floor` event report an item whose settlement call is out — a reconnecting
+    Desk renders it in flight without having issued the call itself.  Imported
+    here rather than at module scope because `pane/answer.py` imports this
+    module, and because `pane/floor_document.py`'s call into the assembly is one
+    line that two epics build over (plan D-P16).
     """
+    if in_flight is None:
+        from pane.answer import IN_FLIGHT
+
+        in_flight = IN_FLIGHT.snapshot()
+
     try:
         escalations = await reader.open_escalations()
     except (TransportFailed, QueryRefused) as exc:
