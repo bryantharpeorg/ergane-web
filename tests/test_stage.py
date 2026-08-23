@@ -175,7 +175,9 @@ def test_live_only_id_is_noted_not_drawn():
     assert len(stage["notes"]) == 1
     assert stage["notes"][0]["read"] == "epic_status"
     assert stage["notes"][0]["mode"] == "undeclared"
-    assert "'us3'" in stage["notes"][0]["detail"]
+    assert stage["notes"][0]["detail"] == (
+        "answer names node id 'us3', which workgraph.json does not declare; not drawn"
+    )
     assert stage["degraded"] is False
 
 
