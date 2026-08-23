@@ -86,7 +86,12 @@ def create_intake_router(settings: Settings, broadcaster: AttentionBroadcaster) 
 
     @router.post("/intake/{credential}")
     async def intake(credential: str, request: Request) -> JSONResponse:
-        body = await request.json()
+        try:
+            body = await request.json()
+        except ValueError as exc:
+            # A body the pane cannot even parse is the most malformed payload there
+            # is; it gets the same clean refusal as every other, not a stack trace.
+            raise Malformed("body is not valid JSON") from exc
         parsed = parse_body(body)
         kind = classify(parsed)
         received_at = _utc_now()

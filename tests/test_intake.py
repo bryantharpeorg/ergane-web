@@ -557,3 +557,98 @@ def test_attention_list_degrades_in_words_when_a_read_fails(
     # The Escalation renders without a deadline rather than with an invented one.
     escalation = next(item for item in body["items"] if item["kind"] == "escalation")
     assert escalation["expires_at"] is None
+
+
+def test_unparseable_body_is_refused_cleanly(empty_intake_client, empty_intake_settings):
+    """A body that is not JSON at all is refused, not raised (FR-003)."""
+    _clear_attention_store(empty_intake_settings.attention_db)
+    before = _count_attention_rows(empty_intake_settings.attention_db)
+
+    resp = empty_intake_client.post(
+        "/intake/intake-test-credential",
+        content=b"{not json at all",
+        headers={"content-type": "application/json"},
+    )
+
+    assert resp.status_code == 422
+    assert resp.json()["error"] == "malformed"
+    assert _count_attention_rows(empty_intake_settings.attention_db) == before
+
+
+def test_empty_body_is_refused_cleanly(empty_intake_client, empty_intake_settings):
+    """An empty body is refused the same way (FR-003)."""
+    _clear_attention_store(empty_intake_settings.attention_db)
+    before = _count_attention_rows(empty_intake_settings.attention_db)
+
+    resp = empty_intake_client.post(
+        "/intake/intake-test-credential",
+        content=b"",
+        headers={"content-type": "application/json"},
+    )
+
+    assert resp.status_code == 422
+    assert resp.json()["error"] == "malformed"
+    assert _count_attention_rows(empty_intake_settings.attention_db) == before
+
+
+def test_one_subscription_carries_both_event_types(intake_settings):
+    """`floor_events()` drains the broadcaster between polls (FR-005, T003).
+
+    One `GET /api/events` subscription carries `floor` and `attention` alike, so a
+    client that connected before the delivery sees the item without re-polling.
+    """
+    from pane.events import floor_events
+    from pane.fixture_floor import FixtureReader
+
+    reader = FixtureReader(
+        intake_settings.fixtures_root, attention_db=intake_settings.attention_db
+    )
+    broadcaster = AttentionBroadcaster()
+
+    async def _drive():
+        # A long interval, so anything that arrives arrives by the drain and not
+        # by the next poll coming round.
+        stream = floor_events(reader, interval_s=30.0, broadcaster=broadcaster)
+        first = await asyncio.wait_for(stream.__anext__(), timeout=5.0)
+
+        # Published after the subscription exists, exactly as intake publishes.
+        broadcaster.publish({"id": "d10263341dac", "kind": "escalation", "text": "x"})
+        second = await asyncio.wait_for(stream.__anext__(), timeout=5.0)
+
+        await stream.aclose()
+        return first, second
+
+    first, second = asyncio.run(_drive())
+
+    assert first["type"] == "floor"
+    assert second["type"] == "attention"
+    assert second["data"]["id"] == "d10263341dac"
+
+
+def test_publish_reaches_every_subscriber_and_no_one_else(intake_settings):
+    """The broadcaster fans out to live subscribers and caches nothing (001 R-007)."""
+    broadcaster = AttentionBroadcaster()
+
+    async def _drive():
+        first = await broadcaster.subscribe()
+        second = await broadcaster.subscribe()
+
+        broadcaster.publish({"id": "a"})
+
+        # A subscriber that arrives after the publish gets no history.
+        late = await broadcaster.subscribe()
+
+        await broadcaster.unsubscribe(second)
+        broadcaster.publish({"id": "b"})
+
+        return first, second, late
+
+    first, second, late = asyncio.run(_drive())
+
+    assert [first.get_nowait()["data"]["id"] for _ in range(2)] == ["a", "b"]
+    # Unsubscribed before the second publish: it saw only the first.
+    assert second.get_nowait()["data"]["id"] == "a"
+    assert second.empty()
+    # Subscribed after the first publish: no replay, just what came next.
+    assert late.get_nowait()["data"]["id"] == "b"
+    assert late.empty()
