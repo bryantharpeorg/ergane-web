@@ -9,7 +9,7 @@
 
 import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
-import { resolveStateStyle } from "./states";
+import { LANDING_STAGES, resolveStateStyle } from "./states";
 
 export interface StationNodeData {
   node: {
@@ -48,11 +48,17 @@ function StationNode({ data }: StationNodeProps): JSX.Element {
     }
   }
 
+  // FR-011: the four landing states name themselves; every other state omits
+  // the marker entirely. DESIGN.md § State Chevrons and Stations.
+  const landingStage =
+    rawState !== null && LANDING_STAGES.has(rawState) ? rawState : undefined;
+
   const markers = {
     "data-node-id": staged.id,
     "data-state": rawState ?? "unknown",
     "data-state-style": known ? rawState! : "unknown",
     "data-waiting": staged.waiting_on_operator ? "true" : undefined,
+    "data-landing-stage": landingStage,
   };
 
   return (
