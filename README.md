@@ -45,12 +45,15 @@ PANE_DEMO=1 uv run uvicorn pane.app:app --port 8787
 | `PANE_SPECS_ROOT` | `factory.workgraph.cli.DEFAULT_SPECS_ROOT` | live: where `<epic_id>/workgraph.json` lives |
 | `PANE_POLL_INTERVAL_S` | `15` | SSE poll cycle |
 | `PANE_WEB_DIST` | `<repo>/web/dist` | the built frontend the catch-all serves |
-| `PANE_INTAKE_CREDENTIAL` | unset | bearer token the factory uses for `POST /intake/{credential}` |
-| `PANE_ANSWER_IDENTITY` | unset | identity the pane signs outbound answers with (US3) |
+| `PANE_INTAKE_CREDENTIAL` | unset (intake closed) | the secret path segment of `POST /intake/{credential}` — the factory POSTs bare JSON with no header, so the credential rides the URL (D-P1) |
+| `PANE_ANSWER_IDENTITY` | `factory.notify.adapter.UNKNOWN_SENDER` | the identity an answer is sent under; the factory, not the pane, decides whose answers count (US2) |
 | `PANE_ATTENTION_DB` | demo: temp dir / live: `.pane/attention.db` | SQLite store for attention items |
 
 Configure the factory side as `ERGANE_WEBHOOK_URL=http://<pane-host>:8787/intake/<PANE_INTAKE_CREDENTIAL>`.
-The credential value never appears in a log, page, event, or fixture.
+The credential value never appears in a log, page, event, or fixture: `create_app()` registers it
+with `factory.notify.redact.register_secret`, so it is stripped from every log record in the
+process at creation. With it unset, the pane logs `intake closed: PANE_INTAKE_CREDENTIAL is not set`
+at startup.
 
 ### Routes
 

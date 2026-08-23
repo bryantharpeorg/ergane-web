@@ -51,6 +51,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.broadcaster = broadcaster
+    # Exposed so a test can prove which reader the app actually holds: US1-S6 turns
+    # on the substituted seams having seen zero calls, which is only worth asserting
+    # if the substitution demonstrably took effect.
+    app.state.reader = reader
 
     from pane.intake import Malformed
 

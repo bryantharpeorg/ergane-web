@@ -283,9 +283,12 @@ def test_answerable_idempotent_notice_is_not(empty_intake_client, empty_intake_s
 
 
 def test_intake_touches_only_store_and_broadcaster(intake_settings, monkeypatch):
-    """No factory seam is exercised during intake handling."""
-    from pane import fixture_floor
-    from pane import readers
+    """Accepting a payload of each kind touches no factory seam (spec US1-S6).
+
+    The 10-second delivery window is spent on one insert and one fan-out: no
+    Temporal call, no settlement seam, no factory-store read.
+    """
+    import pane.app
 
     calls: list[str] = []
 
@@ -323,8 +326,21 @@ def test_intake_touches_only_store_and_broadcaster(intake_settings, monkeypatch)
         async def aclose(self):
             return None
 
-    monkeypatch.setattr(readers, "LiveReader", lambda specs_root, attention_db: RecordingReader())
-    monkeypatch.setattr(fixture_floor, "FixtureReader", lambda root, **kwargs: RecordingReader())
+    # Patch the names `create_app` actually reads. `pane.app` binds `FixtureReader`
+    # and `LiveReader` at import, so patching their defining modules would leave the
+    # real readers in place and make `calls` a list nothing could ever append to.
+    recording_reader = RecordingReader()
+    monkeypatch.setattr(pane.app, "LiveReader", lambda specs_root, attention_db: recording_reader)
+    monkeypatch.setattr(pane.app, "FixtureReader", lambda root, **kwargs: recording_reader)
+
+    # A recorder in place of the Temporal client: opening one at all is a call.
+    import factory.cli.nouns
+
+    async def _refuse_to_open_a_client():
+        calls.append("temporal_client")
+        raise AssertionError("intake opened a Temporal client")
+
+    monkeypatch.setattr(factory.cli.nouns, "_open_client", _refuse_to_open_a_client)
 
     settings = Settings(
         demo=True,
@@ -338,12 +354,23 @@ def test_intake_touches_only_store_and_broadcaster(intake_settings, monkeypatch)
         attention_db=intake_settings.attention_db,
         demo_ruling="RESOLVED",
     )
-    client = TestClient(create_app(settings))
+    app = create_app(settings)
 
-    payload = _load_payload("question.json")
-    resp = client.post("/intake/intake-test-credential", json=payload)
-    assert resp.status_code == 202
+    # The substitution really took effect — otherwise `calls` proves nothing.
+    assert app.state.broadcaster is not None
+    assert app.state.reader is recording_reader
+
+    client = TestClient(app)
+
+    for name in ("question.json", "escalation.json", "notice-supervision.json"):
+        resp = client.post("/intake/intake-test-credential", json=_load_payload(name))
+        assert resp.status_code == 202
+
     assert calls == []
+
+    # And the recorder is wired: a read through it does register.
+    asyncio.run(app.state.reader.open_escalations())
+    assert calls == ["open_escalations"]
 
 
 def test_item_appears_in_attention_list_without_stream(intake_client, intake_settings):
