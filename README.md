@@ -45,11 +45,33 @@ PANE_DEMO=1 uv run uvicorn pane.app:app --port 8787
 | `PANE_SPECS_ROOT` | `factory.workgraph.cli.DEFAULT_SPECS_ROOT` | live: where `<epic_id>/workgraph.json` lives |
 | `PANE_POLL_INTERVAL_S` | `15` | SSE poll cycle |
 | `PANE_WEB_DIST` | `<repo>/web/dist` | the built frontend the catch-all serves |
+| `PANE_INTAKE_CREDENTIAL` | unset | the path segment `ERGANE_WEBHOOK_URL` carries; unset means intake is closed and the backend says so once at startup |
+| `PANE_ANSWER_IDENTITY` | `factory.notify.adapter.UNKNOWN_SENDER` | whose answers the factory is asked to judge; the pane performs no responder check of its own |
+| `PANE_ATTENTION_DB` | `.pane/attention.db` (a fresh file per process under `PANE_DEMO=1`) | the pane's own store of what the factory delivered |
+
+No credential value ever appears in a rendered page, an SSE event, a log line, or a
+committed fixture (constitution VI). `create_app()` registers the intake credential
+with `factory.notify.redact` at startup, so no log record in the process can carry
+it.
+
+### Pointing the factory at the pane
+
+The factory POSTs a bare JSON body with no header and treats everything after the
+origin as a secret to redact, so the credential rides the URL path:
+
+```bash
+ERGANE_WEBHOOK_URL=http://<pane-host>:8787/intake/<PANE_INTAKE_CREDENTIAL>
+```
+
+Set `PANE_INTAKE_CREDENTIAL` on the pane to the same value. With it unset the pane
+logs `intake closed: PANE_INTAKE_CREDENTIAL is not set` once and refuses every POST.
 
 ### Routes
 
 - `GET /api/floor` — the full floor document (JSON).
-- `GET /api/events` — server-sent events; each `data:` line is a typed `{type, data}` envelope whose only 001 type is `floor`.
+- `GET /api/attention` — every delivered Attention item in rank order, settled ones last (`{items, degraded}`). The floor document's `attention` section carries only the unsettled ones.
+- `GET /api/events` — server-sent events; each `data:` line is a typed `{type, data}` envelope. 001 defines `floor`; 003 adds `attention`, pushed in the same handling as the storage that admitted it. Consumers ignore types they do not know.
+- `POST /intake/{credential}` — the route `ERGANE_WEBHOOK_URL` points at. `{correlation_id, text, actions[]}` becomes a Question, an Escalation, or a Notice; a payload the pane cannot carry is refused with 422 and nothing is stored, because to the factory non-2xx *is* the word "undelivered".
 - `GET /{path:path}` — the built frontend (`web/dist`), falling back to `index.html`.
 
 Ledger, doctor store, and Temporal are resolved by ergane's own resolvers and environment chain; the pane reads none of those variables itself.

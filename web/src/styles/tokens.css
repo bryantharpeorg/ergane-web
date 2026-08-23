@@ -28,6 +28,7 @@
 
   --fs-clock: clamp(1.9rem, 2.6vw, 2.6rem);
   --fs-display: 1.5rem;
+  --fs-readout: 1.25rem;   /* DESIGN.md § Typography › Readout */
   --fs-headline: 1.125rem;
   --fs-body: 0.95rem;
   --fs-small: 0.8125rem;

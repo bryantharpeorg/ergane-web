@@ -13,13 +13,25 @@ through to the missing-document rule and produces an honest transport failure.
 """
 
 import json
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from factory.cli.nouns import build
 
+from pane import attention_store
+from pane.attention_store import StoredItem
 from pane.readers import EpicRef, FloorRead, TransportFailed
+
+
+# The recorded deliveries the demo floor is seeded from, in the order the
+# recorder captured them.  One of each kind the intake route admits.
+SEEDED_DELIVERIES = (
+    "question.json",
+    "escalation.json",
+    "notice-supervision.json",
+)
 
 
 def _fixture(*relative_parts: str) -> Path:
@@ -105,9 +117,25 @@ class FixtureReader:
 
     reference_instant: str | None
 
-    def __init__(self, root: Path, *, transport_fail: frozenset[str] = frozenset()) -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        transport_fail: frozenset[str] = frozenset(),
+        attention_db: Path | None = None,
+    ) -> None:
         self.root = root.resolve()
         self.transport_fail = transport_fail
+
+        # The demo floor gets its own delivery store, seeded from the recorded
+        # webhook payloads through the same call intake uses.  A reader built
+        # without a path gets a fresh one, so a demo floor never inherits a warm
+        # store from a previous process.
+        if attention_db is None:
+            attention_db = Path(tempfile.mkdtemp(prefix="pane-fixture-")) / "attention.db"
+        self.attention_db = Path(attention_db)
+        self._store: Any = None
+        self._seeded = False
 
         try:
             _, esc_env = load_document(self.root / "escalations" / "open_escalations.json", read="open_escalations")
@@ -178,11 +206,48 @@ class FixtureReader:
         doc, _ = load_document(self.root / "escalations" / "open_escalations.json", read="open_escalations")
         return doc
 
-    def stored_questions(self) -> list[dict]:
-        self._check_fail("attention", "stored_questions")
-        path = self.root / "webhook" / "question.json"
-        doc, _ = load_document(path, read="stored_questions")
-        return [doc]
+    def stored_items(self) -> list[StoredItem]:
+        """Serve the seeded delivery store — the same store intake writes.
+
+        The demo floor's Attention items are the recordings, admitted through the
+        intake path rather than hand-built here: the loader serves the recording
+        and never invents one (constitution V).  A recording that is missing is a
+        degraded read in words, exactly as every other fixture read is.
+        """
+        self._check_fail("attention", "stored_items")
+        self._seed()
+        return attention_store.list_items(self._attention_store())
+
+    def _attention_store(self):
+        if self._store is None:
+            self._store = attention_store.open_store(self.attention_db)
+        return self._store
+
+    def _seed(self) -> None:
+        """Put each recorded delivery through `upsert_delivery`, once."""
+        if self._seeded:
+            return
+
+        from pane.intake import classify
+
+        conn = self._attention_store()
+        for name in SEEDED_DELIVERIES:
+            payload, envelope = load_document(self.root / "webhook" / name, read="stored_items")
+            attention_store.upsert_delivery(
+                conn,
+                kind=classify(payload),
+                correlation_id=payload["correlation_id"],
+                text=payload["text"],
+                actions=payload.get("actions", []),
+                # The recorder's own instant: provenance, never a countdown anchor.
+                received_at=envelope["captured_at"],
+            )
+        self._seeded = True
+
+    async def aclose(self) -> None:
+        if self._store is not None:
+            self._store.close()
+            self._store = None
 
     def list_findings(self) -> list[dict]:
         self._check_fail("health", "list_findings")

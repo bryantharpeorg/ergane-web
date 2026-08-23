@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pane.readers import EpicRef, Reader
 
+from pane.attention import assemble_attention_section
 from pane.readers import QueryRefused, TransportFailed
 from pane.stage import assemble_stage
 
@@ -47,25 +48,7 @@ async def assemble_floor_document(reader: "Reader", *, reference_instant: str | 
         floor_read = None
 
     # attention
-    try:
-        escalations = await reader.open_escalations()
-    except Exception as exc:
-        mode, detail, read, epic_id = _classify(exc)
-        if mode is None:
-            raise
-        degraded.append(_degraded_entry("attention", mode, read, detail, epic_id))
-        escalations = []
-
-    try:
-        questions = reader.stored_questions()
-    except Exception as exc:
-        mode, detail, read, epic_id = _classify(exc)
-        if mode is None:
-            raise
-        degraded.append(_degraded_entry("attention", mode, read, detail, epic_id))
-        questions = []
-
-    attention_items = _rank_attention(escalations, questions)
+    attention_items = await assemble_attention_section(reader, degraded=degraded, unsettled_only=True)
 
     # health
     try:
@@ -245,35 +228,6 @@ def _node_card(node_id: str, declared: dict | None, live: dict, *, declared_flag
         "verified": _default(live, "verified", defaults["verified"]),
     }
     return card
-
-
-def _rank_attention(escalations: list[dict], questions: list[dict]) -> list[dict]:
-    """Rank attention items: escalations first, then questions, ordered by expires_at."""
-    items: list[dict] = []
-    for esc in escalations:
-        items.append({
-            "kind": "escalation",
-            "id": esc.get("escalation_id"),
-            "expires_at": esc.get("expires_at"),
-            "resolution": esc.get("resolution"),
-            "source": "open_escalations",
-            "document": esc,
-        })
-    for q in questions:
-        items.append({
-            "kind": "question",
-            "id": q.get("correlation_id"),
-            "expires_at": None,
-            "resolution": None,
-            "source": "stored_questions",
-            "document": q,
-        })
-
-    def sort_key(item: dict) -> tuple:
-        return (0 if item["kind"] == "escalation" else 1, item["expires_at"] or "")
-
-    items.sort(key=sort_key)
-    return items
 
 
 def _classify(exc: Exception, epic_id: str | None = None) -> tuple[str | None, str, str, str | None]:

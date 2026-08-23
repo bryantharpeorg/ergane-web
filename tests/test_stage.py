@@ -6,6 +6,7 @@ recorded fixtures and injected fault shapes at the reader seam — no live floor
 
 import asyncio
 import json
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from pane.app import create_app
 from pane.config import Settings
+from pane.attention_store import StoredItem
 from pane.floor_document import assemble_floor_document
 from pane.readers import EpicRef, FloorRead, Reader, QueryRefused, TransportFailed
 from pane.stage import assemble_stage
@@ -213,7 +215,7 @@ async def _run_dead_workgraph_test():
         async def open_escalations(self) -> list[dict]:
             return []
 
-        def stored_questions(self) -> list[dict]:
+        def stored_items(self) -> list[StoredItem]:
             return []
 
         def list_findings(self) -> list[dict]:
@@ -283,6 +285,11 @@ def test_floor_document_carries_stage_and_stays_pure():
         specs_root=ROOT / "specs",
         transport_fail=frozenset(),
         poll_interval_s=15.0,
+        # Spec 003 US1 adds the three intake fields; a demo store lands under
+        # tmp_path so this test still owns no state between runs.
+        intake_credential=None,
+        answer_identity="unknown",
+        attention_db=Path(tempfile.mkdtemp(prefix="pane-stage-")) / "attention.db",
     )
     client = TestClient(create_app(settings))
     resp = client.get("/api/floor")

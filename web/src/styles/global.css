@@ -298,6 +298,17 @@ a {
 .attention .item.high .clock { color: var(--orange-ink); }
 .attention .clock.expired { text-transform: uppercase; }
 .attention .no-deadline { font-style: italic; color: var(--ink-soft); }
+/* DESIGN.md § Typography › Clock: a Notice's clock slot reads "no clock" at
+   1.25rem — the Readout step, not the Clock step. */
+.attention .no-clock {
+  font-family: var(--mono);
+  font-size: var(--fs-readout);
+  line-height: 1;
+  color: var(--ink-soft);
+}
+/* DESIGN.md § Components › Attention Item: a Notice's answer column carries one
+   italic tinted-slate line and no control of any kind. */
+.attention .asks-nothing { font-style: italic; color: var(--ink-soft); }
 .attention .until { font-size: var(--fs-small); color: var(--ink-soft); }
 .attention .where { font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); }
 .attention .prose { margin: 0; max-width: 68ch; }

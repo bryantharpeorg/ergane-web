@@ -18,6 +18,9 @@ import sqlite3
 
 from typing import Any, Protocol
 
+from pane import attention_store
+from pane.attention_store import StoredItem
+
 
 class TransportFailed(Exception):
     """A read could not be made (connection refused, missing store, missing fixture)."""
@@ -76,8 +79,14 @@ class Reader(Protocol):
         """Return open escalation documents."""
         ...
 
-    def stored_questions(self) -> list[dict]:
-        """Return stored Question documents (US3: factory.verify.store)."""
+    def stored_items(self) -> list["StoredItem"]:
+        """Return every Attention item the factory has delivered to the pane.
+
+        Spec 003 replaces 001's `stored_questions()` stand-in with this: the
+        attention section has one source and one code path in both modes, and
+        the assembly reaches the pane's delivery store through this seam rather
+        than by importing `Settings`.
+        """
         ...
 
     def list_findings(self) -> list[dict]:
@@ -104,9 +113,11 @@ class LiveReader:
 
     reference_instant: str | None = None
 
-    def __init__(self, specs_root: Path) -> None:
+    def __init__(self, specs_root: Path, *, attention_db: Path | None = None) -> None:
         self.specs_root = Path(specs_root)
+        self.attention_db = Path(attention_db) if attention_db is not None else None
         self._client: Any = None
+        self._store: Any = None
 
     def _plain(self, value: Any) -> Any:
         """Serialize ergane dataclasses, enums, and paths into plain JSON values."""
@@ -140,6 +151,9 @@ class LiveReader:
         if self._client is not None:
             await self._client._close()
             self._client = None
+        if self._store is not None:
+            self._store.close()
+            self._store = None
 
     async def read_floor(self) -> FloorRead:
         from factory.cli.nouns import build
@@ -198,14 +212,25 @@ class LiveReader:
             raise QueryRefused("open_escalations", str(exc)) from exc
         return [self._plain(row) for row in rows]
 
-    def stored_questions(self) -> list[dict]:
-        """Return an empty list: the live Question store is owned by spec 003's webhook intake.
+    def stored_items(self) -> list[StoredItem]:
+        """Read the pane's delivery store — the same store intake writes.
 
-        The pane has no live Question reader in spec 001.  When 003 lands it
-        will read `factory.verify.store` over `connect_readonly`; until then live
-        mode contributes no attention items from the Question side.
+        The path is handed to the constructor by `create_app`; a reader built
+        without one has no store to read, which is a transport failure in words
+        rather than a silently empty Attention section.
         """
-        return []
+        if self.attention_db is None:
+            raise TransportFailed("stored_items", "no attention store is configured in this build")
+        try:
+            conn = self._attention_store()
+        except (sqlite3.OperationalError, OSError) as exc:
+            raise TransportFailed("stored_items", str(exc)) from exc
+        return attention_store.list_items(conn)
+
+    def _attention_store(self):
+        if self._store is None:
+            self._store = attention_store.open_store(self.attention_db)
+        return self._store
 
     def list_findings(self) -> list[dict]:
         from factory.cli.nouns import build
@@ -264,8 +289,8 @@ class UnconfiguredReader:
     async def open_escalations(self) -> list[dict]:
         raise TransportFailed("open_escalations", "no live reader is configured in this build")
 
-    def stored_questions(self) -> list[dict]:
-        raise TransportFailed("stored_questions", "no live reader is configured in this build")
+    def stored_items(self) -> list["StoredItem"]:
+        raise TransportFailed("stored_items", "no live reader is configured in this build")
 
     def list_findings(self) -> list[dict]:
         raise TransportFailed("list_findings", "no live reader is configured in this build")

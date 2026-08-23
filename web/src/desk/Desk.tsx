@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FloorDocument } from "../api/floorDocument";
-import { subscribeFloor } from "../api/events";
+import { subscribeFloor, upsertAttention } from "../api/events";
 import AttentionStrip from "./AttentionStrip";
 import EpicRow from "./EpicRow";
 import HealthStrip from "./HealthStrip";
@@ -29,7 +29,12 @@ export default function Desk() {
       .catch(() => setErrorStatus(0))
       .finally(() => setIsLoading(false));
     if (typeof EventSource !== "undefined") {
-      close = subscribeFloor("/api/events", setDoc);
+      // An `attention` event is the fast path: it upserts into the list the
+      // Desk already holds. The next `floor` event replaces the whole section,
+      // so the stream can never drift away from the backend's own assembly.
+      close = subscribeFloor("/api/events", setDoc, (item) =>
+        setDoc((current) => (current ? upsertAttention(current, item) : current)),
+      );
     }
     return () => {
       cancelled = true;

@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from pane.app import create_app
 from pane.config import Settings
-from pane.events import EVENT_TYPES, floor_events
+from pane.events import EVENT_TYPES, AttentionBroadcaster, floor_events
 from pane.fixture_floor import FixtureReader
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -128,8 +128,47 @@ def test_api_events_stream_one_event(demo_settings, tmp_path, monkeypatch):
     }
 
 
+def test_one_subscription_carries_both_types(tmp_path):
+    """`floor_events` drains the broadcaster between polls (FR-005).
+
+    One `GET /api/events` subscription carries the poll's `floor` snapshots and
+    every `attention` item intake admits, interleaved.  Nothing is cached: an
+    item published before a subscriber existed is not replayed to it — that
+    client reads it from the attention list instead.
+    """
+    reader = FixtureReader(FIXTURES, transport_fail=frozenset(), attention_db=tmp_path / "a.db")
+    broadcaster = AttentionBroadcaster()
+
+    item = {"id": "800ee6b4c7df", "kind": "question", "text": "which?"}
+
+    async def collect() -> list[dict]:
+        events: list[dict] = []
+        # Published before anyone subscribed: no subscriber, no delivery.
+        broadcaster.publish({"id": "unheard", "kind": "question", "text": "nobody was listening"})
+
+        stream = floor_events(reader, interval_s=0.05, broadcaster=broadcaster)
+        events.append(await anext(stream))          # the immediate floor snapshot
+        broadcaster.publish(item)                    # intake, mid-interval
+        events.append(await anext(stream))          # drained before the next poll
+        events.append(await anext(stream))          # the next poll
+        await stream.aclose()
+        return events
+
+    events = asyncio.run(collect())
+
+    assert [event["type"] for event in events] == ["floor", "attention", "floor"]
+    assert events[1]["data"] == item
+    assert set(events[2]["data"].keys()) == set(events[0]["data"].keys())
+
+
 def test_event_types_vocabulary():
-    assert EVENT_TYPES == ("floor",)
+    """001's vocabulary plus the one type spec 003 declares (FR-005).
+
+    `attention` is a declared extension, not a redefinition: a consumer that
+    ignores unknown types is unaffected until it opts in, so every surface built
+    against 001 keeps working unchanged.
+    """
+    assert EVENT_TYPES == ("floor", "attention")
 
 
 class _RecordingReader:
@@ -157,9 +196,9 @@ class _RecordingReader:
         self.calls.append({"method": "open_escalations"})
         return await self._reader.open_escalations()
 
-    def stored_questions(self):
-        self.calls.append({"method": "stored_questions"})
-        return self._reader.stored_questions()
+    def stored_items(self):
+        self.calls.append({"method": "stored_items"})
+        return self._reader.stored_items()
 
     def list_findings(self):
         self.calls.append({"method": "list_findings"})

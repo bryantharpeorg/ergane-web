@@ -6,10 +6,12 @@ work the same way it did before `config.py` existed.
 """
 
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 import factory.workgraph.cli
+from factory.notify.adapter import UNKNOWN_SENDER
 
 
 @dataclass(frozen=True)
@@ -20,6 +22,9 @@ class Settings:
     web_dist: Path
     poll_interval_s: float
     specs_root: Path
+    intake_credential: str | None
+    answer_identity: str
+    attention_db: Path
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> "Settings":
@@ -51,6 +56,24 @@ class Settings:
                 f"allowed: {sorted(allowed)}"
             )
 
+        # The credential the operator embeds in ERGANE_WEBHOOK_URL.  Unset means
+        # intake is closed; `create_app` says so once, in words, at startup.
+        intake_credential = environ.get("PANE_INTAKE_CREDENTIAL") or None
+
+        # Whose answers the factory is asked to judge.  The pane performs no
+        # responder check of its own; `escalation.authorized_responders` does.
+        answer_identity = environ.get("PANE_ANSWER_IDENTITY") or UNKNOWN_SENDER
+
+        raw_attention_db = environ.get("PANE_ATTENTION_DB")
+        if raw_attention_db:
+            attention_db = Path(raw_attention_db)
+        elif demo:
+            # A demo floor is seeded from the recordings at startup, so it starts
+            # from a fresh file per process rather than inheriting a warm one.
+            attention_db = Path(tempfile.mkdtemp(prefix="pane-demo-")) / "attention.db"
+        else:
+            attention_db = Path(".pane") / "attention.db"
+
         return cls(
             demo=demo,
             fixtures_root=fixtures_root,
@@ -58,4 +81,7 @@ class Settings:
             web_dist=web_dist,
             poll_interval_s=poll_interval_s,
             specs_root=specs_root,
+            intake_credential=intake_credential,
+            answer_identity=answer_identity,
+            attention_db=attention_db,
         )
