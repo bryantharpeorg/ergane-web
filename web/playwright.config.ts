@@ -21,6 +21,11 @@ export default defineConfig({
         baseURL: "http://127.0.0.1:8788",
       },
     },
+    {
+      name: "showfloor",
+      testMatch: /showfloor\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: [
     {

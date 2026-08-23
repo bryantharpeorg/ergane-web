@@ -7,7 +7,10 @@ test("degraded modes render distinctly and healthy sections survive", async ({ p
   const refusal = page.locator('.degraded[data-mode="refusal"]');
   await expect(refusal).toBeVisible();
   await expect(refusal).toContainText("refused its query");
-  await expect(refusal).toHaveAttribute("data-epic-id", "fx-landing-f0a0d6");
+  await expect(refusal).toHaveAttribute(
+    "data-epic-id",
+    "077-a-scanner-the-operator-chooses-runs-in-the-loop",
+  );
 
   // Health read failed with transport mode.
   const healthTransport = page.locator(

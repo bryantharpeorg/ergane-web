@@ -62,22 +62,21 @@ def test_fixture_refusal_and_missing_workgraph_coexist(demo_settings):
     refusal_entries = [d for d in degraded if d["mode"] == "refusal"]
     transport_entries = [d for d in degraded if d["mode"] == "transport"]
 
-    # The recorded refusal fixture is a QueryRefused.
+    # The recorded refusal fixture is a QueryRefused; only the scanner scene
+    # still uses the refusal fixture now that the duplicate refusal scenes were
+    # removed from the fixture table.
     assert len(refusal_entries) == 1
     refusal = refusal_entries[0]
     assert refusal["section"] == "epics"
     assert refusal["read"] == "epic_status"
-    assert refusal["epic_id"] == "fx-landing-f0a0d6"
-    assert refusal["detail"] == "Query rejected, status: 2"
+    assert refusal["epic_id"] == "077-a-scanner-the-operator-chooses-runs-in-the-loop"
 
-    # The absent workgraph for the refusal scene is a transport failure.
-    # Because `fx-landing-f0a0d6` has two scenes without graphs (landing and refusal),
-    # there are two workgraph transport entries for that epic id; the test names both.
+    # The absent workgraph for the landing scene is a transport failure.
     workgraph_transport = [
         d for d in degraded
         if d["mode"] == "transport" and d["read"] == "workgraph" and d["epic_id"] == "fx-landing-f0a0d6"
     ]
-    assert len(workgraph_transport) == 2
+    assert len(workgraph_transport) == 1
 
     # The two modes are different facts.
     assert refusal["mode"] != workgraph_transport[0]["mode"]

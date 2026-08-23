@@ -1,0 +1,256 @@
+/* Showfloor room styles built on 001's tokens.css */
+
+.showfloor {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  color: var(--ink);
+}
+
+.showfloor-room {
+  flex: 1;
+  padding: var(--s5) var(--s6) var(--s7);
+}
+
+.showfloor .quiet {
+  font-style: italic;
+  color: var(--ink-soft);
+  padding: var(--s4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  margin: 0;
+}
+
+.epic-stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+}
+
+.epic-stage {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--s4) var(--s5);
+  padding-top: var(--s5);
+  border-top: 1px solid var(--rule);
+}
+
+.epic-stage-header {
+  grid-row: 1 / -1;
+  grid-column: 1;
+}
+
+.epic-stage-name {
+  font-size: var(--fs-display);
+  color: var(--walnut);
+  margin-bottom: var(--s2);
+}
+
+.epic-stage-meta {
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.epic-stage-map {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  min-height: 200px;
+  min-width: 1040px;
+  overflow: auto;
+}
+
+.epic-stage .react-flow {
+  background: transparent;
+}
+
+.stage-notes {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.stage-note .lead {
+  font-size: var(--fs-body);
+}
+
+/* Station card */
+.station {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  width: 40px;
+  position: relative;
+}
+
+.station-handle {
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  min-width: 1px;
+  min-height: 1px;
+  border: none;
+  background: transparent;
+}
+
+.station-body {
+  width: 40px;
+  height: 40px;
+  transform: skewX(-12deg);
+  border-radius: 1px;
+  border: 2px solid currentColor;
+  position: relative;
+}
+
+.station-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.node-id {
+  font-family: var(--mono);
+  font-size: var(--fs-small);
+  color: var(--ink);
+}
+
+.attempt-line {
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.attempt-pip {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.station-caption {
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Glyphs */
+.st-dashed .station-body {
+  border-style: dashed;
+  background: transparent;
+}
+
+.st-hatched .station-body {
+  background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 5px);
+}
+
+.st-solid .station-body {
+  background: currentColor;
+}
+
+.st-half .station-body {
+  background: linear-gradient(to right, currentColor 50%, var(--panel) 50%);
+}
+
+.st-most .station-body {
+  background: linear-gradient(to right, currentColor 78%, var(--panel) 78%);
+}
+
+.st-crossed .station-body::before,
+.st-crossed .station-body::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  top: 50%;
+  width: 80%;
+  height: 2px;
+  background: var(--ink);
+}
+
+.st-crossed .station-body::before { transform: rotate(45deg); }
+.st-crossed .station-body::after { transform: rotate(-45deg); }
+
+.st-bell .station-body {
+  border-radius: 50% 50% 2px 2px;
+  transform: skewX(0deg);
+}
+
+.st-filled .station-body {
+  background: currentColor;
+}
+
+/* Edges */
+.edge-pass path {
+  stroke: var(--ink-soft);
+  stroke-width: 1.5px;
+  stroke-dasharray: 4 5;
+  fill: none;
+}
+
+.edge-merge path {
+  stroke: var(--ink);
+  stroke-width: 4px;
+  fill: none;
+}
+
+/* Legend */
+.legend {
+  grid-column: 2;
+  display: flex;
+  gap: var(--s5);
+  margin-top: var(--s3);
+}
+
+.legend-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.legend-sample {
+  display: inline-block;
+  width: 24px;
+  height: 0;
+}
+
+.legend-pass {
+  border-bottom: 1.5px dashed var(--ink-soft);
+}
+
+.legend-merge {
+  border-bottom: 4px solid var(--ink);
+}
+
+.legend-name {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.legend-def {
+  max-width: 60ch;
+}
+
+/* Reduced motion control */
+@media (prefers-reduced-motion: reduce) {
+  .station-body { animation: none; }
+}
