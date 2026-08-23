@@ -103,21 +103,32 @@ describe("Showfloor", () => {
 describe("Showfloor badge follows floor events", () => {
   // The items are the recording's own open Attention documents; a longer list
   // repeats a recorded document rather than inventing a new shape.
-  const escalationItem: AttentionItem = {
-    kind: "escalation",
-    id: (recordedEscalation.escalation_id as string | undefined) ?? null,
-    expires_at: (recordedEscalation.expires_at as string | undefined) ?? null,
+  const waiting: AttentionItem["settlement"] = {
+    state: "waiting",
+    ruling: null,
+    signal: null,
+    pressed_choice: null,
     resolution: null,
-    source: "open_escalations",
-    document: recordedEscalation,
+  };
+  const escalationItem: AttentionItem = {
+    id: recordedEscalation.escalation_id as string,
+    kind: "escalation",
+    correlation_id: recordedEscalation.escalation_id as string,
+    text: (recordedEscalation.question as string | undefined) ?? "",
+    actions: [],
+    expires_at: (recordedEscalation.expires_at as string | undefined) ?? null,
+    settlement: waiting,
+    degraded: null,
   };
   const questionItem: AttentionItem = {
+    id: recordedQuestion.correlation_id as string,
     kind: "question",
-    id: (recordedQuestion.correlation_id as string | undefined) ?? null,
+    correlation_id: recordedQuestion.correlation_id as string,
+    text: recordedQuestion.text as string,
+    actions: [],
     expires_at: null,
-    resolution: null,
-    source: "stored_questions",
-    document: recordedQuestion,
+    settlement: waiting,
+    degraded: null,
   };
 
   const ITEMS: AttentionItem[] = [escalationItem, questionItem];

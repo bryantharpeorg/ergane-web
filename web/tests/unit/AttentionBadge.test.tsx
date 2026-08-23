@@ -28,22 +28,36 @@ class InertEventSource {
 const recordedEscalations = JSON.parse(escalationsRaw) as Array<Record<string, unknown>>;
 const recordedQuestions = [JSON.parse(questionRaw) as Record<string, unknown>];
 
+function waiting(resolution: string | null = null): AttentionItem["settlement"] {
+  return {
+    state: resolution === null ? "waiting" : "settled",
+    ruling: null,
+    signal: null,
+    pressed_choice: null,
+    resolution,
+  };
+}
+
 const RECORDED_ITEMS: AttentionItem[] = [
   ...recordedEscalations.map((document) => ({
+    id: document.escalation_id as string,
     kind: "escalation" as const,
-    id: (document.escalation_id as string | undefined) ?? null,
+    correlation_id: document.escalation_id as string,
+    text: (document.question as string | undefined) ?? "",
+    actions: [],
     expires_at: (document.expires_at as string | undefined) ?? null,
-    resolution: (document.resolution as string | null | undefined) ?? null,
-    source: "open_escalations" as const,
-    document,
+    settlement: waiting((document.resolution as string | null | undefined) ?? null),
+    degraded: null,
   })),
   ...recordedQuestions.map((document) => ({
+    id: document.correlation_id as string,
     kind: "question" as const,
-    id: (document.correlation_id as string | undefined) ?? null,
+    correlation_id: document.correlation_id as string,
+    text: document.text as string,
+    actions: [],
     expires_at: null,
-    resolution: null,
-    source: "stored_questions" as const,
-    document,
+    settlement: waiting(),
+    degraded: null,
   })),
 ];
 

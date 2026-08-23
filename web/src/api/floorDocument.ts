@@ -55,13 +55,35 @@ export interface EpicEntry {
   workgraph_seam: string;
 }
 
-export interface AttentionItem {
-  kind: "escalation" | "question";
-  id: string | null;
-  expires_at: string | null;
+/** One choice the factory delivered, verbatim. The pane mints none of its own. */
+export interface DeliveredAction {
+  label: string;
+  payload: string;
+}
+
+/**
+ * Derived at read time by the backend and nowhere else. `settled` is the
+ * factory's word alone: a press or a submit moves nothing.
+ */
+export interface AttentionSettlement {
+  state: "waiting" | "in_flight" | "ruled" | "settled" | "none";
+  ruling: string | null;
+  signal: "accepted" | "SIGNAL_FAILED" | null;
+  pressed_choice: string | null;
   resolution: string | null;
-  source: "open_escalations" | "stored_questions";
-  document: unknown;
+}
+
+export interface AttentionItem {
+  /** correlation id for an answerable item; `notice:<seq>` for a Notice. */
+  id: string;
+  kind: "escalation" | "question" | "notice";
+  correlation_id: string;
+  text: string;
+  actions: DeliveredAction[];
+  /** The factory's clock, or null: the pane never writes an expiry of its own. */
+  expires_at: string | null;
+  settlement: AttentionSettlement;
+  degraded: { mode: "transport" | "refusal"; what: string } | null;
 }
 
 export interface DegradedEntry {
@@ -88,6 +110,11 @@ export interface FloorDocument {
 export interface FloorEvent {
   type: "floor";
   data: FloorDocument;
+}
+
+export interface AttentionEvent {
+  type: "attention";
+  data: AttentionItem;
 }
 
 export interface UnknownEvent {

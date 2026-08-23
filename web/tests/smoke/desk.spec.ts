@@ -36,7 +36,9 @@ test("the Desk renders the fixture floor read-only", async ({ page, request }) =
   for (let i = 0; i < count; i++) {
     const item = items.nth(i);
     const kind = await item.getAttribute("data-kind");
-    expect(kind).toMatch(/escalation|question/);
+    // Spec 003 US1 seeds the demo floor from all three recorded deliveries, so
+    // the Notice the same notify adapter carries renders here too.
+    expect(kind).toMatch(/escalation|question|notice/);
     if (kind === "escalation") {
       const expiresAt = await item.getAttribute("data-expires-at");
       expect(expiresAt).not.toBeNull();
@@ -49,6 +51,19 @@ test("the Desk renders the fixture floor read-only", async ({ page, request }) =
   const question = page.locator('article.item[data-kind="question"]');
   await expect(question).toBeVisible();
   await expect(question.locator(".no-deadline")).toHaveText("no deadline from the factory");
+
+  // A Notice reads, and asks for nothing: no clock, and no control at all
+  // (DESIGN.md § Components › Attention Item).
+  const notice = page.locator('article.item[data-kind="notice"]');
+  await expect(notice).toBeVisible();
+  await expect(notice.locator(".kind")).toHaveText("Notice");
+  await expect(notice.locator(".no-clock")).toHaveText("no clock");
+  await expect(notice.locator(".asks-nothing")).toHaveText(
+    "Asks for nothing; no answer exists.",
+  );
+  for (const control of ["button", "input", "textarea", "select", "form"]) {
+    expect(await notice.locator(control).count()).toBe(0);
+  }
 
   const spend = page.locator("section.spend");
   await expect(spend.locator("h2")).toHaveText(/spend to date/i);
