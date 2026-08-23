@@ -1,11 +1,26 @@
 /* Showfloor room styles built on 001's tokens.css */
 
+/* FR-015 / DESIGN.md § Layout (Showfloor): the room fills the viewport edge to
+   edge on the sage ground — the smoke measures this box against the viewport —
+   and the masthead is sticky inside it. */
+[data-showfloor-root] {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+}
+
 .showfloor {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--ground);
   color: var(--ink);
+}
+
+[data-showfloor-root] .mast {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ground);
 }
 
 .showfloor-room {
@@ -388,7 +403,42 @@
   max-width: 60ch;
 }
 
-/* Reduced motion control */
-@media (prefers-reduced-motion: reduce) {
-  .station-body { animation: none; }
+/* Motion — DESIGN.md § Motion. Three authored motions and the transition
+   pulse, all authored inside the no-preference gate and all using the one
+   easing, so under `prefers-reduced-motion: reduce` nothing animates and no
+   override is needed. Every piece of information the room carries is a marker
+   or a word; none of it lives in the movement (FR-013). */
+@media (prefers-reduced-motion: no-preference) {
+  /* RUNNING station glow */
+  .station[data-state="RUNNING"] .station-body {
+    animation: station-glow 2.4s var(--ease-out) infinite;
+  }
+
+  /* Landing-line token travel: up one station, holding at each end */
+  .landing-token.queue {
+    animation: landing-travel 6s var(--ease-out) infinite;
+  }
+
+  /* The transition pulse: applied and cleared with the marker (FR-012) */
+  .station[data-transition="true"] .station-body {
+    animation: station-pulse 0.9s var(--ease-out) 1;
+  }
+
+  @keyframes station-glow {
+    0% { opacity: 1; }
+    50% { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes landing-travel {
+    0%, 12% { transform: translateY(0); }
+    45%, 62% { transform: translateY(-90px); }
+    95%, 100% { transform: translateY(0); }
+  }
+
+  @keyframes station-pulse {
+    0% { opacity: 1; }
+    45% { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
 }
