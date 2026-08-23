@@ -1,11 +1,26 @@
 /* Showfloor room styles built on 001's tokens.css */
 
+/* FR-015 / DESIGN.md § Layout (Showfloor): the room fills the viewport edge to
+   edge on the sage ground — the smoke measures this box against the viewport —
+   and the masthead is sticky inside it. */
+[data-showfloor-root] {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+}
+
 .showfloor {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--ground);
   color: var(--ink);
+}
+
+[data-showfloor-root] .mast {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ground);
 }
 
 .showfloor-room {
@@ -30,7 +45,7 @@
 
 .epic-stage {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px 1fr auto;
   grid-template-rows: auto 1fr auto;
   gap: var(--s4) var(--s5);
   padding-top: var(--s5);
@@ -78,6 +93,144 @@
 
 .stage-note .lead {
   font-size: var(--fs-body);
+}
+
+/* FR-014: an idle epic — no node in the live set — rests at the RUNNING
+   glow's rest opacity. The marker carries the state; nothing else changes. */
+.epic-stage[data-idle="true"] {
+  opacity: 0.55;
+}
+
+/* Landing line — DESIGN.md § Route Map and Landing Line */
+.landing-line {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding-left: var(--s5);
+  position: relative;
+}
+
+/* The hairline connector a story short of the line reaches across. */
+.landing-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--rule);
+}
+
+.landing-line-label {
+  font-family: var(--text);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.landing-line-track {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  gap: 48px; /* 16px stations 64px apart */
+  padding: var(--s2) 0;
+  border-left: 3px solid var(--olive);
+  box-shadow: inset 1px 0 0 var(--ground);
+  padding-left: var(--s3);
+}
+
+.landing-station {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  height: 16px;
+}
+
+.landing-station-mark {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  transform: skewX(-12deg);
+  border: 2px solid var(--olive);
+  background: var(--panel);
+}
+
+.landing-station-label {
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--olive-ink);
+  white-space: nowrap;
+}
+
+.landing-station-tokens {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.landing-token {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.landing-token::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 3px var(--panel);
+}
+
+.landing-token.queue::before {
+  background: var(--olive);
+}
+
+.landing-token-label {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.landed-shelf {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.landed-shelf-count {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.04em;
+  color: var(--olive-ink);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.shelf-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  width: 40px;
+}
+
+.shelf-card .station-body {
+  width: 24px;
+  height: 24px;
 }
 
 /* Station card */
@@ -250,7 +403,42 @@
   max-width: 60ch;
 }
 
-/* Reduced motion control */
-@media (prefers-reduced-motion: reduce) {
-  .station-body { animation: none; }
+/* Motion — DESIGN.md § Motion. Three authored motions and the transition
+   pulse, all authored inside the no-preference gate and all using the one
+   easing, so under `prefers-reduced-motion: reduce` nothing animates and no
+   override is needed. Every piece of information the room carries is a marker
+   or a word; none of it lives in the movement (FR-013). */
+@media (prefers-reduced-motion: no-preference) {
+  /* RUNNING station glow */
+  .station[data-state="RUNNING"] .station-body {
+    animation: station-glow 2.4s var(--ease-out) infinite;
+  }
+
+  /* Landing-line token travel: up one station, holding at each end */
+  .landing-token.queue {
+    animation: landing-travel 6s var(--ease-out) infinite;
+  }
+
+  /* The transition pulse: applied and cleared with the marker (FR-012) */
+  .station[data-transition="true"] .station-body {
+    animation: station-pulse 0.9s var(--ease-out) 1;
+  }
+
+  @keyframes station-glow {
+    0% { opacity: 1; }
+    50% { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes landing-travel {
+    0%, 12% { transform: translateY(0); }
+    45%, 62% { transform: translateY(-90px); }
+    95%, 100% { transform: translateY(0); }
+  }
+
+  @keyframes station-pulse {
+    0% { opacity: 1; }
+    45% { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
 }

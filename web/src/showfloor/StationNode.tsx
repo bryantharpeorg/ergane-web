@@ -1,12 +1,15 @@
 /**
  * A Showfloor station card.
  *
- * DESIGN.md § State Chevrons and Stations.
+ * DESIGN.md § State Chevrons and Stations. The same component renders the
+ * card in two places: as a station on the route map, and — in shelf mode —
+ * as a landed-shelf card at the MERGED end of the landing line (a MERGED node
+ * is rendered twice by design; the route stays whole).
  */
 
 import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
-import { resolveStateStyle } from "./states";
+import { LANDING_STAGES, resolveStateStyle } from "./states";
 
 export interface StationNodeData {
   node: {
@@ -20,6 +23,10 @@ export interface StationNodeData {
     waiting_on_operator: boolean;
     unknown: string[];
   };
+  /** Rendered inside the landed shelf: no route handles, no station marker. */
+  shelf?: boolean;
+  /** FR-012: the state changed since the previous stage document. */
+  transition?: boolean;
 }
 
 interface StationNodeProps {
@@ -29,6 +36,7 @@ interface StationNodeProps {
 
 function StationNode({ data }: StationNodeProps): JSX.Element {
   const staged = data.node;
+  const shelf = data.shelf === true;
   const rawState = staged.state ?? null;
   const { style, known } = resolveStateStyle(rawState, "light");
 
@@ -42,20 +50,35 @@ function StationNode({ data }: StationNodeProps): JSX.Element {
     }
   }
 
+  // FR-011: the four landing states name themselves; every other state omits
+  // the marker entirely. DESIGN.md § State Chevrons and Stations.
+  const landingStage =
+    rawState !== null && LANDING_STAGES.has(rawState) ? rawState : undefined;
+
+  const markers = {
+    "data-node-id": staged.id,
+    "data-state": rawState ?? "unknown",
+    "data-state-style": known ? rawState! : "unknown",
+    "data-waiting": staged.waiting_on_operator ? "true" : undefined,
+    "data-landing-stage": landingStage,
+    "data-transition": data.transition === true ? "true" : undefined,
+  };
+
   return (
     <div
-      className={`station st-${style.glyph}`}
-      data-station
-      data-node-id={staged.id}
-      data-state={rawState ?? "unknown"}
-      data-state-style={known ? rawState! : "unknown"}
-      data-waiting={staged.waiting_on_operator ? "true" : undefined}
+      className={
+        shelf ? `shelf-card st-${style.glyph}` : `station st-${style.glyph}`
+      }
+      {...(shelf ? { "data-shelf-card": true } : { "data-station": true })}
+      {...markers}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="station-handle station-handle-target"
-      />
+      {!shelf && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="station-handle station-handle-target"
+        />
+      )}
       <div className="station-body" style={{ color: style.ink }}>
         {style.glyph === "dashed" && rawState === null && (
           <span className="unknown-glyph" />
@@ -75,11 +98,13 @@ function StationNode({ data }: StationNodeProps): JSX.Element {
       <div className="station-caption" style={{ color: style.ink }}>
         {rawState ?? "unknown"}
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="station-handle station-handle-source"
-      />
+      {!shelf && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="station-handle station-handle-source"
+        />
+      )}
     </div>
   );
 }

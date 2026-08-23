@@ -76,3 +76,19 @@ test("the Showfloor stages the fixture floor read-only", async ({ page, request 
 
   expect(requests.filter((r) => r.method !== "GET")).toHaveLength(0);
 });
+
+test("full-bleed is measured", async ({ page }) => {
+  await page.goto("/showfloor");
+  await page.waitForSelector("[data-showfloor-root]");
+
+  const viewport = page.viewportSize();
+  expect(viewport).not.toBeNull();
+
+  const box = await page.locator("[data-showfloor-root]").boundingBox();
+  expect(box).not.toBeNull();
+
+  expect(box!.x).toBe(0);
+  expect(box!.y).toBe(0);
+  expect(box!.width).toBe(viewport!.width);
+  expect(box!.height).toBe(viewport!.height);
+});

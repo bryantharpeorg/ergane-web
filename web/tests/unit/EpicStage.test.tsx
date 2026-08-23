@@ -57,3 +57,48 @@ describe("EpicStage", () => {
     document.body.removeChild(container);
   });
 });
+
+describe("EpicStage idle marker", () => {
+  function stageOf(states: Record<string, string | null>) {
+    const overrides: Record<
+      string,
+      { state: string | null; attempt: number | null; awaiting_operator: boolean; landing_state: null }
+    > = {};
+    for (const [id, state] of Object.entries(states)) {
+      overrides[id] = {
+        state,
+        attempt: state === null ? null : 1,
+        awaiting_operator: state === "WAITING_OPERATOR",
+        landing_state: null,
+      };
+    }
+    return stageFromWorkgraph(workgraph077, overrides);
+  }
+
+  function idleOf(states: Record<string, string | null>): string | null {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    act(() => createRoot(container).render(<EpicStage stage={stageOf(states)} />));
+    const marker = container
+      .querySelector("[data-epic-stage]")
+      ?.getAttribute("data-idle") ?? null;
+    document.body.removeChild(container);
+    return marker;
+  }
+
+  const SETTLED = { us1: "MERGED", us2: "FAILED", us3: "PENDING", us4: null, us5: "KILLED" };
+
+  it("marks a stage with no node in the live set idle", () => {
+    expect(idleOf(SETTLED)).toBe("true");
+  });
+
+  it("does not mark a stage carrying a live node idle", () => {
+    expect(idleOf({ ...SETTLED, us3: "RUNNING" })).toBe("false");
+    expect(idleOf({ ...SETTLED, us3: "WAITING_OPERATOR" })).toBe("false");
+    expect(idleOf({ ...SETTLED, us3: "KEY_ISSUED" })).toBe("false");
+    expect(idleOf({ ...SETTLED, us3: "VERIFYING" })).toBe("false");
+    expect(idleOf({ ...SETTLED, us3: "PASSED" })).toBe("false");
+    expect(idleOf({ ...SETTLED, us3: "PR_OPEN" })).toBe("false");
+    expect(idleOf({ ...SETTLED, us3: "ENQUEUED" })).toBe("false");
+  });
+});
