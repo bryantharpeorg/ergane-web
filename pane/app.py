@@ -55,6 +55,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         store.close()
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+
+    # The two things intake touches, reachable by name rather than by closure:
+    # US2's answer route publishes on the same broadcaster and writes the same
+    # store, and a test can subscribe the way an open `GET /api/events` does.
+    app.state.attention_store = store
+    app.state.attention_broadcaster = broadcaster
     router = APIRouter(dependencies=[Depends(require_viewer)])
 
     @router.get("/api/floor")
