@@ -37,7 +37,22 @@ INTAKE_PREFIX = "/intake/"
 #: The one refusal, fixed: no route name, no floor data, no echo of what was sent.
 REFUSAL_STATUS = 401
 REFUSAL_BODY = b'{"error":"unauthorized"}'
-REFUSAL_HEADERS = {"WWW-Authenticate": 'Basic realm="ergane pane", Bearer'}
+
+#: The two challenges the refusal advertises, as two header *fields*.
+#:
+#: A client that joins them reads exactly the one string contracts/api.md fixes —
+#: ``Basic realm="ergane pane", Bearer`` — and every test asserts that joined
+#: value.  They are emitted separately because Chromium will not accept them
+#: combined: it reads the trailing ``, Bearer`` as a malformed auth-param of the
+#: Basic challenge, discards the whole challenge, and never prompts.  Sending one
+#: field per challenge is what RFC 7235 § 4.1 provides for, and it is the
+#: difference between a browser that can reach the pane at all and one that
+#: cannot — which is the whole of D-P11.  Verified against headless chromium by
+#: `web/tests/smoke/answer.spec.ts`.
+REFUSAL_CHALLENGES = ('Basic realm="ergane pane"', "Bearer")
+
+#: What a client sees once it has joined them; the byte string D-P12 names.
+REFUSAL_CHALLENGE_HEADER = ", ".join(REFUSAL_CHALLENGES)
 
 
 class Unauthorized(Exception):
@@ -46,12 +61,14 @@ class Unauthorized(Exception):
 
 def refusal() -> Response:
     """The one refusal shape, byte-for-byte, for every reason it is given."""
-    return Response(
+    response = Response(
         content=REFUSAL_BODY,
         status_code=REFUSAL_STATUS,
         media_type="application/json",
-        headers=dict(REFUSAL_HEADERS),
     )
+    for challenge in REFUSAL_CHALLENGES:
+        response.raw_headers.append((b"www-authenticate", challenge.encode("ascii")))
+    return response
 
 
 def presented_secret(authorization: str | None) -> str | None:
