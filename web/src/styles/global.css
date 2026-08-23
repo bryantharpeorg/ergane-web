@@ -313,7 +313,81 @@ a {
 .attention .where { font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); }
 .attention .prose { margin: 0; max-width: 68ch; }
 .attention .answer-col { min-width: 220px; align-items: flex-start; justify-content: center; }
-.attention .answer-note { font-style: italic; color: var(--ink-soft); }
+
+/* DESIGN.md § Components › Buttons. Tight corners, a 1.5px border, Display 600
+   at 0.8125rem, and the payload beneath the face as a mono block. Teal is the
+   only fill; there is no third variant and no other control on the Desk. */
+.attention .btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15em;
+  width: 100%;
+  padding: 0.5em 0.9em;
+  border-radius: var(--radius);
+  border: 1.5px solid;
+  font-family: var(--display);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.attention .btn .payload {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.attention .btn.answer {
+  background: var(--teal);
+  border-color: var(--teal-ink);
+  color: var(--white);
+  box-shadow: 0 2px 6px rgba(42, 42, 38, 0.12), 0 10px 24px -12px rgba(42, 42, 38, 0.18);
+}
+.attention .btn.answer .payload { color: rgba(255, 255, 255, 0.8); }
+.attention .btn.answer:hover:not(:disabled) { background: var(--teal-ink); }
+.attention .btn.choice {
+  background: var(--panel);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.attention .btn.choice .payload { color: var(--ink-soft); }
+.attention .btn.choice:hover:not(:disabled) {
+  background: var(--panel-deep);
+  transform: translateY(-1px);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* DESIGN.md § Components › Buttons › Disabled: while a settlement is out for
+   this item, every control reads unpressable and none of them moves. */
+.attention .btn:disabled,
+.attention .reply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.attention .btn:focus-visible,
+.attention .reply:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+/* DESIGN.md § Inputs / Fields › Reply textarea. */
+.attention .reply {
+  width: 100%;
+  background: var(--white);
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--text);
+  font-size: var(--fs-small);
+  color: var(--ink);
+  min-height: 4.5em;
+  resize: vertical;
+}
+.attention .reply:focus { border-color: var(--teal); }
+
+@media (prefers-reduced-motion: reduce) {
+  .attention .btn.choice:hover:not(:disabled) { transform: none; transition: none; }
+}
 
 @media (max-width: 900px) {
   .attention .item { grid-template-columns: 1fr; }
