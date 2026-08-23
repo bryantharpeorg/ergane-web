@@ -116,3 +116,48 @@ describe("AttentionBadge", () => {
     expect(empty.querySelector("[data-attention-degraded]")).toBeNull();
   });
 });
+
+describe("AttentionBadge degraded reads", () => {
+  const MODES: Array<{ mode: "transport" | "refusal"; detail: string }> = [
+    { mode: "transport", detail: "attention: connection refused" },
+    { mode: "refusal", detail: "attention: query rejected" },
+  ];
+
+  for (const { mode, detail } of MODES) {
+    it(`renders a ${mode} note in the badge's place, and no count`, async () => {
+      // The items are present too: a count taken from a read that failed is a
+      // number the pane cannot stand behind, so the degraded entry wins.
+      const container = await renderShowfloor({
+        ...baseDoc,
+        attention: { ...baseDoc.attention, items: RECORDED_ITEMS },
+        degraded: [
+          {
+            section: "attention",
+            mode,
+            epic_id: null,
+            read: "open_escalations",
+            detail,
+          },
+        ],
+      });
+
+      const note = container.querySelector(
+        `[data-attention-degraded][data-mode="${mode}"]`,
+      );
+      expect(note).not.toBeNull();
+      expect((note!.textContent ?? "").toLowerCase()).toContain("attention");
+      expect((note!.textContent ?? "").toLowerCase()).toContain(mode);
+
+      expect(container.querySelector("[data-attention-badge]")).toBeNull();
+
+      // Unknown is not zero: nothing in the masthead reads as the numeral 0.
+      const masthead = container.querySelector("header.mast");
+      expect(masthead).not.toBeNull();
+      const mastheadElements = [masthead!, ...Array.from(masthead!.querySelectorAll("*"))];
+      for (const element of mastheadElements) {
+        expect((element.textContent ?? "").trim()).not.toBe("0");
+      }
+      expect((masthead!.textContent ?? "")).not.toContain(String(N));
+    });
+  }
+});
