@@ -48,18 +48,41 @@ test("the Desk renders the fixture floor and issues one verb and no other", asyn
     // Spec 003 US1 seeds the demo floor from all three recorded deliveries, so
     // the Notice the same notify adapter carries renders here too.
     expect(kind).toMatch(/escalation|question|notice/);
-    if (kind === "escalation") {
+    if (kind !== "notice") {
+      // Spec 003 US3 (T042/T050): every answerable item counts down to the
+      // `expires_at` the factory wrote — the Escalation's through
+      // `open_escalations`, the Question's through the questions store — and to
+      // nothing the pane computed. An item the factory has supplied no deadline
+      // for says exactly that, and says it in the answerable item's words rather
+      // than in the Notice slot's (FR-012).
       const expiresAt = await item.getAttribute("data-expires-at");
-      expect(expiresAt).not.toBeNull();
-      await expect(item.locator(".clock")).toHaveText(
-        timeLeftText(expiresAt as string, referenceInstant),
-      );
+      if (expiresAt === null) {
+        await expect(item.locator(".no-deadline")).toHaveText(
+          "no deadline from the factory",
+        );
+      } else {
+        await expect(item.locator(".clock")).toHaveText(
+          timeLeftText(expiresAt, referenceInstant),
+        );
+        await expect(item.locator(".no-deadline")).toHaveCount(0);
+      }
     }
   }
 
+  // **Declared in-scope amendment of a landed 001 assertion** (spec 003 T050).
+  // 001 asserted that the seeded demo Question shows no `.clock` and reads "no
+  // deadline", which was true only while the recorded Question payload carried
+  // no expiry. US3's questions-store join supplies one — the value the factory
+  // wrote at send time — so the Question now carries a live clock, computed
+  // here against the demo reference instant exactly as the Escalation's is.
   const question = page.locator('article.item[data-kind="question"]');
   await expect(question).toBeVisible();
-  await expect(question.locator(".no-deadline")).toHaveText("no deadline from the factory");
+  const questionExpiry = await question.getAttribute("data-expires-at");
+  expect(questionExpiry).not.toBeNull();
+  await expect(question.locator(".clock")).toHaveText(
+    timeLeftText(questionExpiry as string, referenceInstant),
+  );
+  await expect(question.locator(".no-deadline")).toHaveCount(0);
 
   // A Notice reads, and asks for nothing: no clock, and no control at all
   // (DESIGN.md § Components › Attention Item).

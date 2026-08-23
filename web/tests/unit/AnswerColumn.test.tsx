@@ -304,3 +304,141 @@ describe("the local guards", () => {
     expect(JSON.parse(init.body as string)).toEqual({ text: "Go with Option A." });
   });
 });
+
+// --- US3-S3 and US3-S4: the retriability split -------------------------------
+
+/**
+ * SIGNAL_FAILED alone means *nothing was recorded*, so it alone leaves the
+ * controls live and says so. The second half is the control the spec asks for:
+ * making every ruling retriable would let a stale press re-answer a settled
+ * item, so each of the other five must leave no enabled way to send the same
+ * Answer again (FR-011).
+ */
+
+const RETRIABLE = "SIGNAL_FAILED";
+
+/** The five that are not, and what settlement state the backend derives for each. */
+const NOT_RETRIABLE: [string, AttentionSettlement["state"]][] = [
+  ["RESOLVED", "settled"],
+  ["UNKNOWN", "ruled"],
+  ["ALREADY_RESOLVED", "ruled"],
+  ["EXPIRED", "ruled"],
+  ["UNAUTHORIZED", "ruled"],
+];
+
+function enabled(container: HTMLElement): Element[] {
+  return interactive(container).filter(
+    (node) => !(node as HTMLButtonElement | HTMLTextAreaElement).disabled,
+  );
+}
+
+describe("SIGNAL_FAILED keeps the controls live and says why", () => {
+  it("leaves a Question answerable and states that nothing was recorded", () => {
+    const container = render(
+      itemFrom(questionDelivery, "question", {
+        ...waiting,
+        state: "ruled",
+        ruling: RETRIABLE,
+      }),
+    );
+
+    const field = container.querySelector("textarea") as HTMLTextAreaElement;
+    const answer = container.querySelector("button") as HTMLButtonElement;
+    expect(field).not.toBeNull();
+    expect(answer).not.toBeNull();
+    expect(field.disabled).toBe(false);
+    expect(answer.disabled).toBe(false);
+
+    const text = container.textContent ?? "";
+    expect(text).toContain("nothing was recorded");
+    expect(text).toContain("resending is safe");
+  });
+
+  it("leaves an Escalation's delivered choices live after the signal RPC raised", () => {
+    const container = render(
+      itemFrom(escalationDelivery, "escalation", {
+        ...waiting,
+        state: "ruled",
+        signal: RETRIABLE,
+        pressed_choice: "RETRY",
+      }),
+    );
+
+    const buttons = [...container.querySelectorAll("button")] as HTMLButtonElement[];
+    expect(buttons).toHaveLength(escalationDelivery.actions.length);
+    for (const button of buttons) {
+      expect(button.disabled).toBe(false);
+    }
+
+    const text = container.textContent ?? "";
+    expect(text).toContain("nothing was recorded");
+    expect(text).toContain("resending is safe");
+  });
+
+  it("actually sends when a retriable item is answered again", async () => {
+    const container = render(
+      itemFrom(escalationDelivery, "escalation", {
+        ...waiting,
+        state: "ruled",
+        signal: RETRIABLE,
+        pressed_choice: "RETRY",
+      }),
+    );
+
+    await act(async () => {
+      (container.querySelector("button") as HTMLButtonElement).click();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("no other ruling invites resending the same Answer", () => {
+  it.each(NOT_RETRIABLE)("offers no enabled control after %s", (ruling, state) => {
+    for (const [delivery, kind] of [
+      [questionDelivery, "question"],
+      [escalationDelivery, "escalation"],
+    ] as [Delivery, AttentionItem["kind"]][]) {
+      const container = render(
+        itemFrom(delivery, kind, { ...waiting, state, ruling }),
+      );
+
+      expect(
+        enabled(container),
+        `${kind} after ${ruling} offers a live control`,
+      ).toHaveLength(0);
+      expect((container.textContent ?? "").toLowerCase()).not.toContain("resend");
+      expect((container.textContent ?? "").toLowerCase()).not.toContain("try again");
+      expect(container.textContent ?? "").not.toContain("nothing was recorded");
+    }
+  });
+
+  it("removes the controls entirely once the factory reports a resolution", () => {
+    for (const [delivery, kind] of [
+      [questionDelivery, "question"],
+      [escalationDelivery, "escalation"],
+    ] as [Delivery, AttentionItem["kind"]][]) {
+      const container = render(
+        itemFrom(delivery, kind, { ...waiting, state: "settled", resolution: "ANSWERED" }),
+      );
+
+      expect(interactive(container)).toHaveLength(0);
+    }
+  });
+
+  it("presses nothing when a ruled control is clicked anyway", async () => {
+    const container = render(
+      itemFrom(escalationDelivery, "escalation", {
+        ...waiting,
+        state: "ruled",
+        ruling: "UNAUTHORIZED",
+      }),
+    );
+
+    await act(async () => {
+      (container.querySelector("button") as HTMLButtonElement).click();
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
