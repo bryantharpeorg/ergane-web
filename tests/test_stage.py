@@ -282,7 +282,7 @@ def test_derived_flag_wins():
 
 
 
-def test_floor_document_carries_stage_and_stays_pure():
+def test_floor_document_carries_stage_and_stays_pure(auth_headers, token):
     """The demo floor endpoint carries a stage per epic whose node ids match declared NodeCards."""
     settings = Settings(
         demo=True,
@@ -296,8 +296,11 @@ def test_floor_document_carries_stage_and_stays_pure():
         intake_credential=None,
         answer_identity="unknown",
         attention_db=Path(tempfile.mkdtemp(prefix="pane-stage-")) / "attention.db",
+        # Spec 003 US4 (T054/T056): `create_app` refuses to build without a
+        # token, so a hand-built `Settings` carries the one the run minted.
+        token=token,
     )
-    client = TestClient(create_app(settings))
+    client = TestClient(create_app(settings), headers=auth_headers)
     resp = client.get("/api/floor")
     assert resp.status_code == 200
     document = resp.json()

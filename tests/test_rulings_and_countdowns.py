@@ -172,8 +172,8 @@ def join_app(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def client(join_app):
-    return TestClient(join_app)
+def client(join_app, auth_headers):
+    return TestClient(join_app, headers=auth_headers)
 
 
 @pytest.fixture
@@ -449,7 +449,7 @@ def test_a_degraded_join_leaves_the_item_answerable(client, reader):
 
 
 def test_the_demo_reader_replays_the_recorded_ruling_named_by_the_environment(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, auth_headers
 ):
     """`PANE_DEMO_RULING=EXPIRED` serves the `outcome` key of the recording.
 
@@ -465,7 +465,7 @@ def test_the_demo_reader_replays_the_recorded_ruling_named_by_the_environment(
     monkeypatch.setenv("PANE_ATTENTION_DB", str(tmp_path / "demo.db"))
     monkeypatch.setenv("PANE_DEMO_RULING", "EXPIRED")
 
-    client = TestClient(create_app(Settings.from_env()))
+    client = TestClient(create_app(Settings.from_env()), headers=auth_headers)
     correlation_id = QUESTION["correlation_id"]
 
     # The demo floor seeds its store from the recordings on the first read
@@ -489,7 +489,7 @@ def test_the_demo_reader_replays_the_recorded_ruling_named_by_the_environment(
 
 
 def test_a_demo_ruling_with_no_recording_degrades_in_words_and_invents_nothing(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, auth_headers
 ):
     """SIGNAL_FAILED has no document, so naming it names a missing path.
 
@@ -505,7 +505,7 @@ def test_a_demo_ruling_with_no_recording_degrades_in_words_and_invents_nothing(
 
     assert not (FIXTURES / "bridge" / "SIGNAL_FAILED.json").exists()
 
-    client = TestClient(create_app(Settings.from_env()))
+    client = TestClient(create_app(Settings.from_env()), headers=auth_headers)
     assert item_for(client, QUESTION["correlation_id"])["kind"] == "question"
 
     with pytest.raises(TransportFailed) as raised:

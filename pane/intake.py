@@ -95,11 +95,17 @@ def create_intake_router(
     """Build the intake router over one open store and one broadcaster."""
     router = APIRouter()
 
-    @router.post("/intake/{credential}")
+    # `:path`, so the credential-less `POST /intake/` reaches the one gate and
+    # gets the one refusal rather than a router 404 or 405 that no other refused
+    # request produces (US4-S3).  It also matches how the factory sees the URL:
+    # `factory/notify/webhook.py` redacts *everything* after the origin, so the
+    # whole tail is the secret, and the whole tail is what `require_viewer`
+    # compares with `secrets.compare_digest`.
+    @router.post("/intake/{credential:path}")
     async def intake(credential: str, request: Request) -> JSONResponse:
-        # `credential` is carried, not yet compared: 001 ships its single auth
-        # seam open as a dated interim and US4 closes it, here and everywhere
-        # else, with `secrets.compare_digest` against PANE_INTAKE_CREDENTIAL.
+        # Already compared, by `pane.auth.require_viewer`, before this handler
+        # was reached.  Comparing it again here would be the second auth path
+        # D-P11 forbids, so the handler only carries it (FR-015).
         del credential
 
         try:

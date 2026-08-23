@@ -11,7 +11,7 @@ from sse_starlette import EventSourceResponse
 from pane.answer import create_answer_router
 from pane.attention import assemble_attention_section
 from pane.attention_store import open_store
-from pane.auth import require_viewer
+from pane.auth import Unauthorized, require_viewer, unauthorized_handler
 from pane.config import Settings
 from pane.events import EVENT_TYPES, AttentionBroadcaster, floor_events
 from pane.fixture_floor import FixtureReader
@@ -37,10 +37,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings is None:
         settings = Settings.from_env()
 
-    # Every log record in this process has the intake credential removed at
-    # creation, so no line the pane writes can carry it (FR-017, D-P2).  The
-    # token and its startup refusal are US4's.
+    # No token, no pane.  In every mode, demo included: a backend that starts
+    # without one would serve the whole floor open, and 001's dated interim is
+    # closed as of this story (FR-014, T054).
+    if not settings.token:
+        raise ValueError(
+            "PANE_TOKEN is not set; the pane refuses to start rather than serve open"
+        )
+
+    # Every log record in this process has both credentials removed at creation,
+    # so no line the pane writes — uvicorn's access log included — can carry one
+    # (FR-017, D-P2).
     install_redaction()
+    register_secret(settings.token)
     if settings.intake_credential:
         register_secret(settings.intake_credential)
     else:
@@ -63,6 +72,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # store, and a test can subscribe the way an open `GET /api/events` does.
     app.state.attention_store = store
     app.state.attention_broadcaster = broadcaster
+    # `require_viewer` reads the two configured credentials from here, so the one
+    # dependency stays one function rather than a closure per app (D-P11).
+    app.state.settings = settings
+    app.add_exception_handler(Unauthorized, unauthorized_handler)
     router = APIRouter(dependencies=[Depends(require_viewer)])
 
     @router.get("/api/floor")
@@ -90,8 +103,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     # The one route the factory reaches, mounted behind the same dependency as
-    # every other (001's dated open interim).  US4 gives it the credential
-    # comparison and makes it the one enumerated exception to the token.
+    # every other.  US4 gave `require_viewer` the credential comparison, which
+    # makes intake the one enumerated exception to the token — never an
+    # exception to being guarded.
     router.include_router(create_intake_router(store=store, broadcaster=broadcaster))
 
     # The one verb.  Behind the same dependency as every read, writing the same

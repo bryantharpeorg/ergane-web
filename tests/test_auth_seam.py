@@ -1,4 +1,10 @@
-"""Prove every route is behind the single open auth seam."""
+"""Prove every route is behind the single auth seam, and that the seam is shut.
+
+2026-08-23: spec 003 US4 closes 001's dated open interim.  The structural rules
+below are exactly as 001 landed them — every route's `dependant` tree contains
+`pane.auth.require_viewer`, there is no `Mount` beside them and no `/docs` — and
+the one assertion that pinned the interim open now pins it closed.
+"""
 
 import os
 from pathlib import Path
@@ -17,7 +23,7 @@ FIXTURES = ROOT / "fixtures"
 
 
 @pytest.fixture
-def demo_settings(tmp_path, monkeypatch) -> Settings:
+def demo_settings(tmp_path, monkeypatch, credentials) -> Settings:
     monkeypatch.chdir(tmp_path)
     for key in list(os.environ):
         if key.startswith("ERGANE_") or key.startswith("FACTORY_") or key.startswith("TEMPORAL_"):
@@ -57,11 +63,30 @@ def test_no_docs_routes_exist(demo_settings):
     assert "/openapi.json" not in paths
 
 
-def test_open_seam_admits_request_without_authorization(demo_settings):
+def test_the_closed_seam_refuses_a_request_without_authorization(demo_settings):
+    """001's interim admitted everyone; US4's gate admits no one without the token.
+
+    This is the same request 001 asserted was `200` — `GET /api/floor` with no
+    `Authorization` header — and the whole of the change is in what it answers.
+    """
     app = create_app(demo_settings)
     from fastapi.testclient import TestClient
 
     client = TestClient(app)
+    resp = client.get("/api/floor")
+    assert resp.status_code == 401
+    assert resp.content == b'{"error":"unauthorized"}'
+    assert resp.headers["WWW-Authenticate"] == 'Basic realm="ergane pane", Bearer'
+    # Nothing of the floor rode out with the refusal.
+    assert "floor" not in resp.text
+
+
+def test_the_same_seam_admits_the_configured_token(demo_settings, auth_headers):
+    """And the gate is a gate, not a wall: the token opens it (SC-006's premise)."""
+    app = create_app(demo_settings)
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app, headers=auth_headers)
     resp = client.get("/api/floor")
     assert resp.status_code == 200
     assert "floor" in resp.json()

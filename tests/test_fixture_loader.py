@@ -41,7 +41,7 @@ def demo_settings(tmp_path, monkeypatch) -> Settings:
     return Settings.from_env()
 
 
-def test_api_floor_serves_whole_fixture_floor(demo_settings, monkeypatch):
+def test_api_floor_serves_whole_fixture_floor(demo_settings, monkeypatch, auth_headers):
     import factory.cli.nouns.build
 
     monkeypatch.setattr(
@@ -51,7 +51,7 @@ def test_api_floor_serves_whole_fixture_floor(demo_settings, monkeypatch):
     )
 
     app = create_app(demo_settings)
-    client = TestClient(app)
+    client = TestClient(app, headers=auth_headers)
     resp = client.get("/api/floor")
     assert resp.status_code == 200
 
@@ -268,7 +268,7 @@ def test_one_code_path_for_demo_and_live_readers(tmp_path, monkeypatch):
         assert forbidden not in source, f"floor_document.py must not contain {forbidden}"
 
 
-def test_missing_document_is_degraded_read(tmp_path, monkeypatch):
+def test_missing_document_is_degraded_read(tmp_path, monkeypatch, auth_headers):
     """A deleted fixture document turns into a transport-mode degraded section."""
     copy_root = tmp_path / "fixtures-copy"
     shutil.copytree(FIXTURES, copy_root)
@@ -279,7 +279,7 @@ def test_missing_document_is_degraded_read(tmp_path, monkeypatch):
     monkeypatch.setenv("PANE_FIXTURES_ROOT", str(copy_root))
 
     app = create_app(Settings.from_env())
-    client = TestClient(app)
+    client = TestClient(app, headers=auth_headers)
     resp = client.get("/api/floor")
     assert resp.status_code == 200
     document = resp.json()
@@ -293,7 +293,9 @@ def test_missing_document_is_degraded_read(tmp_path, monkeypatch):
     assert str(copy_root / "doctor" / "findings.json") in entry["detail"]
 
 
-def test_missing_webhook_recording_is_a_degraded_attention_read(tmp_path, monkeypatch):
+def test_missing_webhook_recording_is_a_degraded_attention_read(
+    tmp_path, monkeypatch, auth_headers
+):
     """A deleted delivery recording degrades the seed in words, never silently.
 
     The demo floor's Attention items are recordings served through the intake
@@ -308,7 +310,7 @@ def test_missing_webhook_recording_is_a_degraded_attention_read(tmp_path, monkey
     monkeypatch.setenv("PANE_DEMO", "1")
     monkeypatch.setenv("PANE_FIXTURES_ROOT", str(copy_root))
 
-    client = TestClient(create_app(Settings.from_env()))
+    client = TestClient(create_app(Settings.from_env()), headers=auth_headers)
     document = client.get("/api/floor").json()
 
     attention_degraded = [d for d in document["degraded"] if d["section"] == "attention"]
@@ -322,7 +324,7 @@ def test_missing_webhook_recording_is_a_degraded_attention_read(tmp_path, monkey
     assert document["attention"]["items"]
 
 
-def test_pending_envelope_is_degraded_read(tmp_path, monkeypatch):
+def test_pending_envelope_is_degraded_read(tmp_path, monkeypatch, auth_headers):
     """An envelope with ``status: pending`` is treated as a missing document."""
     copy_root = tmp_path / "fixtures-copy"
     shutil.copytree(FIXTURES, copy_root)
@@ -336,7 +338,7 @@ def test_pending_envelope_is_degraded_read(tmp_path, monkeypatch):
     monkeypatch.setenv("PANE_FIXTURES_ROOT", str(copy_root))
 
     app = create_app(Settings.from_env())
-    client = TestClient(app)
+    client = TestClient(app, headers=auth_headers)
     resp = client.get("/api/floor")
     assert resp.status_code == 200
     document = resp.json()
@@ -347,7 +349,7 @@ def test_pending_envelope_is_degraded_read(tmp_path, monkeypatch):
     assert health_degraded[0]["mode"] == "transport"
 
 
-def test_demo_transport_fail_section(tmp_path, monkeypatch):
+def test_demo_transport_fail_section(tmp_path, monkeypatch, auth_headers):
     """`PANE_DEMO_TRANSPORT_FAIL=spend` poisons only the named section."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PANE_DEMO", "1")
@@ -355,7 +357,7 @@ def test_demo_transport_fail_section(tmp_path, monkeypatch):
     monkeypatch.setenv("PANE_DEMO_TRANSPORT_FAIL", "spend")
 
     app = create_app(Settings.from_env())
-    client = TestClient(app)
+    client = TestClient(app, headers=auth_headers)
     resp = client.get("/api/floor")
     assert resp.status_code == 200
     document = resp.json()

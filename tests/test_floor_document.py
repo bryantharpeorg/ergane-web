@@ -37,8 +37,8 @@ def demo_settings(tmp_path, monkeypatch) -> Settings:
 
 
 @pytest.fixture
-def demo_client(demo_settings):
-    return TestClient(create_app(demo_settings))
+def demo_client(demo_settings, auth_headers):
+    return TestClient(create_app(demo_settings), headers=auth_headers)
 
 
 def test_floor_document_sections_and_seams(demo_client):
