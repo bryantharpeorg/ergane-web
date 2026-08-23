@@ -59,8 +59,8 @@ def test_api_floor_serves_whole_fixture_floor(demo_settings, monkeypatch):
     esc_env = json.loads((FIXTURES / "escalations" / "open_escalations.envelope.json").read_text())
     assert document["reference_instant"] == esc_env["captured_at"]
 
-    # Degraded is not empty: exactly the five entries predicted by the missing-document
-    # rule for the staged scenes.
+    # Degraded is not empty: the three missing-document transport entries plus
+    # the scanner refusal scene whose workgraph is now recorded, so no transport there.
     degraded = document["degraded"]
     assert degraded
     transport_entries = [d for d in degraded if d["mode"] == "transport"]
@@ -70,7 +70,6 @@ def test_api_floor_serves_whole_fixture_floor(demo_settings, monkeypatch):
         {"epic_id": "fx-landing-f0a0d6", "scene": "landing"},
         {"epic_id": "fx-paged-5e2e8a", "scene": "paged-while-verifying"},
         {"epic_id": "fx-question-e8c371", "scene": "question"},
-        {"epic_id": "fx-landing-f0a0d6", "scene": "refusal"},
     ]
     assert len(transport_entries) == len(expected_transport)
     for entry, expected in zip(transport_entries, expected_transport):
@@ -82,7 +81,7 @@ def test_api_floor_serves_whole_fixture_floor(demo_settings, monkeypatch):
     refusal = refusal_entries[0]
     assert refusal["section"] == "epics"
     assert refusal["read"] == "epic_status"
-    assert refusal["epic_id"] == "fx-landing-f0a0d6"
+    assert refusal["epic_id"] == "077-a-scanner-the-operator-chooses-runs-in-the-loop"
     assert refusal["detail"] == "Query rejected, status: 2"
 
     # No degraded entries for the other sections.

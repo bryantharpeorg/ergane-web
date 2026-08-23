@@ -7,12 +7,12 @@ const RAW_CSS_PREFIX = "\0raw-css:";
 let rawCssCounter = 0;
 const rawCssFiles = new Map<string, string>();
 
-function rawCss() {
+function rawText() {
   return {
-    name: "raw-css",
+    name: "raw-text",
     enforce: "pre" as const,
     resolveId(source: string, importer: string | undefined) {
-      if (source.endsWith(".css?raw")) {
+      if (source.endsWith("?raw")) {
         const clean = source.replace("?raw", "");
         const absolute = importer ? resolve(importer, "..", clean) : resolve(clean);
         const id = `${RAW_CSS_PREFIX}${rawCssCounter++}`;
@@ -30,7 +30,7 @@ function rawCss() {
 }
 
 export default defineConfig({
-  plugins: [react(), rawCss()],
+  plugins: [react(), rawText()],
   test: {
     environment: "jsdom",
     include: ["tests/unit/**/*.test.{ts,tsx}"],

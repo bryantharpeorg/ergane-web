@@ -7,6 +7,8 @@
  * fields it adds.
  */
 
+import type { StageDocument } from "../showfloor/types";
+
 export type NodeState =
   | "PENDING"
   | "KEY_ISSUED"
@@ -48,6 +50,7 @@ export interface EpicEntry {
   scene: string | null;
   epic_state: string;
   nodes: NodeCard[];
+  stage?: StageDocument;
   status_seam: string;
   workgraph_seam: string;
 }

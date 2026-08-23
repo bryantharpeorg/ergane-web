@@ -61,9 +61,9 @@ SCENES = (
         scene="question",
     ),
     Scene(
-        epic_id="fx-landing-f0a0d6",
+        epic_id="077-a-scanner-the-operator-chooses-runs-in-the-loop",
         status_path=_fixture("epic-status/refusal.json"),
-        workgraph_path=None,
+        workgraph_path=_fixture("workgraphs/077-a-scanner-the-operator-chooses-runs-in-the-loop.json"),
         scene="refusal",
     ),
     Scene(
