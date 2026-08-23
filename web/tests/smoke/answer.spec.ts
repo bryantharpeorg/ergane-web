@@ -14,15 +14,14 @@
  * whichever one the delivered document put first.
  */
 
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 
-const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
-
-function recorded(relativePath: string): Record<string, unknown> {
-  return JSON.parse(readFileSync(FIXTURES + relativePath, "utf-8"));
-}
+// The recordings themselves, imported rather than read through `node:fs` — the
+// roster carries no `@types/node` and `resolveJsonModule` makes the import the
+// typechecked way to reach them. Every expected value below comes from one of
+// these two documents; none is typed into this file (constitution V).
+import resolvedRecording from "../../../fixtures/bridge/RESOLVED.json" with { type: "json" };
+import questionDelivery from "../../../fixtures/webhook/question.json" with { type: "json" };
 
 test("the token guards the pane without walling it off", async ({
   page,
@@ -44,7 +43,7 @@ test("the token guards the pane without walling it off", async ({
   // `PANE_DEMO_RULING` is unset for this server, so the demo reader replays
   // `fixtures/bridge/RESOLVED.json` — and the word asserted here is that file's
   // own `outcome`, read at run time so the recording stays the single source.
-  const resolved = recorded("bridge/RESOLVED.json").outcome as string;
+  const resolved = resolvedRecording.outcome;
   await expect(question.locator(".ruling-line .ruling")).toHaveText(resolved);
 
   // --- the Escalation: pressed, and in flight until the factory says otherwise
@@ -96,7 +95,7 @@ test("the token guards the pane without walling it off", async ({
 
   // Nothing of the floor rode out with the refusal: no attention item, no
   // correlation id, no route name (FR-014, US4-S2).
-  const delivered = recorded("webhook/question.json").correlation_id as string;
+  const delivered = questionDelivery.correlation_id;
   const rendered = await anonymousPage.content();
   expect(rendered).not.toContain(delivered);
   expect(await anonymousPage.locator("article.item").count()).toBe(0);
