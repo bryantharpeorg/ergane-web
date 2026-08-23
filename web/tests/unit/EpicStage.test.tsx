@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { act } from "react";
 import EpicStage from "../../src/showfloor/EpicStage";
 import { stageFromWorkgraph } from "./support/stage-builder";
+import { mountedProps } from "./support/xyflow-double";
 
 import workgraph077 from "../../../fixtures/workgraphs/077-a-scanner-the-operator-chooses-runs-in-the-loop.json?raw";
 
@@ -100,5 +101,40 @@ describe("EpicStage idle marker", () => {
     expect(idleOf({ ...SETTLED, us3: "PASSED" })).toBe("false");
     expect(idleOf({ ...SETTLED, us3: "PR_OPEN" })).toBe("false");
     expect(idleOf({ ...SETTLED, us3: "ENQUEUED" })).toBe("false");
+  });
+});
+
+describe("EpicStage flow mounts non-interactive", () => {
+  it("turns dragging, selection, connecting and focusing off, and keeps pan and zoom", () => {
+    // The element sweep sees no button, form, input, select or textarea — but
+    // the D-006 stack enables dragging and selection by default over plain
+    // divs that sweep cannot see, so the mount props are the assertion.
+    mountedProps.length = 0;
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const stage = stageFromWorkgraph(workgraph077, {
+      us1: { state: "PENDING", attempt: 1, awaiting_operator: false, landing_state: null },
+      us2: { state: "RUNNING", attempt: 1, awaiting_operator: false, landing_state: null },
+    });
+
+    act(() => createRoot(container).render(<EpicStage stage={stage} />));
+
+    expect(mountedProps.length).toBe(1);
+    const props = mountedProps[0];
+
+    expect(props.nodesDraggable).toBe(false);
+    expect(props.elementsSelectable).toBe(false);
+    expect(props.nodesConnectable).toBe(false);
+    expect(props.nodesFocusable).toBe(false);
+    expect(props.edgesFocusable).toBe(false);
+
+    // Pan and zoom are gestures, and they stay on: they mount no chrome.
+    expect(props.panOnDrag).toBe(true);
+    expect(props.zoomOnScroll).toBe(true);
+    expect(props.zoomOnPinch).toBe(true);
+
+    document.body.removeChild(container);
   });
 });
