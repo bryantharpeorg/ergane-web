@@ -13,10 +13,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from pane.app import create_app
+from pane.attention_store import StoredItem
 from pane.config import Settings
 from pane.fixture_floor import SCENES, FixtureReader
 from pane.floor_document import assemble_floor_document
 from pane.readers import EpicRef, FloorRead, Reader, TransportFailed
+
+from support import seeded_items
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures"
@@ -56,13 +59,21 @@ def test_floor_document_sections_and_seams(demo_client):
     assert document["floor"]["seam"] == "factory.cli.status.collect_floor"
     assert document["floor"]["data"] is not None
 
+    # Spec 003 US1 moves these assertions to the assembled shape: the section is
+    # now the pane's delivery store joined to the escalations 001 already read,
+    # so the Notice the same adapter carries is here beside the other two kinds.
+    # The seam string, the degraded entries, and the purity proof stay as landed.
     assert document["attention"]["seam"] == "factory.escalation.client.open_escalations + stored Question documents"
     items = document["attention"]["items"]
     kinds = {item["kind"] for item in items}
-    assert kinds == {"escalation", "question"}
+    assert kinds == {"escalation", "question", "notice"}
     question = next(item for item in items if item["kind"] == "question")
     assert question["expires_at"] is None
-    assert question["source"] == "stored_questions"
+    assert question["settlement"]["state"] == "waiting"
+    notice = next(item for item in items if item["kind"] == "notice")
+    assert notice["expires_at"] is None
+    assert notice["settlement"]["state"] == "none"
+    assert notice["actions"] == []
 
     assert document["health"]["seam"] == "factory.doctor.store.list_findings over connect_readonly"
     assert document["health"]["data"] is not None
@@ -228,8 +239,8 @@ class _StubReader:
     async def open_escalations(self) -> list[dict]:
         return json.loads((self.root / "escalations" / "open_escalations.json").read_text())
 
-    def stored_questions(self) -> list[dict]:
-        return [json.loads((self.root / "webhook" / "question.json").read_text())]
+    def stored_items(self) -> list[StoredItem]:
+        return seeded_items(self.root)
 
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())

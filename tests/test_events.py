@@ -129,7 +129,13 @@ def test_api_events_stream_one_event(demo_settings, tmp_path, monkeypatch):
 
 
 def test_event_types_vocabulary():
-    assert EVENT_TYPES == ("floor",)
+    """001's vocabulary plus the one type spec 003 declares (FR-005).
+
+    `attention` is a declared extension, not a redefinition: a consumer that
+    ignores unknown types is unaffected until it opts in, so every surface built
+    against 001 keeps working unchanged.
+    """
+    assert EVENT_TYPES == ("floor", "attention")
 
 
 class _RecordingReader:
@@ -157,9 +163,9 @@ class _RecordingReader:
         self.calls.append({"method": "open_escalations"})
         return await self._reader.open_escalations()
 
-    def stored_questions(self):
-        self.calls.append({"method": "stored_questions"})
-        return self._reader.stored_questions()
+    def stored_items(self):
+        self.calls.append({"method": "stored_items"})
+        return self._reader.stored_items()
 
     def list_findings(self):
         self.calls.append({"method": "list_findings"})

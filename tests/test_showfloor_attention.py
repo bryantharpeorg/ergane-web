@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from pane.attention_store import StoredItem
 from pane.floor_document import assemble_floor_document
 from pane.readers import EpicRef, FloorRead, QueryRefused, TransportFailed
 
@@ -50,7 +51,7 @@ class _ReaderWithAttentionFailure:
     async def open_escalations(self) -> list[dict]:
         raise self.failure
 
-    def stored_questions(self) -> list[dict]:
+    def stored_items(self) -> list[StoredItem]:
         return []
 
     def list_findings(self) -> list[dict]:

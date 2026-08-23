@@ -17,10 +17,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from pane.app import create_app
+from pane.attention_store import StoredItem
 from pane.config import Settings
 from pane.fixture_floor import FixtureReader, SCENES
 from pane.floor_document import assemble_floor_document
 from pane.readers import EpicRef, FloorRead, Reader, TransportFailed
+
+from support import seeded_items
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures"
@@ -89,7 +92,7 @@ def test_api_floor_serves_whole_fixture_floor(demo_settings, monkeypatch):
     assert document["floor"]["data"] is not None
     assert document["health"]["data"] is not None
     assert document["spend_to_date"]["data"] is not None
-    assert len(document["attention"]["items"]) == 2
+    assert len(document["attention"]["items"]) == 3
 
 
 def _assert_full_fixture_document(document: dict) -> None:
@@ -112,11 +115,34 @@ def _assert_full_fixture_document(document: dict) -> None:
     scenes = {epic["scene"] for epic in document["epics"]}
     assert scenes == {scene.scene for scene in SCENES}
 
+    # Spec 003 US1: 001 asserted the recorded Question payload straight out of
+    # the loader.  The demo floor is now *seeded* from the three recorded
+    # deliveries through the same `upsert_delivery` intake uses, so all three
+    # appear here in the shape `assemble_attention` produces.  The Question
+    # still carries no `expires_at` in this story — US3's questions-store join
+    # supplies it.
     attention = document["attention"]["items"]
     kinds = {item["kind"] for item in attention}
-    assert kinds == {"escalation", "question"}
+    assert kinds == {"escalation", "question", "notice"}
+
+    recorded_question = json.loads((FIXTURES / "webhook" / "question.json").read_text())
     question = next(item for item in attention if item["kind"] == "question")
+    assert question["correlation_id"] == recorded_question["correlation_id"]
+    assert question["text"] == recorded_question["text"]
+    assert question["actions"] == []
     assert question["expires_at"] is None
+
+    recorded_escalation = json.loads((FIXTURES / "webhook" / "escalation.json").read_text())
+    escalation = next(item for item in attention if item["kind"] == "escalation")
+    assert escalation["correlation_id"] == recorded_escalation["correlation_id"]
+    assert escalation["actions"] == recorded_escalation["actions"]
+
+    recorded_notice = json.loads((FIXTURES / "webhook" / "notice-supervision.json").read_text())
+    notice = next(item for item in attention if item["kind"] == "notice")
+    assert notice["correlation_id"] == recorded_notice["correlation_id"]
+    assert notice["text"] == recorded_notice["text"]
+    assert notice["expires_at"] is None
+    assert notice["settlement"]["state"] == "none"
 
     health = document["health"]["data"]
     assert health == json.loads((FIXTURES / "doctor" / "findings.json").read_text())
@@ -185,8 +211,8 @@ class StubLiveReader:
     async def open_escalations(self) -> list[dict]:
         return json.loads((self.root / "escalations" / "open_escalations.json").read_text())
 
-    def stored_questions(self) -> list[dict]:
-        return [json.loads((self.root / "webhook" / "question.json").read_text())]
+    def stored_items(self) -> list[StoredItem]:
+        return seeded_items(self.root)
 
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())

@@ -85,24 +85,118 @@ def test_no_literal_store_paths():
             assert substring not in source, f"{path}: contains forbidden literal {substring!r}"
 
 
-def test_no_write_mode_sqlite_connect():
+# The one pane module permitted to open a store for writing: its own delivery
+# store (`PANE_ATTENTION_DB`).  Named here, so a second writable store in a
+# second file fails this sweep.
+WRITABLE_STORE_OWNER = "attention_store.py"
+
+# The only ways a pane module may open a *factory* store.  Every one is
+# read-only by construction and belongs to the ergane distribution.
+FACTORY_STORE_OPENERS = {
+    "factory.doctor.store.connect_readonly",
+    "factory.usage.cli.open_readonly",
+    "factory.verify.store.connect_readonly",
+}
+
+
+def _sqlite_connect_calls(tree: ast.AST) -> list[ast.Call]:
+    """Every `sqlite3.connect(...)` call in a module."""
+    calls = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr == "connect":
+            value = func.value
+            if isinstance(value, ast.Name) and value.id == "sqlite3":
+                calls.append(node)
+        if isinstance(func, ast.Name) and func.id == "connect":
+            calls.append(node)
+    return calls
+
+
+def test_no_pane_module_opens_a_factory_store_outside_its_readonly_seam():
+    """A factory store is opened through ergane's read-only readers or not at all.
+
+    Spec 003 gives the pane one store of its own, so the rule 001 wrote as "no
+    `sqlite3.connect` anywhere under `pane/`" is narrowed here to its actual
+    intent: the *factory's* stores stay read-only, opened only through the three
+    seams below (constitution II).
+    """
     for path in pane_py_sources():
         tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    # sqlite3 is allowed only for OperationalError typing; direct connect is not.
-                    if alias.name == "sqlite3":
-                        continue
-            if isinstance(node, ast.ImportFrom):
-                assert node.module != "sqlite3", f"{path}: imports from sqlite3"
             if isinstance(node, ast.Attribute) and node.attr == "connect":
                 value = node.value
                 if isinstance(value, ast.Attribute) and value.attr == "store":
-                    # factory.doctor.store.connect is forbidden; connect_readonly is allowed.
                     assert False, f"{path}: references factory.doctor.store.connect"
                 if isinstance(value, ast.Name) and value.id == "doctor_store":
                     assert False, f"{path}: calls connect on a doctor store alias"
+
+    # Every store-opening call under `pane/` is either one of those three seams
+    # or the pane's own writable connect in its own module.
+    opening_names = {"connect", "connect_readonly", "open_readonly"}
+    for path in pane_py_sources():
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+            if name not in opening_names:
+                continue
+            dotted = ast.unparse(func)
+            if dotted == "sqlite3.connect":
+                assert path.name == WRITABLE_STORE_OWNER, f"{path}: writable connect outside the store owner"
+                continue
+            tail = dotted.rsplit(".", 1)[-1]
+            assert any(opener.endswith("." + tail) for opener in FACTORY_STORE_OPENERS), (
+                f"{path}: opens a store through {dotted!r}, which is not a read-only ergane seam"
+            )
+
+
+def test_only_the_pane_own_store_opens_sqlite_for_writing():
+    """`pane/attention_store.py` is the one file with a writable connect."""
+    owners = set()
+    for path in pane_py_sources():
+        tree = ast.parse(path.read_text())
+        if _sqlite_connect_calls(tree):
+            owners.add(path.name)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "sqlite3":
+                # `from sqlite3 import connect` would hide the call from the
+                # attribute sweep above; only the store owner may import names.
+                assert path.name == WRITABLE_STORE_OWNER, f"{path}: imports from sqlite3"
+
+    assert owners == {WRITABLE_STORE_OWNER}, (
+        f"exactly one pane module may open a writable store; found {sorted(owners)}"
+    )
+
+
+def test_the_pane_store_connects_only_to_the_path_it_is_handed():
+    """The one writable connect opens `PANE_ATTENTION_DB`, never a literal path."""
+    path = PANE / WRITABLE_STORE_OWNER
+    tree = ast.parse(path.read_text())
+
+    open_store = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name == "open_store"
+    )
+    calls = _sqlite_connect_calls(tree)
+    assert len(calls) == 1, f"{path}: expected exactly one sqlite3.connect"
+
+    inside = _sqlite_connect_calls(open_store)
+    assert len(inside) == 1, f"{path}: the connect must live in open_store(path)"
+
+    (call,) = inside
+    first_arg = call.args[0]
+    assert isinstance(first_arg, ast.Name), f"{path}: connect must take the handed path"
+    assert first_arg.id == open_store.args.args[0].arg
+
+    # No string literal in the module names any store on disk.
+    for literal in _literals(tree):
+        assert not literal.endswith(".db"), f"{path}: hard-codes a store path {literal!r}"
 
 
 def test_live_reader_calls_each_seam_once(monkeypatch, tmp_path):

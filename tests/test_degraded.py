@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from pane.attention_store import StoredItem
 from pane.app import create_app
 from pane.config import Settings
 from pane.fixture_floor import FixtureReader
@@ -19,6 +20,8 @@ from pane.readers import (
     Reader,
     TransportFailed,
 )
+
+from support import seeded_items
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures"
@@ -122,8 +125,8 @@ class _StubReaderWithRollupFailure:
     async def open_escalations(self) -> list[dict]:
         return json.loads((self.root / "escalations" / "open_escalations.json").read_text())
 
-    def stored_questions(self) -> list[dict]:
-        return [json.loads((self.root / "webhook" / "question.json").read_text())]
+    def stored_items(self) -> list[StoredItem]:
+        return seeded_items(self.root)
 
     def list_findings(self) -> list[dict]:
         return json.loads((self.root / "doctor" / "findings.json").read_text())
@@ -153,7 +156,7 @@ class _BuggyReader:
     async def open_escalations(self) -> list[dict]:
         return []
 
-    def stored_questions(self) -> list[dict]:
+    def stored_items(self) -> list[StoredItem]:
         return []
 
     def list_findings(self) -> list[dict]:
