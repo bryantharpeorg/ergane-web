@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FloorDocument } from "../api/floorDocument";
-import { subscribeFloor } from "../api/events";
+import { subscribeFloor, upsertAttentionItem } from "../api/events";
 import AttentionStrip from "./AttentionStrip";
 import EpicRow from "./EpicRow";
 import HealthStrip from "./HealthStrip";
@@ -29,7 +29,9 @@ export default function Desk() {
       .catch(() => setErrorStatus(0))
       .finally(() => setIsLoading(false));
     if (typeof EventSource !== "undefined") {
-      close = subscribeFloor("/api/events", setDoc);
+      close = subscribeFloor("/api/events", setDoc, (item) =>
+        setDoc((current) => (current === null ? current : upsertAttentionItem(current, item))),
+      );
     }
     return () => {
       cancelled = true;

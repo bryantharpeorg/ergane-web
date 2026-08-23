@@ -18,8 +18,8 @@ export default function AttentionStrip({ doc }: AttentionStripProps) {
         <p className="empty">Nothing is waiting on you.</p>
       ) : (
         <div className="items">
-          {items.map((item, index) => (
-            <AttentionItemView key={index} item={item} doc={doc} />
+          {items.map((item) => (
+            <AttentionItemView key={item.id} item={item} doc={doc} />
           ))}
         </div>
       )}

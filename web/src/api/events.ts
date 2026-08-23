@@ -1,13 +1,32 @@
 /**
  * Typed SSE consumer for the pane's event stream.
  *
- * Handles the one committed event type (`floor`) and silently ignores any
- * unknown type or malformed payload. The optional third argument is reserved
- * for spec 003's `attention` event; leaving it off keeps 001/002 call sites
- * compiling unchanged.
+ * Handles two committed event types — `floor` and `attention` — and silently
+ * ignores any unknown type or malformed payload. The `onAttention` argument is
+ * optional (plan.md D-P14), so every landed call site compiles unchanged under
+ * `strict` and a subscriber that passes none drops `attention` events exactly
+ * as it drops an unknown type.
  */
 
 import type { AttentionItem, FloorDocument } from "./floorDocument";
+
+/**
+ * Apply one `attention` event to a floor document, upserting on `item.id`.
+ *
+ * Returns a new document (new attention section, new items array) so React sees
+ * a changed reference. A later `floor` event replaces the whole attention
+ * section, so nothing is lost when the stream and the poll disagree.
+ */
+export function upsertAttentionItem(
+  doc: FloorDocument,
+  item: AttentionItem,
+): FloorDocument {
+  const items = doc.attention.items;
+  const index = items.findIndex((existing) => existing.id === item.id);
+  const next = index === -1 ? [...items, item] : items.map((existing, i) => (i === index ? item : existing));
+
+  return { ...doc, attention: { ...doc.attention, items: next } };
+}
 
 export function handleEvent(
   raw: string,

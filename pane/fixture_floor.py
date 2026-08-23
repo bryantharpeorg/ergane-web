@@ -115,6 +115,7 @@ class FixtureReader:
         self.root = root.resolve()
         self.transport_fail = transport_fail
         self._attention_db = attention_db
+        self._seed_failure: TransportFailed | None = None
 
         try:
             _, esc_env = load_document(self.root / "escalations" / "open_escalations.json", read="open_escalations")
@@ -134,21 +135,27 @@ class FixtureReader:
         if attention_db is not None:
             self._seed_attention_store(attention_db)
 
+    #: The recorded deliveries the demo floor replays, one per kind (T004).
+    SEEDED_DELIVERIES = (
+        ("question.json", "question"),
+        ("escalation.json", "escalation"),
+        ("notice-supervision.json", "notice"),
+    )
+
     def _seed_attention_store(self, path: Path) -> None:
+        """Replay the recorded webhook payloads through intake's own `upsert_delivery`.
+
+        A missing recording is a degraded read in words (001's loader rule), not a
+        silently shorter list: the failure is remembered here and raised from
+        `stored_items()`, where `assemble_floor_document` turns it into a degraded
+        entry for the attention section.
+        """
         from pane.attention_store import open_store, upsert_delivery
 
         conn = open_store(path)
         try:
-            for name, kind in (
-                ("question.json", "question"),
-                ("escalation.json", "escalation"),
-                ("notice-supervision.json", "notice"),
-                ("notice-roadmap.json", "notice"),
-            ):
-                payload_path = self.root / "webhook" / name
-                if not payload_path.exists():
-                    continue
-                doc, _ = load_document(payload_path, read="webhook")
+            for name, kind in self.SEEDED_DELIVERIES:
+                doc, _ = load_document(self.root / "webhook" / name, read="stored_items")
                 upsert_delivery(
                     conn,
                     kind=kind,
@@ -157,6 +164,8 @@ class FixtureReader:
                     actions=doc.get("actions", []),
                     received_at=self.reference_instant or doc.get("received_at"),
                 )
+        except TransportFailed as exc:
+            self._seed_failure = exc
         finally:
             conn.close()
 
@@ -218,6 +227,8 @@ class FixtureReader:
         self._check_fail("attention", "stored_items")
         from pane.attention_store import list_items, open_store
 
+        if self._seed_failure is not None:
+            raise self._seed_failure
         if self._attention_db is None:
             return []
         conn = open_store(self._attention_db)

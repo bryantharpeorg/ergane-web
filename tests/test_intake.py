@@ -117,6 +117,10 @@ def test_post_question_classifies_stores_and_pushes_event(empty_intake_client, e
     assert data["text"] == payload["text"]
     assert data["actions"] == []
 
+    # Exactly one event, and it was already on the queue when the response returned:
+    # storage and the push happen in the same handling (FR-005).
+    assert queue.empty()
+
 
 def test_post_escalation_preserves_actions_in_order(empty_intake_client, empty_intake_settings):
     _clear_attention_store(empty_intake_settings.attention_db)
@@ -140,39 +144,65 @@ def test_post_escalation_preserves_actions_in_order(empty_intake_client, empty_i
     assert stored_actions == payload["actions"]
 
 
-def test_malformed_variants_refuse_and_store_nothing(empty_intake_client, empty_intake_settings):
-    _clear_attention_store(empty_intake_settings.attention_db)
-    base = _load_payload("question.json")
+def _malformed_variants() -> list[tuple[str, Any]]:
+    """The refused variants, each derived from a recorded payload (spec US1-S3)."""
+    question = _load_payload("question.json")
+    escalation = _load_payload("escalation.json")
 
-    variants = [
-        ({k: v for k, v in base.items() if k != "correlation_id"}, "missing correlation_id"),
-        ({k: v for k, v in base.items() if k != "text"}, "missing text"),
-        (
-            {
-                "correlation_id": "not-hex",
-                "text": "bad",
-                "actions": [{"label": "x", "payload": "esc:nothex:KILL"}],
-            },
-            "non-hex id with actions",
-        ),
-        (
-            {
-                "correlation_id": "a1b2c3d4e5f6",
-                "text": "bad",
-                "actions": [{"label": "x", "payload": "not-esc-payload"}],
-            },
-            "bad action payload",
-        ),
-        ("not an object", "non-object body"),
+    no_correlation_id = {k: v for k, v in question.items() if k != "correlation_id"}
+    no_text = {k: v for k, v in question.items() if k != "text"}
+
+    # The Escalation as recorded, but with an id the pane could never press against.
+    actions_with_non_hex_id = dict(escalation)
+    actions_with_non_hex_id["correlation_id"] = "not-twelve-hex"
+
+    # The Escalation as recorded, but with one action payload off the grammar —
+    # buttons the pane could never press, so the delivery is undelivered.
+    bad_action_payload = dict(escalation)
+    bad_action_payload["actions"] = [dict(a) for a in escalation["actions"]]
+    bad_action_payload["actions"][1]["payload"] = "kill-the-node"
+
+    return [
+        ("missing_correlation_id", no_correlation_id),
+        ("missing_text", no_text),
+        ("actions_with_non_hex_correlation_id", actions_with_non_hex_id),
+        ("action_payload_off_grammar", bad_action_payload),
+        ("non_object_body", "not an object"),
     ]
 
+
+MALFORMED_VARIANTS = _malformed_variants()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [variant for _label, variant in MALFORMED_VARIANTS],
+    ids=[label for label, _variant in MALFORMED_VARIANTS],
+)
+def test_malformed_variants_refuse_and_store_nothing(
+    body, empty_intake_client, empty_intake_settings
+):
+    _clear_attention_store(empty_intake_settings.attention_db)
     before = _count_attention_rows(empty_intake_settings.attention_db)
-    for variant, _label in variants:
-        resp = empty_intake_client.post("/intake/intake-test-credential", json=variant)
-        assert resp.status_code == 422, f"variant {_label} should be refused"
-        assert resp.json()["error"] == "malformed"
-    after = _count_attention_rows(empty_intake_settings.attention_db)
-    assert after == before, f"expected {before} rows, found {after}"
+
+    resp = empty_intake_client.post("/intake/intake-test-credential", json=body)
+
+    # Non-2xx *is* the word "undelivered" to the factory.
+    assert not (200 <= resp.status_code < 300)
+    assert resp.status_code == 422
+    assert resp.json()["error"] == "malformed"
+    assert _count_attention_rows(empty_intake_settings.attention_db) == before
+
+
+def test_malformed_variants_cover_every_refusal_the_spec_names():
+    """The parametrized cases are the four the spec enumerates, plus a non-object body."""
+    assert [label for label, _ in MALFORMED_VARIANTS] == [
+        "missing_correlation_id",
+        "missing_text",
+        "actions_with_non_hex_correlation_id",
+        "action_payload_off_grammar",
+        "non_object_body",
+    ]
 
 
 def test_post_notices_stores_and_pushes_event(empty_intake_client, empty_intake_settings):
@@ -190,6 +220,7 @@ def test_post_notices_stores_and_pushes_event(empty_intake_client, empty_intake_
         assert resp.status_code == 202
         assert resp.json()["stored"] == "notice"
 
+        # One `attention` event each, and only one.
         event = _collect_attention_event(queue)
         assert event is not None
         assert event["type"] == "attention"
@@ -197,8 +228,28 @@ def test_post_notices_stores_and_pushes_event(empty_intake_client, empty_intake_
         assert data["kind"] == "notice"
         assert data["correlation_id"] == payload["correlation_id"]
         assert data["text"] == payload["text"]
+        assert queue.empty()
 
     assert _count_attention_rows(empty_intake_settings.attention_db) == 2
+
+    # Stored as notices carrying no actions at all.
+    conn = open_store(empty_intake_settings.attention_db)
+    try:
+        rows = conn.execute("SELECT kind, actions_json FROM attention ORDER BY seq").fetchall()
+    finally:
+        conn.close()
+    assert [row["kind"] for row in rows] == ["notice", "notice"]
+    assert [row["actions_json"] for row in rows] == ["[]", "[]"]
+
+    # In the list: no controls to render, no settlement state, and no clock.
+    body = empty_intake_client.get("/api/attention").json()
+    notices = [item for item in body["items"] if item["kind"] == "notice"]
+    assert len(notices) == 2
+    for item in notices:
+        assert item["settlement"]["state"] == "none"
+        assert item["expires_at"] is None
+        assert item["actions"] == []
+        assert item["id"].startswith("notice:")
 
 
 def test_answerable_idempotent_notice_is_not(empty_intake_client, empty_intake_settings):
@@ -314,8 +365,112 @@ def test_item_appears_in_attention_list_without_stream(intake_client, intake_set
 
 
 def test_demo_seeds_store_through_intake_path(intake_client, intake_settings):
+    """PANE_DEMO=1 with no factory lists the three recorded payloads (spec US1-S7)."""
     resp = intake_client.get("/api/attention")
     assert resp.status_code == 200
-    body = resp.json()
-    kinds = {item["kind"] for item in body["items"]}
-    assert kinds == {"question", "escalation", "notice"}
+    items = resp.json()["items"]
+
+    kinds = sorted(item["kind"] for item in items)
+    assert kinds == ["escalation", "notice", "question"]
+    assert len(items) == 3
+
+    # The seed rode the intake path, so each item carries the recorded bytes and
+    # the same shape intake produces.
+    by_kind = {item["kind"]: item for item in items}
+    for name, kind in (
+        ("question.json", "question"),
+        ("escalation.json", "escalation"),
+        ("notice-supervision.json", "notice"),
+    ):
+        recorded = _load_payload(name)
+        item = by_kind[kind]
+        assert item["correlation_id"] == recorded["correlation_id"]
+        assert item["text"] == recorded["text"]
+        assert item["actions"] == recorded["actions"]
+
+    assert by_kind["question"]["expires_at"] is None
+    assert by_kind["notice"]["settlement"]["state"] == "none"
+    assert by_kind["escalation"]["settlement"]["state"] == "waiting"
+
+
+def test_redelivery_on_a_shared_connection_is_not_reported_as_inserted(tmp_path):
+    """`upsert_delivery` reports the insert it performed, not the connection's history.
+
+    Regression: `conn.total_changes` counts every change since the connection was
+    opened, so on a connection that has already stored something — the demo seed
+    reuses one, and so will US2's store writes — a re-delivery the partial unique
+    index ignored was reported as a fresh insert. Intake publishes on that flag, so
+    the bug is a duplicate `attention` event for a re-delivered item (FR-004).
+    """
+    from pane.attention_store import upsert_delivery
+
+    conn = open_store(tmp_path / "shared.db")
+    try:
+        first = upsert_delivery(
+            conn, kind="question", correlation_id="800ee6b4c7df", text="t", actions=[]
+        )
+        second = upsert_delivery(
+            conn, kind="question", correlation_id="800ee6b4c7df", text="t", actions=[]
+        )
+
+        assert first.inserted is True
+        assert second.inserted is False
+        assert conn.execute("SELECT COUNT(*) FROM attention").fetchone()[0] == 1
+
+        # A notice on the same connection still inserts every time (FR-004 exemption).
+        third = upsert_delivery(
+            conn, kind="notice", correlation_id="supervision", text="a", actions=[]
+        )
+        fourth = upsert_delivery(
+            conn, kind="notice", correlation_id="supervision", text="b", actions=[]
+        )
+        assert third.inserted is True
+        assert fourth.inserted is True
+        assert conn.execute(
+            "SELECT COUNT(*) FROM attention WHERE kind = 'notice'"
+        ).fetchone()[0] == 2
+    finally:
+        conn.close()
+
+
+def test_redelivery_publishes_no_second_event(empty_intake_client, empty_intake_settings):
+    """A re-delivered answerable item answers 2xx and pushes nothing new (spec US1-S5)."""
+    _clear_attention_store(empty_intake_settings.attention_db)
+    payload = _load_payload("question.json")
+    queue: asyncio.Queue = asyncio.run(
+        empty_intake_client.app.state.broadcaster.subscribe()
+    )
+
+    first = empty_intake_client.post("/intake/intake-test-credential", json=payload)
+    second = empty_intake_client.post("/intake/intake-test-credential", json=payload)
+
+    assert first.status_code == 202
+    assert second.status_code == 202
+    assert second.json() == first.json()
+
+    assert _collect_attention_event(queue) is not None
+    assert _collect_attention_event(queue, timeout=0.1) is None
+
+
+def test_missing_recording_degrades_in_words_rather_than_shortening_the_list(tmp_path):
+    """A recording the seed cannot read is a degraded read, never a quieter floor."""
+    import asyncio as _asyncio
+
+    from pane.fixture_floor import FixtureReader
+    from pane.floor_document import assemble_floor_document
+    from pane.readers import TransportFailed
+
+    empty_root = tmp_path / "fixtures"
+    (empty_root / "webhook").mkdir(parents=True)
+
+    reader = FixtureReader(empty_root, attention_db=tmp_path / "attention.db")
+
+    with pytest.raises(TransportFailed):
+        reader.stored_items()
+
+    document = _asyncio.run(assemble_floor_document(reader))
+    attention_degraded = [d for d in document["degraded"] if d["section"] == "attention"]
+    assert attention_degraded, "a missing recording must be said out loud"
+    assert attention_degraded[0]["mode"] == "transport"
+    assert "not recorded yet" in attention_degraded[0]["detail"]
+    assert document["attention"]["items"] == []

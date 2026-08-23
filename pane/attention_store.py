@@ -70,17 +70,15 @@ def upsert_delivery(
     actions_json = json.dumps(actions)
 
     if kind == "notice":
-        conn.execute(
+        cursor = conn.execute(
             """
             INSERT INTO attention (correlation_id, kind, text, actions_json, received_at)
             VALUES (?, ?, ?, ?, ?)
             """,
             (correlation_id, kind, text, actions_json, received_at),
         )
-        conn.commit()
-        inserted = True
     else:
-        conn.execute(
+        cursor = conn.execute(
             """
             INSERT OR IGNORE INTO attention
                 (correlation_id, kind, text, actions_json, received_at)
@@ -88,8 +86,11 @@ def upsert_delivery(
             """,
             (correlation_id, kind, text, actions_json, received_at),
         )
-        conn.commit()
-        inserted = conn.total_changes > 0
+    conn.commit()
+    # `cursor.rowcount` counts this statement alone; `conn.total_changes` counts every
+    # change since the connection opened, so a shared connection would report a
+    # re-delivery the partial unique index ignored as a fresh insert.
+    inserted = cursor.rowcount == 1
 
     item = get_item(conn, correlation_id)
     assert item is not None
