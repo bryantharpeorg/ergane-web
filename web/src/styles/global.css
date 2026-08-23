@@ -311,6 +311,24 @@ a {
 .attention .asks-nothing { font-style: italic; color: var(--ink-soft); }
 .attention .until { font-size: var(--fs-small); color: var(--ink-soft); }
 .attention .where { font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); }
+/* DESIGN.md § Components › Attention Item › Body column: the factory's ruling on
+   the last answer, Small olive-ink 500. Every refusal renders the same way in
+   the same place — never in red (§ Colors › The No-Red Rule) and never as a
+   field error (§ Inputs / Fields › Error: none). */
+.attention .ruling-line {
+  margin: 0;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--olive-ink);
+}
+/* § Typography › The Factory Speaks in Mono Rule: the ruling word is the
+   factory's, so it is set in mono, uppercase exactly as the factory wrote it. */
+.attention .ruling,
+.attention .ruling-id { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* The one retriable case, beside the controls it keeps live. */
+.attention .retriable { font-size: var(--fs-small); color: var(--olive-ink); }
+/* A join the pane could not make, named where its answer would have been. */
+.attention .join-degraded { font-size: var(--fs-small); font-style: italic; color: var(--ink-soft); }
 .attention .prose { margin: 0; max-width: 68ch; }
 .attention .answer-col { min-width: 220px; align-items: flex-start; justify-content: center; }
 
