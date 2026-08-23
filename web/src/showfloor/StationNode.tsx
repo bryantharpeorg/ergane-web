@@ -25,6 +25,8 @@ export interface StationNodeData {
   };
   /** Rendered inside the landed shelf: no route handles, no station marker. */
   shelf?: boolean;
+  /** FR-012: the state changed since the previous stage document. */
+  transition?: boolean;
 }
 
 interface StationNodeProps {
@@ -59,6 +61,7 @@ function StationNode({ data }: StationNodeProps): JSX.Element {
     "data-state-style": known ? rawState! : "unknown",
     "data-waiting": staged.waiting_on_operator ? "true" : undefined,
     "data-landing-stage": landingStage,
+    "data-transition": data.transition === true ? "true" : undefined,
   };
 
   return (

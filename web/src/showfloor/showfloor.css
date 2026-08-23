@@ -80,6 +80,12 @@
   font-size: var(--fs-body);
 }
 
+/* FR-014: an idle epic — no node in the live set — rests at the RUNNING
+   glow's rest opacity. The marker carries the state; nothing else changes. */
+.epic-stage[data-idle="true"] {
+  opacity: 0.55;
+}
+
 /* Landing line — DESIGN.md § Route Map and Landing Line */
 .landing-line {
   grid-column: 3;

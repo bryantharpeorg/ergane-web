@@ -8,6 +8,9 @@ import { ReactFlow } from "@xyflow/react";
 import type { NodeTypes, EdgeTypes } from "@xyflow/react";
 import type { StageDocument } from "./types";
 import { layoutStage } from "./layout";
+import { LIVE_STATES } from "./states";
+import { useReducedMotion } from "./motion";
+import { useTransitionMarkers } from "./transitions";
 import StationNode from "./StationNode";
 import RouteEdge from "./RouteEdge";
 import Legend from "./Legend";
@@ -21,13 +24,31 @@ const nodeTypes = { station: StationNode } as unknown as NodeTypes;
 const edgeTypes = { route: RouteEdge } as unknown as EdgeTypes;
 
 export default function EpicStage({ stage }: EpicStageProps): JSX.Element {
-  const { nodes, edges } = layoutStage(stage);
+  const laidOut = layoutStage(stage);
+  const edges = laidOut.edges;
+
+  const reducedMotion = useReducedMotion();
+  const marked = useTransitionMarkers(stage, reducedMotion);
+
+  // FR-012: the marker rides the node's data, so StationNode renders
+  // data-transition="true" while marked and no attribute otherwise.
+  const nodes = laidOut.nodes.map((node) => ({
+    ...node,
+    data: { ...node.data, transition: marked.has(node.id) },
+  }));
+
+  // FR-014: an epic with no node in the live set is idle. A null state is not
+  // live — unknown is not zero, and it is not motion either.
+  const idle = !stage.nodes.some(
+    (node) => node.state !== null && LIVE_STATES.has(node.state),
+  );
 
   return (
     <section
       className="epic-stage"
       data-epic-stage
       data-epic-id={stage.epic_id}
+      data-idle={idle ? "true" : "false"}
     >
       <div className="epic-stage-header">
         <h2 className="epic-stage-name">{stage.epic_id}</h2>
