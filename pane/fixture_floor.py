@@ -123,9 +123,11 @@ class FixtureReader:
         *,
         transport_fail: frozenset[str] = frozenset(),
         attention_db: Path | None = None,
+        demo_ruling: str = "RESOLVED",
     ) -> None:
         self.root = root.resolve()
         self.transport_fail = transport_fail
+        self.demo_ruling = demo_ruling
 
         # The demo floor gets its own delivery store, seeded from the recorded
         # webhook payloads through the same call intake uses.  A reader built
@@ -248,6 +250,34 @@ class FixtureReader:
         if self._store is not None:
             self._store.close()
             self._store = None
+
+    async def settle_question(self, correlation_id: str, text: str, identity: str) -> str:
+        """Replay the recorded ruling named by `PANE_DEMO_RULING`.
+
+        Every recorded document is `{"relay": {...}, "outcome": "<RULING>"}`, so
+        this returns its `outcome` string and nothing else — no bridge is
+        constructed and no store is touched.  Five rulings were recorded:
+        RESOLVED, ALREADY_RESOLVED, UNKNOWN, EXPIRED, UNAUTHORIZED.
+        SIGNAL_FAILED is not among them — it needs an orchestrator the signal
+        cannot reach, a state the capture could not stage — and
+        `bridge/malformed-relay.json` is the adapter's refusal, not a ruling.  A
+        name with no document on disk raises `TransportFailed` naming the path
+        it looked for, exactly as every other fixture read does.
+        """
+        doc, _ = load_document(
+            self.root / "bridge" / f"{self.demo_ruling}.json", read="settle_question"
+        )
+        return doc["outcome"]
+
+    async def press_escalation(
+        self, correlation_id: str, escalation_id: str, choice: str, identity: str
+    ) -> None:
+        """Accept the press and send nothing: the demo floor has no workflow.
+
+        A signal returns nothing when it succeeds, so returning is the whole of
+        what an accepted press looks like from the caller's side.
+        """
+        return None
 
     def list_findings(self) -> list[dict]:
         self._check_fail("health", "list_findings")

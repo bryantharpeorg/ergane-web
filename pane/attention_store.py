@@ -121,6 +121,52 @@ def upsert_delivery(
     return stored, created
 
 
+def record_ruling(
+    conn: sqlite3.Connection,
+    correlation_id: str,
+    ruling: str,
+    at: str,
+) -> None:
+    """Write the `BridgeOutcome` string `handle_relay` returned, verbatim.
+
+    Question rows only, and the only code path that writes `last_ruling` at all
+    (data-model.md invariant 4).  Nothing is interpreted here: an unknown
+    ruling is stored as itself, because the pane renders the factory's word and
+    never its meaning.  No row is deleted and no other column is touched
+    (FR-009).
+    """
+    conn.execute(
+        "UPDATE attention SET last_ruling = ?, last_ruling_at = ?"
+        " WHERE correlation_id = ? AND kind = 'question'",
+        (ruling, at, correlation_id),
+    )
+    conn.commit()
+
+
+def record_press(
+    conn: sqlite3.Connection,
+    correlation_id: str,
+    choice: str,
+    signal_state: str,
+    at: str,
+) -> None:
+    """Write what one press produced: the choice sent, and accepted or SIGNAL_FAILED.
+
+    Escalation rows only, and the only code path that writes `signal_state`.  A
+    signal returns nothing, so these two words are everything a press can ever
+    say — the pane mints no ruling for one (FR-010).  No row is deleted.
+    """
+    if signal_state not in ("accepted", "SIGNAL_FAILED"):
+        raise ValueError(f"a press produces 'accepted' or 'SIGNAL_FAILED', not {signal_state!r}")
+
+    conn.execute(
+        "UPDATE attention SET pressed_choice = ?, signal_state = ?, signalled_at = ?"
+        " WHERE correlation_id = ? AND kind = 'escalation'",
+        (choice, signal_state, at, correlation_id),
+    )
+    conn.commit()
+
+
 def get_item(conn: sqlite3.Connection, correlation_id: str) -> StoredItem | None:
     """Return the earliest stored item for `correlation_id`, or None."""
     row = conn.execute(

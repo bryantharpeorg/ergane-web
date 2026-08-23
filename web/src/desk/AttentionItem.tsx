@@ -1,4 +1,5 @@
 import type { AttentionItem, FloorDocument } from "../api/floorDocument";
+import AnswerColumn from "./AnswerColumn";
 import { referenceInstant, timeLeft } from "./timeLeft";
 
 interface AttentionItemProps {
@@ -51,13 +52,10 @@ export default function AttentionItemView({ item, doc }: AttentionItemProps) {
         <span className="where num">{item.correlation_id}</span>
         <p className="prose">{item.text}</p>
       </div>
-      <div className="answer-col">
-        {isNotice ? (
-          <span className="asks-nothing">Asks for nothing; no answer exists.</span>
-        ) : (
-          <span className="answer-note">answered from the CLI until spec 003 lands</span>
-        )}
-      </div>
+      {/* The one verb. Every control an item has lives in this one component,
+          so there is exactly one place a second one could ever be added — and
+          `web/tests/unit/noVerb.test.ts` watches it. */}
+      <AnswerColumn item={item} />
     </article>
   );
 }

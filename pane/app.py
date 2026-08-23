@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from sse_starlette import EventSourceResponse
 
+from pane.answer import create_answer_router
 from pane.attention import assemble_attention_section
 from pane.attention_store import open_store
 from pane.auth import require_viewer
@@ -27,6 +28,7 @@ def _make_reader(settings: Settings) -> Reader:
             settings.fixtures_root,
             transport_fail=settings.transport_fail,
             attention_db=settings.attention_db,
+            demo_ruling=settings.demo_ruling,
         )
     return LiveReader(settings.specs_root, attention_db=settings.attention_db)
 
@@ -91,6 +93,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # every other (001's dated open interim).  US4 gives it the credential
     # comparison and makes it the one enumerated exception to the token.
     router.include_router(create_intake_router(store=store, broadcaster=broadcaster))
+
+    # The one verb.  Behind the same dependency as every read, writing the same
+    # store and publishing on the same broadcaster (constitution I).
+    router.include_router(
+        create_answer_router(
+            store=store,
+            broadcaster=broadcaster,
+            reader=reader,
+            identity=settings.answer_identity,
+        )
+    )
 
     dist_root = settings.web_dist
     resolved_root = dist_root.resolve()

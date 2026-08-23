@@ -10,9 +10,12 @@ function timeLeftText(expiresAt: string, reference: string): string {
   return `−${hh}:${mm}:${ss}`;
 }
 
-test("the Desk renders the fixture floor read-only", async ({ page, request }) => {
-  const requests: { method: string }[] = [];
-  page.on("request", (req) => requests.push({ method: req.method() }));
+test("the Desk renders the fixture floor and issues one verb and no other", async ({
+  page,
+  request,
+}) => {
+  const requests: { method: string; url: string }[] = [];
+  page.on("request", (req) => requests.push({ method: req.method(), url: req.url() }));
 
   await page.goto("/desk");
   await page.waitForSelector("section.attention article.item");
@@ -20,7 +23,13 @@ test("the Desk renders the fixture floor read-only", async ({ page, request }) =
   const floorResponse = await request.get("/api/floor");
   const floorDoc = (await floorResponse.json()) as {
     reference_instant: string | null;
-    attention: { items: { kind: string; expires_at: string | null }[] };
+    attention: {
+      items: {
+        kind: string;
+        expires_at: string | null;
+        actions: { label: string; payload: string }[];
+      }[];
+    };
   };
   const referenceInstant = floorDoc.reference_instant ?? new Date().toISOString();
 
@@ -77,5 +86,35 @@ test("the Desk renders the fixture floor read-only", async ({ page, request }) =
   await expect(pagedChev).toHaveAttribute("data-undeclared", "true");
   await expect(pagedChev).toHaveAttribute("data-state", "VERIFYING");
 
-  expect(requests.filter((r) => r.method !== "GET")).toHaveLength(0);
+  // Spec 003 US2 gives the Desk its one verb, so 001's zero-write sweep becomes
+  // the one-write sweep the pane keeps forever (plan D-P13): the full run may
+  // issue non-GET requests to the answer route and to nothing else. This is the
+  // control against the defect D-001 forbids — a convenience write added
+  // anywhere on the Desk shows up here as a request this filter does not
+  // permit, however small and however well meant (US2-S4).
+  const writes = requests.filter((r) => r.method !== "GET");
+  for (const write of writes) {
+    expect(write.method).toBe("POST");
+    expect(new URL(write.url).pathname).toMatch(/^\/api\/attention\/[^/]+\/answer$/);
+  }
+
+  // And the delivered Escalation offers exactly the choices the factory sent —
+  // one control per delivered choice, its face and its payload verbatim
+  // (US2-S2, FR-007).
+  const escalation = page.locator('article.item[data-kind="escalation"]').first();
+  const delivered = (
+    floorDoc.attention.items.find((item) => item.kind === "escalation") as {
+      actions: { label: string; payload: string }[];
+    }
+  ).actions;
+  const choices = escalation.locator(".answer-col button");
+  await expect(choices).toHaveCount(delivered.length);
+  for (let i = 0; i < delivered.length; i++) {
+    await expect(choices.nth(i).locator(".face")).toHaveText(delivered[i].label);
+    await expect(choices.nth(i).locator(".payload")).toHaveText(delivered[i].payload);
+  }
+
+  // A Question offers the reply field and one Answer button, and nothing else.
+  await expect(question.locator("textarea.reply")).toBeVisible();
+  await expect(question.locator(".answer-col button")).toHaveCount(1);
 });
