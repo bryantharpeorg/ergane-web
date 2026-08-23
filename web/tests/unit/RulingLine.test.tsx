@@ -149,3 +149,84 @@ describe("a ruling the pane does not recognize renders as itself", () => {
     }
   });
 });
+
+// --- an Escalation press has two honest words only (US3-S3, FR-010) ----------
+
+/**
+ * A Temporal signal returns nothing, so a press can only be *signal-accepted*,
+ * *SIGNAL_FAILED*, or whatever the factory's own later read reports. The pane
+ * mints no other ruling for one, and the three renderings below are the whole
+ * vocabulary an Escalation item has.
+ */
+
+import escalationRaw from "../../../fixtures/webhook/escalation.json?raw";
+
+const escalationDelivery = JSON.parse(escalationRaw) as {
+  correlation_id: string;
+  text: string;
+  actions: { label: string; payload: string }[];
+};
+
+function escalationItem(
+  settlement: Partial<AttentionItem["settlement"]>,
+): AttentionItem {
+  return {
+    id: escalationDelivery.correlation_id,
+    kind: "escalation",
+    correlation_id: escalationDelivery.correlation_id,
+    text: escalationDelivery.text,
+    actions: escalationDelivery.actions,
+    expires_at: null,
+    settlement: {
+      state: "waiting",
+      ruling: null,
+      signal: null,
+      pressed_choice: null,
+      resolution: null,
+      ...settlement,
+    },
+    degraded: null,
+  };
+}
+
+describe("a press renders only what the pane can observe", () => {
+  it("says an accepted press is in flight, with its controls disabled", () => {
+    const container = render(
+      escalationItem({ state: "in_flight", signal: "accepted", pressed_choice: "RETRY" }),
+    );
+
+    const line = container.querySelector(".body-col .ruling-line");
+    expect(line?.textContent).toContain("in flight");
+    expect(line?.textContent).toContain("waiting for the factory's read");
+    // No ruling word: the signal returned nothing, so there is nothing to quote.
+    expect(container.querySelector(".ruling")).toBeNull();
+
+    for (const button of container.querySelectorAll("button")) {
+      expect((button as HTMLButtonElement).disabled).toBe(true);
+    }
+  });
+
+  it("quotes SIGNAL_FAILED and keeps the controls live", () => {
+    const container = render(
+      escalationItem({ state: "ruled", signal: "SIGNAL_FAILED", pressed_choice: "RETRY" }),
+    );
+
+    expect(container.querySelector(".body-col .ruling")?.textContent).toBe("SIGNAL_FAILED");
+    expect(container.querySelector(".ruling-line")?.textContent).toContain(
+      "nothing was recorded",
+    );
+    for (const button of container.querySelectorAll("button")) {
+      expect((button as HTMLButtonElement).disabled).toBe(false);
+    }
+  });
+
+  it("attributes a resolution to the factory that reported it", () => {
+    const container = render(escalationItem({ state: "settled", resolution: "KILL" }));
+
+    const line = container.querySelector(".body-col .ruling-line");
+    expect(line?.textContent).toContain("the factory reports KILL");
+    expect(container.querySelector(".ruling")?.textContent).toBe("KILL");
+    // Settled on the factory's word: nothing left to answer, so no control.
+    expect(container.querySelectorAll("button")).toHaveLength(0);
+  });
+});

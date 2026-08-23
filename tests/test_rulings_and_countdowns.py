@@ -443,3 +443,75 @@ def test_a_degraded_join_leaves_the_item_answerable(client, reader):
         f"/api/attention/{QUESTION['correlation_id']}/answer", json={"text": "still answerable"}
     )
     assert response.status_code == 200
+
+
+# --- US3-S7 through the demo reader, on the recording it actually replays -----
+
+
+def test_the_demo_reader_replays_the_recorded_ruling_named_by_the_environment(
+    tmp_path, monkeypatch
+):
+    """`PANE_DEMO_RULING=EXPIRED` serves the `outcome` key of the recording.
+
+    The whole path, not a stand-in for it: the demo `FixtureReader` seeded from
+    the recorded deliveries, the answer route, and
+    `fixtures/bridge/EXPIRED.json` — one of the five the operator captured from
+    the real `handle_relay`.  The ruling comes back verbatim and is stored
+    verbatim, and the item is not deleted by having been ruled on (FR-013).
+    """
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PANE_DEMO", "1")
+    monkeypatch.setenv("PANE_FIXTURES_ROOT", str(FIXTURES))
+    monkeypatch.setenv("PANE_ATTENTION_DB", str(tmp_path / "demo.db"))
+    monkeypatch.setenv("PANE_DEMO_RULING", "EXPIRED")
+
+    client = TestClient(create_app(Settings.from_env()))
+    correlation_id = QUESTION["correlation_id"]
+
+    # The demo floor seeds its store from the recordings on the first read
+    # through the seam, which is what a Desk opening the page does.
+    assert item_for(client, correlation_id)["kind"] == "question"
+
+    response = client.post(
+        f"/api/attention/{correlation_id}/answer", json={"text": "answered after the deadline"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["ruling"] == recorded("bridge", "EXPIRED.json")["outcome"]
+    assert response.json()["ruling"] == "EXPIRED"
+
+    item = item_for(client, correlation_id)
+    assert item["settlement"]["ruling"] == "EXPIRED"
+    # Ruled, not settled: every ruling but RESOLVED keeps the item where it was.
+    assert item["settlement"]["state"] == "ruled"
+    # And the questions-store join still carries the factory's own deadline.
+    assert item["expires_at"] == STORED_QUESTION["expires_at"]
+
+
+def test_a_demo_ruling_with_no_recording_degrades_in_words_and_invents_nothing(
+    tmp_path, monkeypatch
+):
+    """SIGNAL_FAILED has no document, so naming it names a missing path.
+
+    The loader rule 001 wrote, holding at the one place it matters most: a
+    ruling nobody could record is a degraded read, never a value the demo floor
+    made up to have something to show (constitution V, FR-018).
+    """
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PANE_DEMO", "1")
+    monkeypatch.setenv("PANE_FIXTURES_ROOT", str(FIXTURES))
+    monkeypatch.setenv("PANE_ATTENTION_DB", str(tmp_path / "demo.db"))
+    monkeypatch.setenv("PANE_DEMO_RULING", "SIGNAL_FAILED")
+
+    assert not (FIXTURES / "bridge" / "SIGNAL_FAILED.json").exists()
+
+    client = TestClient(create_app(Settings.from_env()))
+    assert item_for(client, QUESTION["correlation_id"])["kind"] == "question"
+
+    with pytest.raises(TransportFailed) as raised:
+        client.post(
+            f"/api/attention/{QUESTION['correlation_id']}/answer", json={"text": "anything"}
+        )
+
+    assert "SIGNAL_FAILED.json" in str(raised.value)
+    assert "not recorded yet" in str(raised.value)
