@@ -128,12 +128,19 @@ ergane build start docs/dags/<dir>.json
 ergane build status <epic-id>
 ```
 
-Running the pane (once 001 has landed):
+Running the pane:
 
 ```bash
+# PANE_TOKEN is not optional. Since 003 landed, the pane refuses to start without
+# it rather than serve open (constitution VI) -- 001's open auth seam was a dated
+# interim and D-010 said 003 would close it. It did.
+export PANE_TOKEN="$(python3 -c 'import secrets;print(secrets.token_urlsafe(24))')"
 PANE_DEMO=1 uv run uvicorn pane.app:app --port 8787   # fixture floor, no factory needed
 npm --prefix web run dev                               # Vite dev server against it
 ```
+
+Every route is behind that bearer token, the Showfloor included (D-007): an
+unauthenticated `GET /api/floor` **or** `GET /showfloor` answers 401.
 
 ## Layout worth knowing
 
