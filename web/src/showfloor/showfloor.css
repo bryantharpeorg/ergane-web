@@ -30,7 +30,7 @@
 
 .epic-stage {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px 1fr auto;
   grid-template-rows: auto 1fr auto;
   gap: var(--s4) var(--s5);
   padding-top: var(--s5);
@@ -78,6 +78,138 @@
 
 .stage-note .lead {
   font-size: var(--fs-body);
+}
+
+/* Landing line — DESIGN.md § Route Map and Landing Line */
+.landing-line {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding-left: var(--s5);
+  position: relative;
+}
+
+/* The hairline connector a story short of the line reaches across. */
+.landing-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--rule);
+}
+
+.landing-line-label {
+  font-family: var(--text);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.landing-line-track {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  gap: 48px; /* 16px stations 64px apart */
+  padding: var(--s2) 0;
+  border-left: 3px solid var(--olive);
+  box-shadow: inset 1px 0 0 var(--ground);
+  padding-left: var(--s3);
+}
+
+.landing-station {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  height: 16px;
+}
+
+.landing-station-mark {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  transform: skewX(-12deg);
+  border: 2px solid var(--olive);
+  background: var(--panel);
+}
+
+.landing-station-label {
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--olive-ink);
+  white-space: nowrap;
+}
+
+.landing-station-tokens {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.landing-token {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.landing-token::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 3px var(--panel);
+}
+
+.landing-token.queue::before {
+  background: var(--olive);
+}
+
+.landing-token-label {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.landed-shelf {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.landed-shelf-count {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.04em;
+  color: var(--olive-ink);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.shelf-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  width: 40px;
+}
+
+.shelf-card .station-body {
+  width: 24px;
+  height: 24px;
 }
 
 /* Station card */

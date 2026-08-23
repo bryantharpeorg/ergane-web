@@ -11,6 +11,7 @@ import { layoutStage } from "./layout";
 import StationNode from "./StationNode";
 import RouteEdge from "./RouteEdge";
 import Legend from "./Legend";
+import LandingLine from "./LandingLine";
 
 interface EpicStageProps {
   stage: StageDocument;
@@ -50,6 +51,7 @@ export default function EpicStage({ stage }: EpicStageProps): JSX.Element {
           proOptions={{ hideAttribution: true }}
         />
       </div>
+      <LandingLine nodes={stage.nodes} />
       {stage.notes.length > 0 && (
         <div className="stage-notes">
           {stage.notes.map((note, index) => (
