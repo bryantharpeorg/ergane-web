@@ -1,6 +1,14 @@
 ---
-state: ready
+state: landed
 depends_on_landed: [001-the-desk-sees-the-floor]
+# Attested landed 2026-08-23. US1 c493fec31a2e (#15), US2 0131f5c0f194 (#16),
+# US3 593101dd6bef (#17), US4 572118c7e1e2 (#18) — all four observed on dev.
+# Every story built on claude-opus-5 (subscription route, nothing metered) and
+# passed on attempt 1 with a clean judge: 7/7, 7/7, 7/7, 5/5. Zero escalations,
+# zero rework; the last three landed unattended between 00:43 and 06:32 CT.
+# An earlier dispatch of US1 also passed but was discarded: its worktree was
+# three landings stale, so gates and judge scored it against a base that no
+# longer merged (feedback log N41). Rebuilt against current dev.
 # Drafted 2026-08-21 by an operator-session interview; see docs/decisions.md.
 #
 # WHY THIS SPEC. D-001 gave the pane exactly one verb — Answer — because an
