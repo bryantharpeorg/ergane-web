@@ -501,3 +501,59 @@ def test_missing_recording_degrades_in_words_rather_than_shortening_the_list(tmp
     assert attention_degraded[0]["mode"] == "transport"
     assert "not recorded yet" in attention_degraded[0]["detail"]
     assert document["attention"]["items"] == []
+
+
+@pytest.mark.parametrize(
+    "failing_read,mode",
+    [("transport", "transport"), ("refusal", "refusal")],
+)
+def test_attention_list_degrades_in_words_when_a_read_fails(
+    intake_settings, monkeypatch, failing_read, mode
+):
+    """A failed escalation read is said out loud, never a quietly shorter list.
+
+    `GET /api/attention` joins each stored Escalation to its open-escalation entry.
+    If that read fails the items must still render — with the failure named in
+    `degraded`, in 001's two modes (constitution III).
+    """
+    import pane.app
+    from pane.fixture_floor import FixtureReader
+    from pane.readers import QueryRefused, TransportFailed
+
+    real = FixtureReader(
+        intake_settings.fixtures_root, attention_db=intake_settings.attention_db
+    )
+
+    class FailingEscalations:
+        reference_instant = real.reference_instant
+
+        def __getattr__(self, name):
+            return getattr(real, name)
+
+        async def open_escalations(self):
+            if failing_read == "transport":
+                raise TransportFailed("open_escalations", "temporal is not reachable")
+            raise QueryRefused("open_escalations", "the workflow refused the query")
+
+        async def aclose(self):
+            return None
+
+    monkeypatch.setattr(pane.app, "FixtureReader", lambda root, **kwargs: FailingEscalations())
+    client = TestClient(create_app(intake_settings))
+
+    resp = client.get("/api/attention")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # The stored items still render; nothing is hidden by a failed join.
+    assert len(body["items"]) == 3
+
+    entries = [d for d in body["degraded"] if d["section"] == "attention"]
+    assert len(entries) == 1
+    assert entries[0]["mode"] == mode
+    assert entries[0]["read"] == "open_escalations"
+    assert entries[0]["detail"]
+
+    # The Escalation renders without a deadline rather than with an invented one.
+    escalation = next(item for item in body["items"] if item["kind"] == "escalation")
+    assert escalation["expires_at"] is None

@@ -9,6 +9,40 @@ in later stories.
 from typing import Any, Sequence
 
 
+async def read_attention(reader: Any, *, in_flight: frozenset[str] = frozenset()) -> tuple[list[dict], list[dict]]:
+    """Read both attention sources through the `Reader` seam and assemble the list.
+
+    Returns `(items, degraded)` with every item in rank order, settled included —
+    the whole list `GET /api/attention` carries (D-P15). Each read degrades in
+    001's two modes rather than failing the route or, worse, quietly returning a
+    shorter list that reads as a calmer floor (constitution III).
+    """
+    from pane.floor_document import _classify, _degraded_entry
+
+    degraded: list[dict] = []
+
+    try:
+        escalations = await reader.open_escalations()
+    except Exception as exc:
+        mode, detail, read, epic_id = _classify(exc)
+        if mode is None:
+            raise
+        degraded.append(_degraded_entry("attention", mode, read, detail, epic_id))
+        escalations = []
+
+    try:
+        stored = reader.stored_items()
+    except Exception as exc:
+        mode, detail, read, epic_id = _classify(exc)
+        if mode is None:
+            raise
+        degraded.append(_degraded_entry("attention", mode, read, detail, epic_id))
+        stored = []
+
+    items, item_degraded = assemble_attention(stored, escalations, in_flight=in_flight)
+    return items, degraded + item_degraded
+
+
 def assemble_attention(
     stored: Sequence[dict],
     open_escalations: Sequence[dict],

@@ -7,8 +7,7 @@ from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from sse_starlette import EventSourceResponse
 
-from pane.attention import assemble_attention
-from pane.attention_store import open_store
+from pane.attention import read_attention
 from pane.auth import require_viewer
 from pane.config import Settings
 from pane.events import AttentionBroadcaster, floor_events
@@ -73,19 +72,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @router.get("/api/attention")
     async def api_attention():
-        conn = open_store(settings.attention_db)
-        try:
-            from pane.attention_store import list_items
-            from pane.readers import TransportFailed
-
-            try:
-                escalations = await reader.open_escalations()
-            except TransportFailed:
-                escalations = []
-            items, degraded = assemble_attention(list_items(conn), escalations)
-            return JSONResponse({"items": items, "degraded": degraded})
-        finally:
-            conn.close()
+        # Both sources come through the `Reader` seam, so the list has one source
+        # and one code path in demo and live alike, and a failed read is said out
+        # loud instead of shortening the list in silence.
+        items, degraded = await read_attention(reader)
+        return JSONResponse({"items": items, "degraded": degraded})
 
     @router.get("/api/events")
     async def api_events(request: Request):
