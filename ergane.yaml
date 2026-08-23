@@ -55,8 +55,16 @@ ladder:
   max_attempts: 3
   debugger_cycles: 1
 
-# Roadmap dials (schema v2). Two epics may build at once so 002 and 003 — which
-# both depend only on 001 landing — run concurrently after it does (D-011,
-# operator-confirmed 2026-08-22); the merge queue arbitrates their shared files.
+# Roadmap dials (schema v2). ONE epic at a time. 002 and 003 both depend only on
+# 001 landing and were run concurrently on 2026-08-22; the merge queue did
+# arbitrate their shared files, exactly as intended, by failing the second one --
+# 003/us1 adds four required `Settings` fields and changes the reader protocol,
+# and 002/us1's `tests/test_stage.py` was written against the old signatures. No
+# conflict, two dead tests, and the second story has to be rebuilt rather than
+# patched. Both epics write `pane/floor_document.py`, `pane/config.py`,
+# `pane/app.py`, `pane/events.py` and `pane/readers.py`, so that toll is due on
+# every remaining story. Serial is slower on paper (seven rounds instead of four)
+# and cheaper in practice. Raise this to 2 again only for epics that share no
+# package.
 roadmap:
-  max_concurrent_epics: 2
+  max_concurrent_epics: 1
