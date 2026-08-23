@@ -270,6 +270,35 @@ def test_missing_document_is_degraded_read(tmp_path, monkeypatch):
     assert str(copy_root / "doctor" / "findings.json") in entry["detail"]
 
 
+def test_missing_webhook_recording_is_a_degraded_attention_read(tmp_path, monkeypatch):
+    """A deleted delivery recording degrades the seed in words, never silently.
+
+    The demo floor's Attention items are recordings served through the intake
+    path; a recording that is not on disk is 001's loader rule speaking, not an
+    empty Attention section (constitution III, V).
+    """
+    copy_root = tmp_path / "fixtures-copy"
+    shutil.copytree(FIXTURES, copy_root)
+    (copy_root / "webhook" / "escalation.json").unlink()
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PANE_DEMO", "1")
+    monkeypatch.setenv("PANE_FIXTURES_ROOT", str(copy_root))
+
+    client = TestClient(create_app(Settings.from_env()))
+    document = client.get("/api/floor").json()
+
+    attention_degraded = [d for d in document["degraded"] if d["section"] == "attention"]
+    assert len(attention_degraded) == 1
+    entry = attention_degraded[0]
+    assert entry["mode"] == "transport"
+    assert entry["read"] == "stored_items"
+    assert str(copy_root / "webhook" / "escalation.json") in entry["detail"]
+
+    # The section is still present, carrying what the other read produced.
+    assert document["attention"]["items"]
+
+
 def test_pending_envelope_is_degraded_read(tmp_path, monkeypatch):
     """An envelope with ``status: pending`` is treated as a missing document."""
     copy_root = tmp_path / "fixtures-copy"
