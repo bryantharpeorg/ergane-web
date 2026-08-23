@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
+import { act, createElement } from "react";
+import { createRoot } from "react-dom/client";
 import AttentionItemView from "../../src/desk/AttentionItem";
 import type { AttentionItem, FloorDocument } from "../../src/api/floorDocument";
 
@@ -24,21 +25,33 @@ const noticeItem: AttentionItem = {
   degraded: null,
 };
 
+async function renderToBody(item: AttentionItem, doc: FloorDocument) {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  await act(async () => {
+    createRoot(container).render(createElement(AttentionItemView, { item, doc }));
+    await Promise.resolve();
+  });
+  return container;
+}
+
 describe("Notice AttentionItem rendering", () => {
-  it("renders kind word, no clock, verbatim text, and zero controls", () => {
-    const { container } = render(
-      <AttentionItemView item={noticeItem} doc={baseDoc} />,
-    );
+  it("renders kind word, no clock, verbatim text, and zero controls", async () => {
+    const container = await renderToBody(noticeItem, baseDoc);
 
-    expect(container.textContent).toContain("Notice");
-    expect(container.textContent).toContain("no clock");
-    expect(container.textContent).toContain(noticeItem.text);
-    expect(container.textContent).toContain("Asks for nothing; no answer exists.");
+    try {
+      expect(container.textContent).toContain("Notice");
+      expect(container.textContent).toContain("no clock");
+      expect(container.textContent).toContain(noticeItem.text);
+      expect(container.textContent).toContain("Asks for nothing; no answer exists.");
 
-    expect(container.querySelectorAll("button")).toHaveLength(0);
-    expect(container.querySelectorAll("input")).toHaveLength(0);
-    expect(container.querySelectorAll("textarea")).toHaveLength(0);
-    expect(container.querySelectorAll("select")).toHaveLength(0);
-    expect(container.querySelectorAll("form")).toHaveLength(0);
+      expect(container.querySelectorAll("button")).toHaveLength(0);
+      expect(container.querySelectorAll("input")).toHaveLength(0);
+      expect(container.querySelectorAll("textarea")).toHaveLength(0);
+      expect(container.querySelectorAll("select")).toHaveLength(0);
+      expect(container.querySelectorAll("form")).toHaveLength(0);
+    } finally {
+      document.body.removeChild(container);
+    }
   });
 });
