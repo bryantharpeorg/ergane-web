@@ -1,6 +1,15 @@
 ---
-state: ready
+state: landed
 depends_on_landed: [001-the-desk-sees-the-floor]
+# Attested landed 2026-08-23. US1 d70f2a6f9f86 (#9), US2 a9727825d52e (#11),
+# US3 b5df536a349a (#13), US4 1d4aa4d6a852 (#14) — all four observed on dev.
+# US1 and US2 were built on ollama-cloud/kimi-k2.7-code; US3 and US4 on
+# claude-opus-5 after the operator flipped the builder personas to conserve the
+# Ollama budget for judging. US3 and US4 passed on attempt 1, judge 7/7 and 5/5.
+# US1's landing was completed by the operator (PR #9): the factory built and
+# verified it (four gates, judge PASS, 7/7) but its own PR was based on an
+# operator branch rather than dev and could not reach the landing branch — see
+# the round-2 feedback log, N37. US2 landed by the factory's own path.
 # Drafted 2026-08-21 by an operator-session interview; see docs/decisions.md.
 #
 # WHY THIS SPEC. D-004 settled the metaphor argument: the spectacle IS the
