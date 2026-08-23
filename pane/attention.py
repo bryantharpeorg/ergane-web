@@ -35,21 +35,43 @@ def settlement_state(
     resolution: str | None,
     in_flight: bool,
 ) -> str:
-    """Derive one item's settlement state; read time only, nowhere else."""
+    """Derive one item's settlement state; read time only, nowhere else.
+
+    The order of these branches is the rule itself (data-model.md), and each one
+    is either the pane observing its own call or the factory reporting its own
+    word.  Neither a press nor a submit appears here, because neither settles
+    anything: `settled` is reachable only through the ruling `handle_relay`
+    returned or the `resolution` a factory read carries (D-P8, FR-009).
+
+    `in_flight` covers two facts that mean the same thing to the operator: a
+    settlement call is out of this process right now (the registry in
+    `pane/answer.py`), or a press was accepted and the factory has not yet said
+    what became of it — a signal returns nothing, so an accepted press is a
+    question asked and not yet answered.
+    """
     if item.kind == "notice":
+        # No countdown, no controls, no settlement: a Notice asks for nothing.
         return "none"
     if in_flight:
         return "in_flight"
     if resolution is not None:
+        # The factory's own word, whatever it says, for either answerable kind.
         return "settled"
-    if item.last_ruling == "RESOLVED":
-        return "settled"
+    if item.kind == "question":
+        if item.last_ruling == "RESOLVED":
+            return "settled"
+        if item.last_ruling is not None:
+            # Every other ruling — UNKNOWN, EXPIRED, ALREADY_RESOLVED,
+            # UNAUTHORIZED, or a string this build has never seen — keeps the
+            # item exactly where it was (FR-009).
+            return "ruled"
+        return "waiting"
     if item.signal_state == "SIGNAL_FAILED":
+        # Nothing was recorded, so the item stays in the waiting rank with its
+        # controls live (FR-011).
         return "ruled"
     if item.signal_state == "accepted":
         return "in_flight"
-    if item.last_ruling is not None:
-        return "ruled"
     return "waiting"
 
 
