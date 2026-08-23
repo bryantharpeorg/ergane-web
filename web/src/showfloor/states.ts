@@ -153,6 +153,11 @@ function sameInDark(style: StateStyle): StateStyle {
   return style;
 }
 
+/**
+ * Total over theme × state (FR-015): all eleven states, both themes, and no
+ * catch-all — UNKNOWN_STYLE is reachable only for a null or unrecognized
+ * state, never for one of the eleven.
+ */
 export const STATE_STYLES: Record<NodeState, Record<Theme, StateStyle>> = {
   PENDING: { light: PENDING_LIGHT, dark: sameInDark(PENDING_LIGHT) },
   KEY_ISSUED: { light: KEY_ISSUED_LIGHT, dark: sameInDark(KEY_ISSUED_LIGHT) },
@@ -180,10 +185,12 @@ export const UNKNOWN_STYLE: StateStyle = {
 
 export function resolveStateStyle(
   state: string | null,
-  theme: Theme = "light",
+  theme: Theme,
 ): { style: StateStyle; known: boolean } {
   if (state === null || !NODE_STATES.includes(state as NodeState)) {
     return { style: UNKNOWN_STYLE, known: false };
   }
+  // A known state indexes the map directly: there is no default branch for it
+  // to fall through to.
   return { style: STATE_STYLES[state as NodeState][theme], known: true };
 }
