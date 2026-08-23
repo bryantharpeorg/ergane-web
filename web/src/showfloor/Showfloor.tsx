@@ -11,6 +11,7 @@ import type { FloorDocument } from "../api/floorDocument";
 import { subscribeFloor } from "../api/events";
 import Masthead from "../Masthead";
 import EpicStage from "./EpicStage";
+import AttentionBadge from "./AttentionBadge";
 
 export default function Showfloor(): JSX.Element {
   const [doc, setDoc] = useState<FloorDocument | null>(null);
@@ -83,9 +84,16 @@ export default function Showfloor(): JSX.Element {
   const epics = doc.epics.filter((e) => e.stage);
   const quiet = epics.length === 0;
 
+  // FR-017: the badge reads the floor document the room currently holds, so
+  // every `floor` event 001's consumer applies re-renders the count in place —
+  // no navigation, no reload, and no second EventSource.
   return (
     <div data-showfloor-root className="showfloor">
-      <Masthead trailing={null} />
+      <Masthead
+        trailing={
+          <AttentionBadge attention={doc.attention} degraded={doc.degraded} />
+        }
+      />
       <main id="room" className="showfloor-room">
         {quiet ? (
           <p data-quiet-floor className="quiet">
