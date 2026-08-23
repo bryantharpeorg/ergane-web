@@ -38,6 +38,10 @@ export interface MountedProps {
   nodesConnectable?: boolean;
   elementsSelectable?: boolean;
   nodesFocusable?: boolean;
+  edgesFocusable?: boolean;
+  panOnDrag?: boolean;
+  zoomOnScroll?: boolean;
+  zoomOnPinch?: boolean;
   fitView?: boolean;
 }
 
@@ -52,6 +56,10 @@ interface ReactFlowProps {
   nodesConnectable?: boolean;
   elementsSelectable?: boolean;
   nodesFocusable?: boolean;
+  edgesFocusable?: boolean;
+  panOnDrag?: boolean;
+  zoomOnScroll?: boolean;
+  zoomOnPinch?: boolean;
   fitView?: boolean;
   children?: ReactNode;
 }

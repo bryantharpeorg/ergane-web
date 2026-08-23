@@ -59,6 +59,15 @@ export default function EpicStage({ stage }: EpicStageProps): JSX.Element {
         )}
       </div>
       <div className="epic-stage-map" style={{ height: 300 }}>
+        {/* FR-016: pure glass. The D-006 stack turns dragging, connecting,
+            selecting and focusing on by default over plain divs no element
+            sweep can see, so each one is turned off here and asserted from the
+            props the flow is mounted with; pan and zoom stay on because they
+            are gestures with no on-screen control chrome; and the library's
+            attribution anchor is hidden through its documented option so the
+            badge stays the room's one link.
+            DESIGN.md § Route Map and Landing Line (No controls),
+            § Components (Buttons: Desk only; the Showfloor has none). */}
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -69,6 +78,10 @@ export default function EpicStage({ stage }: EpicStageProps): JSX.Element {
           nodesConnectable={false}
           elementsSelectable={false}
           nodesFocusable={false}
+          edgesFocusable={false}
+          panOnDrag
+          zoomOnScroll
+          zoomOnPinch
           proOptions={{ hideAttribution: true }}
         />
       </div>

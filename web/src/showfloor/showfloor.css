@@ -403,6 +403,45 @@
   max-width: 60ch;
 }
 
+/* The attention badge — DESIGN.md § Navigation (far right of the masthead, in
+   clay-ink with a clay bell dot; it is a link, the Showfloor's only one) and
+   § Colors (clay is waiting-on-you and it is never red). The bell dot is the
+   one organic shape in the system, so the badge's hue is doubled by a glyph
+   and by the words beside it (the Never-Colour-Alone Rule). */
+.attention-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: var(--fs-small);
+  letter-spacing: 0.02em;
+  color: var(--orange-ink);
+  text-decoration: none;
+}
+
+.attention-badge::before {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  background: var(--orange);
+  border-radius: 50% 50% 2px 2px;
+}
+
+.attention-badge .num {
+  color: var(--orange-ink);
+}
+
+/* A degraded attention read is a note in the badge's place: what could not be
+   learned and the mode in words, never the numeral zero (constitution III). */
+.attention-degraded {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+  font-style: italic;
+  max-width: 48ch;
+}
+
 /* Motion — DESIGN.md § Motion. Three authored motions and the transition
    pulse, all authored inside the no-preference gate and all using the one
    easing, so under `prefers-reduced-motion: reduce` nothing animates and no

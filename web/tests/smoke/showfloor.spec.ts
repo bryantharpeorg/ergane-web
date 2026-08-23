@@ -92,3 +92,24 @@ test("full-bleed is measured", async ({ page }) => {
   expect(box!.width).toBe(viewport!.width);
   expect(box!.height).toBe(viewport!.height);
 });
+
+test("pure glass sweep", async ({ page }) => {
+  await page.goto("/showfloor");
+  await page.waitForSelector("[data-epic-stage]");
+
+  // The room is really staged before the sweep runs, so a clean sweep is a
+  // fact about the rendered Showfloor and not about an empty page.
+  expect(await page.locator("[data-epic-stage]").count()).toBeGreaterThan(0);
+
+  // FR-016 / SC-006: no verb, anywhere in the room.
+  await expect(page.locator("button, form, input, select, textarea")).toHaveCount(0);
+
+  // The Fixture floor carries open Attention items, so the one badge is there —
+  // and it is an anchor, the Showfloor's only link.
+  const badges = page.locator("[data-attention-badge]");
+  await expect(badges).toHaveCount(1);
+  const tagName = await badges.first().evaluate((element) => element.tagName.toLowerCase());
+  expect(tagName).toBe("a");
+  expect(await badges.first().textContent()).toMatch(/^\d/);
+  expect(await badges.first().getAttribute("href")).toBe("/desk");
+});
