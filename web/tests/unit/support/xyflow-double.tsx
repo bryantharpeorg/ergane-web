@@ -43,6 +43,7 @@ export interface MountedProps {
   zoomOnScroll?: boolean;
   zoomOnPinch?: boolean;
   fitView?: boolean;
+  fitViewOptions?: { minZoom?: number; maxZoom?: number };
 }
 
 export const mountedProps: MountedProps[] = [];
@@ -61,6 +62,7 @@ interface ReactFlowProps {
   zoomOnScroll?: boolean;
   zoomOnPinch?: boolean;
   fitView?: boolean;
+  fitViewOptions?: { minZoom?: number; maxZoom?: number };
   children?: ReactNode;
 }
 

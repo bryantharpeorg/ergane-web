@@ -71,10 +71,15 @@
   margin: 0;
 }
 
+/* FR-002: the map is exactly as tall as its graph. `--stage-height` arrives
+   from `stageHeight()` — rank depth times the 140px row spacing, plus the
+   station and the stage padding DESIGN.md § Layout names — so nothing here
+   resolves against the viewport and no floor is imposed on top of it. The
+   1040px min-width is DESIGN.md's stated map width and stays. */
 .epic-stage-map {
   grid-column: 2;
   grid-row: 1 / 3;
-  min-height: 200px;
+  height: var(--stage-height);
   min-width: 1040px;
   overflow: auto;
 }
@@ -93,6 +98,24 @@
 
 .stage-note .lead {
   font-size: var(--fs-body);
+}
+
+/* FR-001: an epic with nothing staged is a named row, not a stage. The canvas
+   is not rendered at all, so the map's track goes with it and what is left —
+   the epic's name and the notice saying what could not be read — sits on one
+   line of the grid. */
+.epic-stage[data-staged="false"] {
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: auto;
+}
+
+.epic-stage[data-staged="false"] .epic-stage-header,
+.epic-stage[data-staged="false"] .stage-notes {
+  grid-row: 1;
+}
+
+.epic-stage[data-staged="false"] .stage-notes {
+  grid-column: 2;
 }
 
 /* FR-014: an idle epic — no node in the live set — rests at the RUNNING
