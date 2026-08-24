@@ -30,6 +30,7 @@ test("the Desk renders the fixture floor and issues one verb and no other", asyn
         actions: { label: string; payload: string }[];
       }[];
     };
+    spend_to_date: { data: { groups: { key: string }[] } | null };
   };
   const referenceInstant = floorDoc.reference_instant ?? new Date().toISOString();
 
@@ -101,6 +102,26 @@ test("the Desk renders the fixture floor and issues one verb and no other", asyn
   await expect(spend.locator("h2")).toHaveText(/spend to date/i);
   await expect(spend.locator(".unknown").first()).toHaveText("unknown");
   await expect(spend).not.toContainText(/live/i);
+
+  // Spec 004 US4 (T035, FR-012): the strip's shape checked against the *served*
+  // document rather than only against a unit fixture — one row per persona the
+  // rollup carries, plus the total, and never the persona-and-metric cross
+  // product the first build rendered (32 rows for this same floor). The columns
+  // are the closed set `DESIGN.md` names, in its order (US4-S1, US4-S2).
+  const servedPersonas = floorDoc.spend_to_date.data?.groups ?? [];
+  expect(servedPersonas.length).toBeGreaterThan(0);
+  await expect(spend.locator("tbody tr")).toHaveCount(servedPersonas.length + 1);
+  for (const [i, group] of servedPersonas.entries()) {
+    await expect(spend.locator("tbody tr").nth(i).locator("th")).toHaveText(group.key);
+  }
+  await expect(spend.locator("tbody tr").last()).toHaveClass(/total/);
+  await expect(spend.locator("thead th")).toHaveText([
+    "persona",
+    "prompt tokens",
+    "completion tokens",
+    "requests",
+    "spend",
+  ]);
 
   const pagedRow = page.locator('article.epic[data-scene="paged-while-verifying"]');
   await expect(pagedRow).toBeVisible();
