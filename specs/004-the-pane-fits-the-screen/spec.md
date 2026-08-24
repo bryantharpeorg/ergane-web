@@ -1,5 +1,29 @@
 ---
-state: ready
+state: landed
+# Attested landed 2026-08-24. US1 cda0cdfe9831 (#24), US2 bc020b2c8218 (#25),
+# US3 f3c60731c97e (#26), US4 0d5a0d149852 (#27) - all four observed on dev,
+# all four on attempt 1 with a clean judge (4/4, 4/4, 4/4, 4/4). Dispatched
+# 15:55 CT, complete 17:01 CT: 66 minutes for four stories on claude-opus-5.
+#
+# VERIFIED BY RENDER, NOT ONLY BY GATE. The post-004 build was served from a
+# scratch clone and measured with the same Playwright harness that found the
+# defects, at the same viewports:
+#   S1  landing line off-viewport   10 elements / +121px  ->  0 at 1280 and 1440
+#   S2  empty stage height          514px x3              ->  117px
+#   S3  stage height vs node count  constant              ->  2-node 449, 5-node 587
+#   D1  longest escalation block    1,334 (one paragraph) ->  249 (nine blocks)
+#   D2  spend rows / unknown cells  32 / 14               ->  4 / 6
+#   D3  Desk page height            3,625px               ->  3,536px
+#
+# D3 moved least, and that is correct rather than disappointing: health and spend
+# are grid siblings, so the spend table shrank while its row stays sized by its
+# neighbour. D3 was rated low because it was derivative of D2, and it was.
+#
+# The durable half of this spec is the invariants, not the repairs. The smoke
+# gate now asserts no text element sits beyond the viewport outside a scrollable
+# wrapper - the assertion that would have caught S1 on the attempt that
+# introduced it, and the closest this repository can come to fixing N44 without
+# changing ergane.
 depends_on_landed: [001-the-desk-sees-the-floor, 002-the-showfloor-stages-an-epic, 003-an-answer-reaches-the-factory]
 # Drafted 2026-08-24 from `docs/pane-review-2026-08-24.md` — the first browser render of
 # the pane, taken two hours after the last of twelve stories landed.
