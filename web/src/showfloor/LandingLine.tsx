@@ -9,7 +9,14 @@
  * story id. The MERGED end is the landed shelf: one card per merged node and
  * the count ("MERGED ×3").
  *
- * FR-011 (spec US3-S1).
+ * It is drawn inside the map's scrolling wrapper, sharing the map's own cell
+ * and its origin, at the x=930 DESIGN.md § Layout names — so it scrolls with
+ * the graph it belongs to instead of being laid out past the stage with
+ * nothing to reach it (FR-004).
+ * The four stations are unconditional: every map carries the whole line, and a
+ * stage with nothing on the landing run still shows where the run leads.
+ *
+ * FR-011 (spec US3-S1), FR-004 and FR-007 (spec US2-S1, US2-S4).
  */
 
 import type { StagedNode } from "./types";
