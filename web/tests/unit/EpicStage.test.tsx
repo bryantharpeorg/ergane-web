@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import EpicStage from "../../src/showfloor/EpicStage";
+import { stageHeight } from "../../src/showfloor/layout";
 import { stageFromWorkgraph } from "./support/stage-builder";
 import { mountedProps } from "./support/xyflow-double";
 
+import workgraph002 from "../../../fixtures/workgraphs/002-expense-notes.json?raw";
 import workgraph077 from "../../../fixtures/workgraphs/077-a-scanner-the-operator-chooses-runs-in-the-loop.json?raw";
 
 vi.mock("@xyflow/react", () => import("./support/xyflow-double"));
@@ -136,5 +138,111 @@ describe("EpicStage flow mounts non-interactive", () => {
     expect(props.zoomOnPinch).toBe(true);
 
     document.body.removeChild(container);
+  });
+});
+
+/**
+ * FR-001 (spec US1-S1): zero nodes is not a small stage, it is no stage.
+ *
+ * The assertion is the *absence* of the canvas, not a height under some
+ * threshold — absence is exact and a threshold is a guess. What must survive is
+ * the notice: constitution III says a read the factory could not answer is
+ * shown, in words, naming what could not be learned.
+ */
+describe("EpicStage with nothing staged", () => {
+  const TRANSPORT_DETAIL =
+    "workgraph: fixtures/workgraphs/fx-landing-f0a0d6.json: not recorded yet (fixtures/README.md)";
+
+  function renderEmpty(): HTMLElement {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const stage = {
+      epic_id: "fx-landing-f0a0d6",
+      nodes: [],
+      edges: [],
+      notes: [
+        { read: "workgraph", mode: "transport", detail: TRANSPORT_DETAIL },
+      ],
+      degraded: true,
+    };
+
+    act(() => createRoot(container).render(<EpicStage stage={stage} />));
+    return container;
+  }
+
+  it("renders no stage canvas at all", () => {
+    const container = renderEmpty();
+
+    expect(container.querySelector(".epic-stage-map")).toBeNull();
+    expect(container.querySelectorAll("[data-station]").length).toBe(0);
+    expect(container.querySelector("[data-react-flow]")).toBeNull();
+
+    document.body.removeChild(container);
+  });
+
+  it("keeps the epic's name and its degraded notice", () => {
+    const container = renderEmpty();
+
+    const stage = container.querySelector("[data-epic-stage]");
+    expect(stage).not.toBeNull();
+    expect(stage?.getAttribute("data-epic-id")).toBe("fx-landing-f0a0d6");
+    expect(container.querySelector(".epic-stage-name")?.textContent).toBe(
+      "fx-landing-f0a0d6",
+    );
+
+    const note = container.querySelector("[data-stage-note][data-mode='transport']");
+    expect(note).not.toBeNull();
+    expect(note?.getAttribute("data-read")).toBe("workgraph");
+    expect(note?.textContent).toContain("workgraph");
+    expect(note?.textContent).toContain("transport");
+    expect(note?.textContent).toContain(TRANSPORT_DETAIL);
+
+    document.body.removeChild(container);
+  });
+});
+
+/**
+ * FR-002 (spec US1-S3): the height the component hands the map is the computed
+ * one, and it is different for a different graph. The inline `height: 300` this
+ * story removes would pass neither assertion.
+ */
+describe("EpicStage map height", () => {
+  function mapOf(workgraphRaw: string): HTMLElement {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const stage = stageFromWorkgraph(workgraphRaw);
+    act(() => createRoot(container).render(<EpicStage stage={stage} />));
+    const map = container.querySelector(".epic-stage-map") as HTMLElement;
+    document.body.removeChild(container);
+    return map;
+  }
+
+  it("carries the computed height and no literal", () => {
+    const two = stageFromWorkgraph(workgraph002);
+    const five = stageFromWorkgraph(workgraph077);
+
+    const shallow = mapOf(workgraph002);
+    const deep = mapOf(workgraph077);
+
+    expect(shallow.style.getPropertyValue("--stage-height")).toBe(
+      `${stageHeight(two.nodes, two.edges)}px`,
+    );
+    expect(deep.style.getPropertyValue("--stage-height")).toBe(
+      `${stageHeight(five.nodes, five.edges)}px`,
+    );
+    expect(deep.style.getPropertyValue("--stage-height")).not.toBe(
+      shallow.style.getPropertyValue("--stage-height"),
+    );
+    expect(shallow.style.height).toBe("");
+  });
+
+  it("pins the fit at zoom 1 so the stations keep DESIGN.md's spacing", () => {
+    mountedProps.length = 0;
+    mapOf(workgraph077);
+
+    expect(mountedProps.length).toBe(1);
+    expect(mountedProps[0].fitViewOptions?.minZoom).toBe(1);
+    expect(mountedProps[0].fitViewOptions?.maxZoom).toBe(1);
   });
 });
