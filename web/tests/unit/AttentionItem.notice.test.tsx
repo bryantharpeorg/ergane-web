@@ -206,6 +206,19 @@ describe("the body segmentation rule", () => {
       escalation.actions.map((action) => action.payload.split(":").pop()),
     );
 
+    // DESIGN.md § Components › Attention Item: the choice blocks stand behind a
+    // micro label, and the label is the factory's own lead-in line — carried
+    // out of the evidence, not composed by the pane (§ Typography › Micro
+    // names it: "what each button does").
+    const body = blocksOf(container);
+    const label = body.find((block) => block.dataset.block === "label");
+    expect(label, "the lead-in to the choice list stands as a micro label").toBeDefined();
+    expect(label?.className).toContain("micro");
+    expect(escalation.text).toContain(label?.textContent ?? "");
+    expect(body.indexOf(label as HTMLElement)).toBeLessThan(
+      body.findIndex((block) => block.dataset.choice !== undefined),
+    );
+
     document.body.removeChild(container);
   });
 
