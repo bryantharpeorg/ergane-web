@@ -329,7 +329,21 @@ a {
 .attention .retriable { font-size: var(--fs-small); color: var(--olive-ink); }
 /* A join the pane could not make, named where its answer would have been. */
 .attention .join-degraded { font-size: var(--fs-small); font-style: italic; color: var(--ink-soft); }
-.attention .prose { margin: 0; max-width: 68ch; }
+/* DESIGN.md § Components › Attention Item › Body column and its Body segmentation
+   rule. The factory writes the evidence with its own line structure, so the pane
+   keeps it rather than reflowing a gate's output into prose. */
+.attention .prose { margin: 0; max-width: 68ch; white-space: pre-wrap; }
+/* One block per choice the payload names: the consequence of pressing a button
+   can be read on its own instead of found inside a paragraph. Structure only —
+   a spacing step and the rule stroke, no colour, face or radius DESIGN.md does
+   not name (constitution VIII), and the choice a block explains is carried by
+   its `data-choice`, never by colour alone (§ Colors). */
+.attention .body-col .block { margin: 0; }
+.attention .prose.choice { padding-left: var(--s3); border-left: 1px solid var(--rule); }
+/* The factory's own lead-in to the choice list, set in the Micro step DESIGN.md
+   § Typography names it in ("what each button does") — its words, not the
+   pane's. */
+.attention .micro.block { margin-top: var(--s1); }
 .attention .answer-col { min-width: 220px; align-items: flex-start; justify-content: center; }
 
 /* DESIGN.md § Components › Buttons. Tight corners, a 1.5px border, Display 600

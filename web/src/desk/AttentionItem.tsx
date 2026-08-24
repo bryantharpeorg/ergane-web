@@ -1,6 +1,7 @@
 import type { AttentionItem, FloorDocument } from "../api/floorDocument";
 import AnswerColumn from "./AnswerColumn";
 import RulingLine from "./RulingLine";
+import { segmentBody } from "./escalationBody";
 import { referenceInstant, timeLeft } from "./timeLeft";
 
 interface AttentionItemProps {
@@ -30,6 +31,15 @@ export default function AttentionItemView({ item, doc }: AttentionItemProps) {
   // which is what makes "never derive an expiry from received at" structural
   // rather than a habit (FR-012).
   const left = timeLeft(item.expires_at, referenceInstant(doc));
+  // DESIGN.md § Components › Attention Item › Body segmentation rule: the
+  // evidence is laid out as the decision it is — one block per choice the
+  // payload names — instead of arriving as one paragraph the operator has to
+  // parse under a deadline. Every block is a verbatim slice, so this is layout
+  // and never editing (constitution III, FR-008..FR-011).
+  const blocks = segmentBody(
+    item.text,
+    item.actions.map((action) => action.payload),
+  );
 
   return (
     <article
@@ -88,7 +98,16 @@ export default function AttentionItemView({ item, doc }: AttentionItemProps) {
       </div>
       <div className="body-col">
         <span className="where num">{item.correlation_id}</span>
-        <p className="prose">{item.text}</p>
+        {blocks.map((block, index) => (
+          <p
+            key={index}
+            className={block.kind === "label" ? "micro block" : `prose block ${block.kind}`}
+            data-block={block.kind}
+            data-choice={block.choice ?? undefined}
+          >
+            {block.text}
+          </p>
+        ))}
         {/* The factory's word on the last Answer, in the body column DESIGN.md
             puts it in — refusals included, and in the same place. */}
         <RulingLine item={item} />
