@@ -8,6 +8,12 @@
  * DESIGN.md names, and never from the viewport. An epic with nothing staged
  * is not a short stage but no stage at all (FR-001) — its name and the notice
  * that says what could not be read, and no canvas.
+ *
+ * The route is DESIGN.md's two-column grid, `220px 1fr`. Column two is a
+ * horizontally scrolling wrapper and the map lives inside it, so everything the
+ * map's coordinate space places — the landing line at x=930 included — is
+ * reachable by scrolling rather than laid out past the container (FR-004,
+ * FR-005).
  */
 
 import { ReactFlow } from "@xyflow/react";
@@ -120,42 +126,51 @@ export default function EpicStage({ stage }: EpicStageProps): JSX.Element {
       data-idle={idle ? "true" : "false"}
     >
       {header}
-      <div
-        className="epic-stage-map"
-        style={
-          {
-            "--stage-height": `${stageHeight(stage.nodes, stage.edges)}px`,
-          } as CSSProperties
-        }
-      >
-        {/* FR-016: pure glass. The D-006 stack turns dragging, connecting,
-            selecting and focusing on by default over plain divs no element
-            sweep can see, so each one is turned off here and asserted from the
-            props the flow is mounted with; pan and zoom stay on because they
-            are gestures with no on-screen control chrome; and the library's
-            attribution anchor is hidden through its documented option so the
-            badge stays the room's one link.
-            DESIGN.md § Route Map and Landing Line (No controls),
-            § Components (Buttons: Desk only; the Showfloor has none). */}
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          fitView
-          fitViewOptions={FIT_VIEW_OPTIONS}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          nodesFocusable={false}
-          edgesFocusable={false}
-          panOnDrag
-          zoomOnScroll
-          zoomOnPinch
-          proOptions={{ hideAttribution: true }}
-        />
+      {/* FR-004 / FR-005 / DESIGN.md § Layout: the map is an SVG of min-width
+          1040px *inside a horizontally scrolling wrapper*. The wrapper is the
+          grid's second column and holds one cell; the map and the landing line
+          share it, origin-aligned, so DESIGN.md's x=930 is measured in the
+          map's own coordinate space and the lane scrolls with the graph it
+          belongs to. The lane was a sibling of this wrapper, in a third stage
+          column laid out past the edge of a page that reported no overflow. */}
+      <div className="epic-stage-scroll">
+        <div
+          className="epic-stage-map"
+          style={
+            {
+              "--stage-height": `${stageHeight(stage.nodes, stage.edges)}px`,
+            } as CSSProperties
+          }
+        >
+          {/* FR-016: pure glass. The D-006 stack turns dragging, connecting,
+              selecting and focusing on by default over plain divs no element
+              sweep can see, so each one is turned off here and asserted from
+              the props the flow is mounted with; pan and zoom stay on because
+              they are gestures with no on-screen control chrome; and the
+              library's attribution anchor is hidden through its documented
+              option so the badge stays the room's one link.
+              DESIGN.md § Route Map and Landing Line (No controls),
+              § Components (Buttons: Desk only; the Showfloor has none). */}
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            fitView
+            fitViewOptions={FIT_VIEW_OPTIONS}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            nodesFocusable={false}
+            edgesFocusable={false}
+            panOnDrag
+            zoomOnScroll
+            zoomOnPinch
+            proOptions={{ hideAttribution: true }}
+          />
+        </div>
+        <LandingLine nodes={stage.nodes} />
       </div>
-      <LandingLine nodes={stage.nodes} />
       {notes}
       <Legend />
     </section>

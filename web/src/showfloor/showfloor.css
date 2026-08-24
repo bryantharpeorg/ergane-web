@@ -43,9 +43,15 @@
   gap: var(--s6);
 }
 
+/* FR-004 / DESIGN.md § Layout (Showfloor): "Each route is a grid `220px 1fr`
+   (epic name and a meta paragraph on the left, the map on the right)". Two
+   columns, not three. The third `auto` column this story removes held the
+   landing line as a DOM sibling of the map, and it is what laid the lane out
+   121px past the container at every width — the lane belongs inside the map,
+   which is where DESIGN.md's x=930 puts it. */
 .epic-stage {
   display: grid;
-  grid-template-columns: 220px 1fr auto;
+  grid-template-columns: 220px 1fr;
   grid-template-rows: auto 1fr auto;
   gap: var(--s4) var(--s5);
   padding-top: var(--s5);
@@ -71,17 +77,45 @@
   margin: 0;
 }
 
+/* FR-005 / DESIGN.md § Layout (Showfloor): "The map is an SVG of min-width
+   1040px inside a horizontally scrolling wrapper." The wrapper is the grid's
+   second column and nothing more; the map is what sits inside it.
+   `min-width: 0` is the whole of the fix: a `1fr` track takes its minimum from
+   its item's min-content width, so without it the map's 1040px floor forces the
+   column open to 1040px and the wrapper is never narrower than the thing it is
+   supposed to scroll. `overflow-y: hidden` keeps the one scroll axis DESIGN.md
+   names horizontal.
+
+   The wrapper holds a single grid cell, and the map and the landing line both
+   sit in it, origin-aligned. That cell is the coordinate space DESIGN.md
+   measures x=930 in, and stacking the two in it is what lets the cell be as
+   tall as whichever of them needs the room: the map's height stays exactly the
+   graph's (FR-002), and a shallow graph's 252px map is shorter than the
+   landing line DESIGN.md draws beside it — four stations 64px apart, its label
+   and its landed shelf. Pinning the cell to the map's height instead would cut
+   the shelf off the top of the line, which is this story's own defect in a
+   smaller box. */
+.epic-stage-scroll {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
 /* FR-002: the map is exactly as tall as its graph. `--stage-height` arrives
    from `stageHeight()` — rank depth times the 140px row spacing, plus the
    station and the stage padding DESIGN.md § Layout names — so nothing here
    resolves against the viewport and no floor is imposed on top of it. The
-   1040px min-width is DESIGN.md's stated map width and stays. */
+   1040px min-width is DESIGN.md's stated map width and stays; it is now the
+   width the wrapper above scrolls across rather than a floor under the grid
+   column. */
 .epic-stage-map {
-  grid-column: 2;
-  grid-row: 1 / 3;
+  grid-area: 1 / 1;
   height: var(--stage-height);
   min-width: 1040px;
-  overflow: auto;
 }
 
 .epic-stage .react-flow {
@@ -149,23 +183,33 @@
   opacity: 0.55;
 }
 
-/* Landing line — DESIGN.md § Route Map and Landing Line */
+/* Landing line — DESIGN.md § Route Map and Landing Line, § Layout.
+   FR-004: "the landing line lives at x=930". x is the map's coordinate space,
+   not the stage's, so the lane is drawn inside the map — 110px short of
+   DESIGN.md's 1040px map width, which is what "at the right edge of every map"
+   means — and rides the wrapper's horizontal scroll with the graph it belongs
+   to. It was a grid item in a third column of the *stage*, laid out past the
+   container with nothing to scroll it into view; it is now in the map's own
+   cell, 930px into it. */
 .landing-line {
-  grid-column: 3;
-  grid-row: 1 / 3;
+  grid-area: 1 / 1;
+  justify-self: start;
+  margin-left: 930px;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column-reverse;
   align-items: flex-start;
   gap: var(--s3);
-  padding-left: var(--s5);
-  position: relative;
 }
 
-/* The hairline connector a story short of the line reaches across. */
+/* The hairline connector a story short of the line reaches across. It sits one
+   spacing step to the left of the olive line, so the line itself stays at the
+   x DESIGN.md names. */
 .landing-line::before {
   content: "";
   position: absolute;
-  left: 0;
+  left: calc(-1 * var(--s5));
   top: 0;
   bottom: 0;
   border-left: 1px solid var(--rule);
