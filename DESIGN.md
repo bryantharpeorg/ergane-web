@@ -268,6 +268,7 @@ Character: a clock with its answer beside it.
 - **Rank stripe:** `box-shadow: inset 3px 0 0 <rank hue>` on the left edge. High (Escalation) = clay and the border itself turns clay; medium (Question) = mustard; low (Notice) = aqua. The kind word in the clock column repeats the rank in the matching ink tone.
 - **Clock column:** kind word (Caption), the T-minus clock (Clock), then the "until" line (Small, tinted slate) stating the absolute expiry and the consequence ("until 12:45:43Z · then KILL the node").
 - **Body column:** a mono "where" line (epic / story · attempt · correlation id), prose, and for an Escalation a micro label "What each button does" followed by one sentence per choice. The factory's ruling on the last answer lands here as Small olive-ink 500 text ("Your last answer on 8d1e… was RESOLVED — waiting workflow signalled."); refusals (UNKNOWN, ALREADY_RESOLVED, EXPIRED, UNAUTHORIZED, SIGNAL_FAILED) render the same way in the same place.
+- **Body segmentation rule (binding, added 2026-08-24).** "One sentence per choice" is a structural requirement, not a stylistic hope, and the first build satisfied it nowhere: a real escalation rendered as **1,334 characters in a single paragraph with seven emoji inline**. So the rule is stated measurably. An Escalation's evidence is segmented into **one block per choice token the payload carries** (`esc:<12hex>:<CHOICE>`), in the payload's own order, and **no rendered text block exceeds 400 characters**. A payload naming no choices — a Question, a Notice — renders as exactly one block; the segmenter degrades, it does not crash. Segmenting is **never** editing: the concatenated rendered text must equal the payload's evidence byte-for-byte after whitespace normalisation, emoji included, because constitution III forbids softening what the factory said and a layout that rewrites is a softening.
 - **Answer column:** min-width 220px. Escalation: a stack of choice buttons, the first as Answer-primary. Question: the reply textarea and one Answer button. Notice: italic tinted-slate text "Asks for nothing; no answer exists." and no control.
 - **Countdown anchor rule:** the clock counts down to the factory-written `expires_at` and nothing else. Never derive an expiry from the pane's own clock or from "received at". Ticking is a text update (`aria-live="polite"`), not an animation, so it is unaffected by `prefers-reduced-motion`.
 
@@ -311,6 +312,19 @@ Rules: the paged-while-verifying case keeps the VERIFYING state and adds the rin
 Collapsed borders, full width, Small size. Headers are micro (uppercase, tracked, tinted slate, weight 500) over a hairline; cells have `0.5rem 0.75rem 0.5rem 0` padding and a hairline beneath; numeric columns are right-aligned mono with no right padding. Severity is a Caption-weight micro word: critical = clay-ink, warning = mustard-ink, info = aqua-ink. Reference paths under a finding are mono micro in tinted slate.
 
 **The Unknown Rule.** A NULL from the factory's rollup is rendered as the word "unknown" in Red Hat Text italic, tinted slate, at Small size, in the cell or readout where a figure would go. A total is unknown when any row in scope is unknown. Never print 0, a dash, or an empty cell for a NULL, and never style it as an error.
+
+**The Spend Strip's shape (binding, added 2026-08-24).** The strip is **one row per persona**, plus one total row — never one row per persona-and-metric. Its columns are exactly four, in this order:
+
+| column | source |
+|---|---|
+| Prompt tokens | rollup `prompt_tokens` |
+| Completion tokens | rollup `completion_tokens` |
+| Requests | rollup `requests` |
+| Spend | rollup `spend_usd`, under the heading "spend to date" |
+
+**Four, and no others.** `cache_read_tokens`, `cache_write_tokens`, `rows` and `unconfirmed_rows` are the ledger's own bookkeeping and do not belong on a Desk: the first build rendered the full cross product and produced **32 rows of which 14 read "unknown"** — 44% of a table conveying nothing, because the strip rendered whatever columns the rollup happened to carry rather than the ones an operator reads. The metric set is therefore a **closed set declared here**, not the rollup's key list, so a new ledger column cannot reach the Desk without an amendment to this document.
+
+A persona whose every value is unknown **still renders its row**. A persona that spent nothing measurable is a fact about the run, and dropping the row would make the strip lie by omission — the Unknown Rule above governs the cells, and this governs the row.
 
 ### Motion
 Three authored motions and no others. All use the one easing, `cubic-bezier(0.16, 1, 0.3, 1)`.
