@@ -100,22 +100,47 @@
   font-size: var(--fs-body);
 }
 
-/* FR-001: an epic with nothing staged is a named row, not a stage. The canvas
-   is not rendered at all, so the map's track goes with it and what is left —
-   the epic's name and the notice saying what could not be read — sits on one
-   line of the grid. */
+/* FR-001: an epic with nothing staged is a named row, not a stage. No canvas is
+   rendered, so the route grid has nothing to hold open and the row collapses to
+   what is left — the epic's name and, beside it, the well naming the read that
+   failed. The well itself is DESIGN.md § Elevation & Depth's Well Rule and is
+   untouched; only the margins that separated it from a map that is not there
+   are dropped. */
 .epic-stage[data-staged="false"] {
-  grid-template-columns: 220px 1fr;
-  grid-template-rows: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s5);
 }
 
-.epic-stage[data-staged="false"] .epic-stage-header,
-.epic-stage[data-staged="false"] .stage-notes {
-  grid-row: 1;
+.epic-stage[data-staged="false"] .epic-stage-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+.epic-stage[data-staged="false"] .epic-stage-name {
+  margin-bottom: 0;
 }
 
 .epic-stage[data-staged="false"] .stage-notes {
-  grid-column: 2;
+  flex: 1 1 24rem;
+}
+
+/* The notice reads as one line: the Well Rule's Display lead-in, then the read
+   and the detail beside it, wrapping only if the detail is long. The words are
+   the factory's and are untouched — this is where they sit, not what they say. */
+.epic-stage[data-staged="false"] .stage-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s3);
+  margin: 0;
+}
+
+.epic-stage[data-staged="false"] .stage-note .lead {
+  margin: 0;
 }
 
 /* FR-014: an idle epic — no node in the live set — rests at the RUNNING
