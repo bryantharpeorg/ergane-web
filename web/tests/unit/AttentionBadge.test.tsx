@@ -16,8 +16,6 @@ import type { AttentionItem, FloorDocument } from "../../src/api/floorDocument";
 import escalationsRaw from "../../../fixtures/escalations/open_escalations.json?raw";
 import questionRaw from "../../../fixtures/webhook/question.json?raw";
 
-vi.mock("@xyflow/react", () => import("./support/xyflow-double"));
-
 /** The Showfloor opens no second EventSource; in jsdom it opens none at all. */
 class InertEventSource {
   addEventListener(): void {}

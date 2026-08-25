@@ -271,3 +271,52 @@ export function killedEntry(specDir: string, total = 4): RailEntry {
 export function storylessEntry(specDir: string): RailEntry {
   return entryOf({ spec_dir: specDir, chip: "draft", unknown: ["stories"] });
 }
+
+/**
+ * A rail entry whose graph is a **recorded** workgraph (005 US3).
+ *
+ * The shapes above are this repository's own join and are written here; a work
+ * *graph* is a factory document and is not (constitution V). `fixtures/
+ * workgraphs/` holds three real ones — two nodes with a single merge edge, five
+ * nodes carrying both edge kinds, and five nodes whose merge edges were
+ * inferred — so the stage's rank and wire assertions run over graphs ergane
+ * really compiled rather than a shape chosen to make them pass.
+ *
+ * Ladders are layered on top by story key, because the live half of a story is
+ * the `epic_status` answer's and the workgraph carries none.
+ */
+export function entryFromWorkgraph(
+  raw: string,
+  ladders: Record<string, Ladder> = {},
+  overrides: Partial<RailEntry> = {},
+): RailEntry {
+  const graph = JSON.parse(raw) as {
+    epic_id?: string;
+    nodes?: Array<{
+      id: string;
+      story_key?: string | null;
+      depends_on?: string[];
+      depends_on_merged?: string[];
+      requirement_keys?: string[];
+    }>;
+  };
+
+  const stories: ShowfloorStory[] = (graph.nodes ?? []).map((node) => ({
+    ...storyOf(node.id, `story ${node.id}`, ladders[node.id] ?? ladderOf()),
+    story_key: node.story_key ?? node.id.toUpperCase(),
+    requirement_keys: node.requirement_keys ?? [],
+    depends_on: node.depends_on ?? [],
+    depends_on_merged: node.depends_on_merged ?? [],
+  }));
+
+  const specDir = overrides.spec_dir ?? graph.epic_id ?? "unknown";
+  return entryOf({
+    ...overrides,
+    spec_dir: specDir,
+    state: overrides.state ?? "ready",
+    epic_id: overrides.epic_id !== undefined ? overrides.epic_id : specDir,
+    stories,
+    stories_total: stories.length,
+    stories_landed: stories.filter((story) => story.ladder.stop_key === "merged").length,
+  });
+}

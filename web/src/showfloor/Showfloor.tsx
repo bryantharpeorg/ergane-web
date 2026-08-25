@@ -7,19 +7,23 @@
  * folds at 1180px and again at 820px. § Epic rail owns the rail, which lives in
  * `Rail.tsx`.
  *
- * This story (005 US2) rebuilds the frame and the selection. The first world's
- * room — one full stage per running epic, stacked, each with its own landing
- * rail and its own copy of the legend — is what D-015 replaced: the unit is now
- * the *selection*, one epic on stage at a time, so this component no longer
- * mounts `EpicStage` per epic and the room reads one document instead of a
- * floor's worth. The stage's own graph, its metrics and the detail pane are
- * US3's and US4's; what the stage column carries here is the selected spec's
- * head — the identity every later region hangs off — and the reads that failed
- * for it.
+ * 005 US2 rebuilt the frame and the selection. The first world's room — one
+ * full stage per running epic, stacked, each with its own landing rail and its
+ * own copy of the legend — is what D-015 replaced: the unit is now the
+ * *selection*, one epic on stage at a time, so this component no longer mounts
+ * `EpicStage` per epic and the room reads one document instead of a floor's
+ * worth.
+ *
+ * 005 US3 fills the stage column: the selected spec's head, metrics, graph and
+ * degraded notices all move into `Stage.tsx`, and the edge legend is mounted
+ * *here* — once, from the component the room has exactly one of, which is the
+ * whole fix for the first world's legend-per-epic repetition (FR-012).
  *
  * Two documents, both bare GETs: `/api/showfloor` (005 US1) is the room, and
- * `/api/floor` is where the attention count comes from, on the same SSE stream
- * 001 wired so the badge stays live without a second EventSource.
+ * `/api/floor` carries the attention count and the two facts only
+ * `collect_floor` records — this epic's pace and the usage rollup the stage's
+ * last two metric cells read — on the same SSE stream 001 wired, so both stay
+ * live without a second EventSource.
  */
 
 import { useEffect, useState } from "react";
@@ -28,8 +32,9 @@ import type { RailEntry, ShowfloorDocument } from "../api/showfloorDocument";
 import { subscribeFloor } from "../api/events";
 import Masthead from "../Masthead";
 import AttentionBadge from "./AttentionBadge";
+import Legend from "./Legend";
 import Rail from "./Rail";
-import { chipText, railChip, specId } from "./ladder";
+import Stage from "./Stage";
 import { specDirFromPath } from "../routes";
 
 /** What the room selected, and the directory it was asked for and could not find. */
@@ -110,16 +115,6 @@ const FLOOR_UNREAD: DegradedEntry = {
   read: "GET /api/floor",
   detail: "the read did not complete from this room",
 };
-
-/** The stage head's chip: the same object the rail row wears (plan D2). */
-function StageChip({ entry }: { entry: RailEntry }): JSX.Element {
-  const chip = railChip(entry);
-  return (
-    <span className={`chip ${chip.tone}`} data-stage-chip data-chip-tone={chip.tone}>
-      {chipText(chip)}
-    </span>
-  );
-}
 
 interface FrameProps {
   badge: JSX.Element | null;
@@ -260,34 +255,13 @@ export default function Showfloor(): JSX.Element {
               No spec was read from the corpus, so there is nothing to stage.
             </p>
           ) : (
-            <>
-              <header className="stage-head">
-                <span className="spec-id" data-stage-id>
-                  {specId(entry.spec_dir)}
-                </span>
-                <span className="spec-name" data-stage-name>
-                  {entry.name}
-                </span>
-                <StageChip entry={entry} />
-              </header>
-              {entry.notes.map((note, index) => (
-                <div
-                  className="degraded"
-                  data-stage-note
-                  data-mode={note.mode}
-                  key={`${note.read}-${index}`}
-                  role="status"
-                >
-                  <p className="lead">A read for this spec degraded.</p>
-                  <p>
-                    <span className="read num">{note.read}</span>{" "}
-                    <span className="mode">{note.mode}</span>{" "}
-                    <span className="detail">{note.detail}</span>
-                  </p>
-                </div>
-              ))}
-            </>
+            <Stage entry={entry} floor={floor} />
           )}
+          {/* § Stage: "One legend row under the stage, rendered once per page,
+              never per epic." Here is the once — the room has exactly one
+              Showfloor, so a legend mounted from it cannot repeat however many
+              epics the rail carries (T021, FR-012). */}
+          <Legend />
         </section>
         <aside className="detail" data-detail>
           <p className="detail-empty">No story is selected.</p>
