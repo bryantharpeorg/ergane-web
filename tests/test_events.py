@@ -170,11 +170,9 @@ def test_event_types_vocabulary():
     """001's vocabulary plus the types 003 and 005 declare (003 FR-005, 005 FR-005).
 
     `attention` and `showfloor` are declared *extensions*, not redefinitions: a
-    consumer that ignores unknown types is unaffected until it opts in, so every
-    surface built against 001 keeps working unchanged.  This assertion is the
-    same one spec 003 committed, widened by exactly the one name spec 005 adds —
-    the closed-vocabulary property it exists to hold is unchanged, and the two
-    older names still have to be there in the same order.
+    consumer that ignores unknown types is unaffected until it opts in.  This is
+    003's own assertion widened by the one name 005 adds — the two older names
+    still have to be there, in the same order.
     """
     assert EVENT_TYPES == ("floor", "attention", "showfloor")
     assert EVENT_TYPES[:2] == ("floor", "attention")
@@ -239,9 +237,8 @@ def test_a_node_state_change_reaches_the_stream_as_a_showfloor_event():
 
     The reader answers with one recorded `epic_status` document until the second
     poll begins, then with the next in ergane's landing recording — the step
-    where `us1` moves VERIFYING → PASSED.  The flip happens while the consumer
-    holds the second `floor` event, which is yielded before that poll
-    re-assembles the showfloor, so the second assembly is the first to see it.
+    where `us1` moves VERIFYING → PASSED, flipped while the consumer holds the
+    second `floor` event, so the second assembly is the first to see it.
     """
     specs_root = ROOT / "specs"
     subject = "001-the-desk-sees-the-floor"
@@ -338,7 +335,7 @@ class _ChangingReader:
 
     `answer` is a plain attribute, so the stream's consumer decides when the
     factory's answer changes.  Everything unnamed delegates to the fixture
-    reader, which keeps this a stand-in for `Reader`, not a second one.
+    reader: a stand-in for `Reader`, not a second one.
     """
 
     def __init__(self, reader: FixtureReader, epic_id: str, answer: dict) -> None:

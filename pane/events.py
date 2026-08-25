@@ -11,8 +11,8 @@ unaffected by the addition (001 FR-016).
 
 Spec 005 adds the third: ``showfloor``, one event per spec whose rail entry
 changed since the previous poll, carrying that entry re-assembled.  Additive the
-way ``attention`` was — a consumer written against 001 or 003 sees a type it does
-not know and ignores it (005 FR-005).
+way ``attention`` was — a consumer written against 001 ignores a type it does
+not know (005 FR-005).
 """
 
 import asyncio
@@ -75,10 +75,9 @@ async def floor_events(
     re-assembles the document and yields one event per rail entry that differs
     from the previous poll's, so a node state changing between two assemblies
     reaches the browser as the changed spec's entry and nothing else.  The first
-    poll differs from nothing and so yields every entry — a fresh subscription
-    starts with the whole room, the way 001's first ``floor`` event does
-    (FR-018).  ``previous`` is this generator's own: no baseline is shared
-    between subscribers and nothing is cached across them (001 R-007).
+    poll differs from nothing and yields every entry — a fresh subscription
+    starts with the whole room, as 001's first ``floor`` event does.  ``previous``
+    is this generator's own: no baseline is shared between subscribers (R-007).
     """
     from pane.floor_document import assemble_floor_document
     from pane.showfloor import ShowfloorReaders, assemble_showfloor

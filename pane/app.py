@@ -84,10 +84,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         document = await assemble_floor_document(reader)
         return JSONResponse(document)
 
-    # 005 US1 (T005): the whole Showfloor in one document.  Mounted on the same
-    # guarded router as `/api/floor`, so `require_viewer` covers it by
-    # construction — there is no per-route auth code here, and none is wanted
-    # (constitution VI, D-007).
+    # 005 US1: the whole Showfloor in one document, on the same guarded router
+    # as `/api/floor`, so `require_viewer` covers it by construction — no
+    # per-route auth code here, and none wanted (constitution VI).
     @router.get("/api/showfloor")
     async def api_showfloor():
         document = await assemble_showfloor(
