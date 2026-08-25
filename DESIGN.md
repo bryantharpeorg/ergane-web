@@ -117,7 +117,12 @@ Base `15.5px`. Steps, by role — a size off this ramp is a defect:
 - **Containment is a design law.** No element carrying text may cross the
   viewport's right edge except inside an ancestor whose `overflow-x` scrolls,
   and every stage element sits inside its stage's box. No two text leaves may
-  overlap. These are committed test assertions, not aspirations.
+  overlap. **And no element with an opaque background may paint over a text
+  leaf that is not its own** (2026-08-25, D-018) — the first three laws measure
+  glyph geometry through a `Range` over each leaf, which is correct and is
+  exactly why they cannot see a box painted on top of readable text. A degraded
+  note once rendered with its heading cut mid-word, in both themes, while all
+  three passed. These are committed test assertions, not aspirations.
 - Spacing rhythm: card padding `.65–.8rem`, section padding `1.3–1.8rem`,
   stage rank gap `1.6rem`, rail row padding `.6rem 1.2rem`.
 
