@@ -316,6 +316,11 @@ def test_a_story_of_an_undispatched_spec_rests_at_ready():
     assert [stop["status"] for stop in landed["stops"]] == ["done"] * 6
     assert landed["chip"] == "merged"
 
+    # …unless an epic is answering for the spec and did not name this node.
+    skewed = derive_ladder(None, False, None, "landed", dispatched=True)
+    assert skewed["stop"] == "ready"
+    assert skewed["chip"] is None
+
 
 def test_a_state_the_table_has_not_learned_is_named_not_guessed_at():
     ladder = derive_ladder("TELEPORTING", False, None, "ready")
@@ -537,6 +542,54 @@ def test_an_unreachable_epic_status_renders_the_entry_with_a_transport_note():
         {"read": "epic_status", "mode": "transport", "detail": failure.detail}
     ]
     assert len(entry["stories"]) == 4
+
+
+def test_a_story_the_answer_did_not_name_says_so(tmp_path):
+    """002's skew shape: the graph declares a node the answer never mentions."""
+
+    async def answer(spec_dir: str) -> dict | None:
+        if spec_dir != ARCHIVED_SPEC:
+            return None
+        return {"epic_state": "RUNNING", "nodes": {"us1": {"state": "RUNNING", "attempt": 2}}}
+
+    entry = entry_for(assemble(readers=static_readers(epic_status=answer)), ARCHIVED_SPEC)
+
+    us4 = entry["stories"][3]
+    assert us4["facts"]["state"] is None
+    assert "state" in us4["unknown"]
+    assert us4["ladder"]["stop"] == "ready"
+    # No chip: the spec is attested `landed`, but a running epic is the newer
+    # source and it said nothing about this node.
+    assert us4["ladder"]["chip"] is None
+
+
+def test_stories_stay_static_when_the_live_state_cannot_be_read():
+    """FR-004: the entry renders, and its stories rest where the spec declares.
+
+    A `ready` spec whose live read failed rests at `ready` — the pane shows what
+    it can still stand behind, and never a stop it did not observe.  A spec the
+    operator attested `landed` keeps its six-done ladders for the same reason:
+    the attestation is a fact the failed read did not take away.
+    """
+    failure = recorded_transport_failure()
+
+    async def answer(spec_dir: str) -> dict | None:
+        raise failure
+
+    document = assemble(readers=static_readers(epic_status=answer))
+
+    ready = entry_for(document, "005-one-epic-on-stage")
+    assert [note["mode"] for note in ready["notes"] if note["read"] == "epic_status"] == [
+        "transport"
+    ]
+    for story in ready["stories"]:
+        assert story["ladder"]["stop"] == "ready"
+        assert story["ladder"]["state"] is None
+        assert story["facts"]["attempt"] is None
+
+    landed = entry_for(document, ARCHIVED_SPEC)
+    assert all(story["ladder"]["stop"] == "merged" for story in landed["stories"])
+    assert landed["chip"] == "landed"
 
 
 def test_transport_and_refusal_are_distinguished_in_mode_not_only_in_prose():

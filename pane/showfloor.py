@@ -224,6 +224,8 @@ def derive_ladder(
     awaiting_operator: bool | None,
     terminal_reason: str | None,
     spec_state: str | None,
+    *,
+    dispatched: bool = False,
 ) -> dict:
     """Derive one story's ladder object from DESIGN.md's table (FR-003).
 
@@ -245,6 +247,11 @@ def derive_ladder(
       has no live answer to read and every story done, so its ladder is the
       six-done one and its chip is `merged`.
 
+    `dispatched` says an epic *did* answer for this spec and simply did not name
+    this node — 002's skew shape.  It rests at `ready` with no chip whatever the
+    spec declares, because a running epic is newer news than an attestation and
+    a stop nobody observed is not one to claim.
+
     A state ergane grows later and this table has not learned lands with no
     stop and no chip rather than being guessed at, and carries the word verbatim
     in `state` so the miss is visible (constitution III).
@@ -253,7 +260,7 @@ def derive_ladder(
     normalized = state if isinstance(state, str) and state else None
 
     if normalized is None:
-        return _undispatched_ladder(spec_state, awaiting, terminal_reason)
+        return _undispatched_ladder(spec_state, awaiting, terminal_reason, dispatched)
 
     if normalized in TERMINAL_STATES:
         return {
@@ -352,14 +359,16 @@ def _all_done_ladder(
 
 
 def _undispatched_ladder(
-    spec_state: str | None, awaiting: bool, terminal_reason: str | None
+    spec_state: str | None, awaiting: bool, terminal_reason: str | None, dispatched: bool
 ) -> dict:
-    """The ladder of a story no epic has ever run: it rests at `ready`.
+    """The ladder of a story no epic answered for: it rests at `ready`.
 
     `landed` is the exception, and it is the operator's own word: an attested
-    spec's stories are all merged and nothing live will ever say so again.
+    spec's stories are all merged and nothing live will ever say so again.  The
+    exception lapses the moment an epic *is* answering for the spec, because
+    then the attestation is the older of two sources.
     """
-    if spec_state == "landed":
+    if spec_state == "landed" and not dispatched:
         return _all_done_ladder(None, spec_state, awaiting, terminal_reason)
 
     stops = [
@@ -370,7 +379,7 @@ def _undispatched_ladder(
         }
         for key, label in LADDER_STOPS
     ]
-    chip = SPEC_STATE_CHIPS.get(spec_state) if spec_state is not None else None
+    chip = None if dispatched else SPEC_STATE_CHIPS.get(spec_state or "")
     return {
         "state": None,
         "spec_state": spec_state,
@@ -665,7 +674,7 @@ async def _assemble_spec(
             live_nodes = answer.get("nodes") or {}
 
     stories, story_source = _stories(
-        spec_dir, spec_state, graph, headings, live_nodes, unknown
+        spec_state, graph, headings, live_nodes, dispatched, unknown
     )
 
     landed = sum(1 for story in stories if story["ladder"]["stop_key"] == "merged")
@@ -688,11 +697,11 @@ async def _assemble_spec(
 
 
 def _stories(
-    spec_dir: str,
     spec_state: str | None,
     graph: dict | None,
     headings: dict[str, StoryHeading],
     live_nodes: dict[str, dict],
+    dispatched: bool,
     unknown: list[str],
 ) -> tuple[list[dict], str]:
     """The spec's stories, from the compiled graph when it was readable.
@@ -707,14 +716,16 @@ def _stories(
     if graph is not None:
         nodes = graph.get("nodes") or []
         stories = [
-            _story(node.get("story_key"), node, headings, live_nodes, spec_state, unknown)
+            _story(
+                node.get("story_key"), node, headings, live_nodes, dispatched, spec_state, unknown
+            )
             for node in nodes
             if node.get("id") is not None
         ]
         return stories, "workgraph"
 
     stories = [
-        _story(story_key, None, headings, live_nodes, spec_state, unknown)
+        _story(story_key, None, headings, live_nodes, dispatched, spec_state, unknown)
         for story_key in sorted(headings, key=_story_number)
     ]
     return stories, "headings"
@@ -730,6 +741,7 @@ def _story(
     node: dict | None,
     headings: dict[str, StoryHeading],
     live_nodes: dict[str, dict],
+    dispatched: bool,
     spec_state: str | None,
     unknown: list[str],
 ) -> dict:
@@ -766,6 +778,7 @@ def _story(
         facts["awaiting_operator"],
         facts["terminal_reason"],
         spec_state,
+        dispatched=dispatched,
     )
 
     return {
@@ -780,7 +793,10 @@ def _story(
         "ladder": ladder,
         "facts": facts,
         # The live fields the answer did not carry, named rather than defaulted.
-        "unknown": missing if live else [],
+        # An epic that was never dispatched carries none of them and is not
+        # missing anything; an answer that *was* read and did not name this node
+        # — 002's skew shape — is missing all of them, and says so.
+        "unknown": missing if dispatched else [],
     }
 
 
