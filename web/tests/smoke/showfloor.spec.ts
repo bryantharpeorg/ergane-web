@@ -1140,6 +1140,62 @@ test.describe("the four layout laws (FR-014, 009 FR-005)", () => {
     });
     expect((await measureLaws(page)).occluded).toEqual([]);
   });
+
+  /**
+   * 009 US2 (FR-005), and the first defect law (d) caught on its own.
+   *
+   * The merge queue refused this story's first branch, and it was right: the detail
+   * pane's rule was written `.showfloor .detail`, and the degraded note's
+   * third part is a `<span class="detail">` — the same word for a different
+   * thing. The span took the pane's opaque `--surface`, its `1.4rem` padding
+   * and its rule; inline padding paints and hit-tests but does not flow, so a
+   * long detail that broke onto its own line drew a white box back up over
+   * `landed_facts refusal` on the line above. Exactly D-018's defect, on
+   * exactly the element D-018 was about.
+   *
+   * The sweep above only sees it where a note and a selected story appear on
+   * one screen, which depends on which reads happen to fail on the machine
+   * running the gate — it went red in the forge and green on the operator's
+   * desk. So the leak has a guard that does not: the well is the painter, its
+   * parts are not, over a spec that carries a note on any machine because no
+   * DAG for it is committed.
+   */
+  test("the detail pane's clothes stop at the detail pane (D-018)", async ({ page, request }) => {
+    const rail = (await stageRail(request)) as Array<
+      StageEntry & { notes?: Array<{ read: string; mode: string; detail: string }> }
+    >;
+    const degraded = rail.filter((entry) => (entry.notes ?? []).length > 0);
+    expect(degraded.length, "this floor really degrades a read somewhere").toBeGreaterThan(0);
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const entry of degraded) {
+        await page.goto(`/showfloor/${entry.spec_dir}`);
+        await page.waitForSelector("[data-stage-note]");
+
+        const painted = await page.locator("[data-stage-note]").evaluateAll((notes) =>
+          notes.flatMap((note) =>
+            Array.from(note.querySelectorAll("*"))
+              .filter((part) => {
+                const colour = getComputedStyle(part).backgroundColor.trim();
+                return colour !== "" && colour !== "transparent" && !/,\s*0\)$/.test(colour);
+              })
+              .map(
+                (part) =>
+                  `${part.tagName.toLowerCase()}.${part.className} → ${
+                    getComputedStyle(part).backgroundColor
+                  }`,
+              ),
+          ),
+        );
+
+        expect(
+          painted,
+          `${entry.spec_dir} in ${scheme}: a part of the degraded note paints its own ground`,
+        ).toEqual([]);
+      }
+    }
+  });
 });
 
 /* ─────────────────────────────────────────────────────────────────────────
