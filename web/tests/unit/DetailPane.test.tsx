@@ -20,6 +20,26 @@
  * named, that the ones the factory stamped carry their instant, that an absent
  * value is an em dash and never a zero, and that a story with no selection
  * leaves the room explained rather than blank.
+ *
+ * ## Carried over by 008 US2, with one selector moved (D-016 clause b)
+ *
+ * Every assertion below is 005's, unchanged. **One selector drifted**, and it
+ * is the only one: `[data-detail-empty]` — the room's two sentences — no longer
+ * mounts inside `[data-detail]`. D-016 measured the price of the column it was
+ * holding open (403px of stage, and a graph clipped by 235px at 1280) and moved
+ * the words beneath the stage, above the legend row, where they cost the graph
+ * nothing. The element, its hook and its words are untouched; only its mounting
+ * point moved, so what changed here is a render call and nothing it asserts:
+ *
+ * | selector | 005 | 008 US2 |
+ * |---|---|---|
+ * | `[data-detail-empty]` | inside `<DetailPane story={null} />` | `<RoomExplanation />`, rendered by `Showfloor.tsx` beneath the stage |
+ *
+ * `RoomExplanation` is exported from the same module and carries the same two
+ * sentences, so "the empty pane explains the room" below renders the room's two
+ * pieces the way the room now renders them and asserts exactly what it did. It
+ * gains one case — that the released track really is empty — because a pane
+ * that kept a copy of the words would collapse a column with text still in it.
  */
 
 /// <reference types="vite/client" />
@@ -27,6 +47,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import DetailPane, {
+  RoomExplanation,
   ABSENT,
   factsOf,
   judgeFact,
@@ -377,7 +398,14 @@ describe("the pane tells the selected story whole (FR-015)", () => {
 
 describe("the empty pane explains the room (FR-015, FR-016)", () => {
   it("is two sentences, and the region is polite", () => {
-    const container = render(<DetailPane story={null} />);
+    // The room's two pieces, as the room now renders them: an empty pane in a
+    // released track, and the explanation beneath the stage (008 US2).
+    const container = render(
+      <>
+        <DetailPane story={null} />
+        <RoomExplanation />
+      </>,
+    );
 
     const pane = container.querySelector("[data-detail]")!;
     expect(pane.getAttribute("aria-live")).toBe("polite");
@@ -393,6 +421,33 @@ describe("the empty pane explains the room (FR-015, FR-016)", () => {
     // Nothing of a story is rendered where there is no story.
     expect(container.querySelector("[data-detail-steps]")).toBeNull();
     expect(container.querySelector("[data-detail-facts]")).toBeNull();
+  });
+
+  it("leaves the released track empty, so collapsing it hides no words (008 US2)", () => {
+    // The other half of D-016 clause (b): the pane keeps no second copy of the
+    // sentences. A `26rem` track that collapses over text still in it would be
+    // the room withholding what it says — which is what `display: none` would
+    // have been, and what constitution III forbids either way.
+    const container = render(<DetailPane story={null} />);
+
+    const pane = container.querySelector("[data-detail]")!;
+    expect(pane.getAttribute("aria-live")).toBe("polite");
+    expect(container.querySelector("[data-detail-empty]")).toBeNull();
+    expect((pane.textContent ?? "").trim()).toBe("");
+  });
+
+  it("renders the room's explanation on its own, outside the pane (008 US2)", () => {
+    const container = render(<RoomExplanation />);
+
+    const empty = container.querySelector("[data-detail-empty]")!;
+    expect(empty).not.toBeNull();
+    // Not inside a pane, because there is no pane here: the element `Showfloor`
+    // mounts beneath the stage is this one and carries this hook.
+    expect(container.querySelector("[data-detail]")).toBeNull();
+    // And it is never dressed to disappear (plan D1).
+    expect(empty.getAttribute("hidden")).toBeNull();
+    expect(empty.getAttribute("aria-hidden")).toBeNull();
+    expect((empty as HTMLElement).style.display).toBe("");
   });
 
   it("keeps the live region mounted across a selection, so a change is announced", () => {

@@ -1046,6 +1046,17 @@ test.describe("the three layout laws (FR-014)", () => {
     await page.goto("/showfloor");
     await page.waitForSelector("[data-stage-canvas]");
 
+    // 008 US2 (FR-008): this control now runs over the *released* room — the
+    // room opens on no story, so the detail track is collapsed and the stage
+    // holds the width it used to lose. That is the geometry the three laws
+    // have to keep catching things in, so it is asserted here rather than
+    // assumed: a control that quietly measured the old shape would guarantee
+    // nothing about the new one.
+    expect(
+      await page.getAttribute("[data-showfloor-cols]", "data-selection"),
+      "the control runs with the detail track released",
+    ).toBe("none");
+
     const clean = await measureLaws(page);
     expect(clean.escaped).toEqual([]);
     expect(clean.past).toEqual([]);
@@ -1550,6 +1561,420 @@ test.describe("the three laws hold with the pane full (FR-014, FR-015)", () => {
           expect(report.past, `${where}: text past the viewport`).toEqual([]);
           expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
           expect(report.roomScrollsSideways, `${where}: the room scrolls sideways`).toBe(false);
+        }
+      }
+    }
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   008 US2 — the stage takes the room the pane is not using (FR-004 … FR-008).
+
+   D-016 read the room on a 3008px monitor instead of a test viewport. The app
+   frame caps at 96rem; of what was left, a fixed `26rem` detail track held
+   403px to show two sentences of room explanation while nothing was selected,
+   the stage got 770px, and the graph needed 797. It scrolled — by 235px at
+   1280 and by 27px at 1600 and above, on every spec on the floor. The width
+   was already on the screen: the pane was holding it.
+
+   Nothing in this repository could see that. FR-014's law (a) sanctions a
+   scrolling ancestor inside the stage *by design*, because § Stage says a
+   graph too wide for its stage scrolls — so a stage that clips passes all
+   three laws. The measurement below is the assertion that was missing, and it
+   is the one number this story exists to move: 235 / 27 / 27 → 0 / 0 / 0.
+
+   Three cases, and each is one clause of D-016:
+
+   * **the sweep** (FR-007, FR-008) — every spec on the rail × {1280, 1600,
+     2560} × {light, dark}, nothing selected: the stage scroller's
+     `scrollWidth` equals its `clientWidth`, and FR-014's three laws are
+     re-measured in the same pass against 005's own element and text-leaf
+     floors, so the width the stage gained did not buy an escape.
+   * **the round trip** (FR-004, FR-006) — the collapsed track computes to `0`,
+     the stage is wider by exactly what the pane released, and picking a story
+     restores `26rem`, fills the pane and takes the explanation out from under
+     the stage. It also measures the wires, which is the defect this story was
+     most likely to ship: `Wires.tsx` measures on mount and on `resize`, and a
+     grid track that collapses fires neither.
+   * **the words** (FR-005) — `[data-detail-empty]` still carries its two
+     sentences, verbatim and visible, beneath the graph and above the legend
+     row. Plan D1: relocated, never hidden. A `display: none` would satisfy
+     005's `toHaveCount(1)` and would be a lie the constitution's third
+     principle forbids, so visibility and the box are asserted, not presence.
+
+   2560 stands in for D-016's 3008 (spec § Assumptions): the frame caps at
+   96rem, so every width above it renders the identical room.
+   ───────────────────────────────────────────────────────────────────────── */
+
+const US2_WIDTHS = [1280, 1600, 2560] as const;
+
+/** The authored two sentences, verbatim, as `DetailPane.tsx` writes them. */
+const ROOM_EXPLAINED =
+  "The rail picks a spec and the stage draws its work graph, one epic at a time. " +
+  "Choose a story on the stage and this pane tells it whole — the six steps it " +
+  "moves through, the facts the factory recorded, and the requirements it implements.";
+
+interface RoomMetrics {
+  /** The grid's own state hook: `none` while no story is selected. */
+  selection: string | null;
+  /** The three grid tracks as they resolved, in px. */
+  tracks: number[];
+  /** The detail pane's painted width — `0` while its track is collapsed. */
+  detailWidth: number | null;
+  /** The stage scroller's measurement, or null where there is no canvas. */
+  scroll: { clientWidth: number; scrollWidth: number } | null;
+  /** The room's root font size, so `26rem` is read and never assumed. */
+  root: number;
+}
+
+/** The room's two tracks and the stage scroller's measurement, in one layout. */
+async function roomMetrics(page: Page): Promise<RoomMetrics> {
+  return page.evaluate(() => {
+    const cols = document.querySelector("[data-showfloor-cols]") as HTMLElement | null;
+    const detail = document.querySelector("[data-detail]") as HTMLElement | null;
+    const scroller = document.querySelector("[data-stage-scroll]") as HTMLElement | null;
+    return {
+      selection: cols === null ? null : cols.getAttribute("data-selection"),
+      tracks:
+        cols === null
+          ? []
+          : getComputedStyle(cols)
+              .gridTemplateColumns.split(/\s+/)
+              .map((track) => parseFloat(track)),
+      detailWidth: detail === null ? null : detail.getBoundingClientRect().width,
+      scroll:
+        scroller === null
+          ? null
+          : { clientWidth: scroller.clientWidth, scrollWidth: scroller.scrollWidth },
+      root: parseFloat(getComputedStyle(document.documentElement).fontSize),
+    };
+  });
+}
+
+/** Every wire's committed path, beside the card boxes it claims to join. */
+async function wireGeometry(page: Page) {
+  return page.evaluate(() => {
+    const svg = document.querySelector("[data-wires]") as SVGElement | null;
+    if (svg === null) return [];
+    const origin = svg.getBoundingClientRect();
+    const box = (id: string) => {
+      const card = document.querySelector(`[data-story-id="${id}"]`) as HTMLElement | null;
+      if (card === null) return null;
+      const rect = card.getBoundingClientRect();
+      return {
+        left: rect.left - origin.left,
+        right: rect.right - origin.left,
+        middle: rect.top + rect.height / 2 - origin.top,
+      };
+    };
+    return Array.from(document.querySelectorAll("[data-wire]")).map((path) => ({
+      edge: `${path.getAttribute("data-edge-kind")}:${path.getAttribute("data-edge-source")}->${path.getAttribute("data-edge-target")}`,
+      d: path.getAttribute("d") ?? "",
+      source: box(path.getAttribute("data-edge-source") ?? ""),
+      target: box(path.getAttribute("data-edge-target") ?? ""),
+    }));
+  });
+}
+
+/**
+ * Every wire starts on its source's right edge and ends on its target's left,
+ * at each card's vertical middle — measured *now*, against the boxes as they
+ * are laid out at this instant.
+ *
+ * This is the assertion that makes T011 load-bearing. A wire measured before
+ * the track collapsed and never re-measured keeps the geometry of a layout
+ * that no longer exists, and no law FR-014 committed can see it: a stale path
+ * is inside the stage, inside the viewport, and overlaps no text.
+ */
+function expectWiresFollowCards(
+  wires: Awaited<ReturnType<typeof wireGeometry>>,
+  where: string,
+): void {
+  for (const wire of wires) {
+    const start = wire.d.match(/^M(-?[\d.]+) (-?[\d.]+)/);
+    const end = wire.d.match(/(-?[\d.]+) (-?[\d.]+)$/);
+    expect(start, `${where}: ${wire.edge} starts with a move`).not.toBeNull();
+    expect(end, `${where}: ${wire.edge} ends at a point`).not.toBeNull();
+    expect(wire.source, `${where}: ${wire.edge} has a source card`).not.toBeNull();
+    expect(wire.target, `${where}: ${wire.edge} has a target card`).not.toBeNull();
+    expect(Number(start![1]), `${where}: ${wire.edge} leaves its source`).toBeCloseTo(
+      wire.source!.right,
+      0,
+    );
+    expect(Number(start![2]), `${where}: ${wire.edge} leaves at the middle`).toBeCloseTo(
+      wire.source!.middle,
+      0,
+    );
+    expect(Number(end![1]), `${where}: ${wire.edge} reaches its target`).toBeCloseTo(
+      wire.target!.left,
+      0,
+    );
+    expect(Number(end![2]), `${where}: ${wire.edge} arrives at the middle`).toBeCloseTo(
+      wire.target!.middle,
+      0,
+    );
+  }
+}
+
+test.describe("the stage takes the room the pane is not using (FR-004, FR-007, FR-008)", () => {
+  test("every spec, three widths, both themes: no stage clips its graph", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    // FR-007 asks for the sweep over a real floor. A rail of one spec would
+    // pass this test for the wrong reason, so the floor's size is asserted
+    // before anything is measured on it.
+    expect(rail.length, "the fixture floor carries at least five specs").toBeGreaterThanOrEqual(5);
+
+    let visited = 0;
+    let staged = 0;
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of US2_WIDTHS) {
+        await page.setViewportSize({ width, height: 1000 });
+        for (const entry of rail) {
+          await page.goto(`/showfloor/${entry.spec_dir}`);
+          await page.waitForSelector("[data-metrics]");
+          const where = `${entry.spec_dir} at ${width} in ${scheme}`;
+          visited++;
+
+          const metrics = await roomMetrics(page);
+
+          // The room opens on no story and this sweep never picks one, so
+          // every measurement below is of the released state (FR-004).
+          expect(metrics.selection, `${where}: nothing is selected`).toBe("none");
+          expect(metrics.tracks, `${where}: the room resolved three tracks`).toHaveLength(3);
+          expect(metrics.tracks[2], `${where}: the detail track computed to 0`).toBe(0);
+          expect(metrics.detailWidth, `${where}: the released pane paints nothing`).toBe(0);
+
+          if (metrics.scroll === null) {
+            // "an epic whose stage document has no nodes renders as its
+            // degraded notice with **no stage canvas at all**" (005 FR-013).
+            // There is no scroller, because there is no graph to clip.
+            expect(entry.stories.length, `${where} declares no story to stage`).toBe(0);
+          } else {
+            staged++;
+            // SC-003, the whole point: 235px at 1280 and 27px at 1600 and
+            // 2560 before this story, on every spec on the floor. Now none.
+            expect(
+              metrics.scroll.scrollWidth - metrics.scroll.clientWidth,
+              `${where}: the stage clips its graph`,
+            ).toBe(0);
+          }
+
+          // FR-008: the same three laws, the same floors 005 committed. The
+          // width the stage gained does not buy an escape, a runaway or a
+          // collision.
+          const report = await measureLaws(page);
+          expect(report.swept, `${where} rendered something`).toBeGreaterThan(20);
+          expect(report.leaves, `${where} has text leaves`).toBeGreaterThan(10);
+          expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
+          expect(report.past, `${where}: text past the viewport`).toEqual([]);
+          expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+          expect(report.documentScrollWidth, where).toBeLessThanOrEqual(report.viewport + 0.5);
+          expect(report.roomScrollsSideways, `${where}: the room scrolls sideways`).toBe(false);
+        }
+      }
+    }
+
+    // A sweep that silently visited nothing passes for the wrong reason, so
+    // what it covered is asserted too: every spec, every width, both themes,
+    // and a real majority of them carrying a graph.
+    expect(visited).toBe(rail.length * US2_WIDTHS.length * SCHEMES.length);
+    expect(staged, "specs with a graph were measured").toBeGreaterThanOrEqual(
+      5 * US2_WIDTHS.length * SCHEMES.length,
+    );
+  });
+
+  test("picking a story restores the 26rem track, and the wires follow the cards", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    const edgeCount = (entry: StageEntry) =>
+      entry.stories.reduce(
+        (total, story) => total + story.depends_on.length + story.depends_on_merged.length,
+        0,
+      );
+    const wired = rail
+      .filter((entry) => edgeCount(entry) > 0)
+      .sort((a, b) => edgeCount(b) - edgeCount(a))[0];
+    expect(wired, "some spec on this floor declares dependencies").toBeDefined();
+    const story = wired.stories.find((candidate) => candidate.id !== null)!;
+
+    for (const width of US2_WIDTHS) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`/showfloor/${wired.spec_dir}`);
+      await page.waitForSelector("[data-stage-canvas]");
+      const where = `${wired.spec_dir} at ${width}`;
+
+      const before = await roomMetrics(page);
+      expect(before.selection, `${where}: opens on no story`).toBe("none");
+      expect(before.tracks[2], `${where}: the track is collapsed`).toBe(0);
+      await expect(
+        page.locator("[data-detail-empty]"),
+        `${where}: the room explains itself beneath the stage`,
+      ).toHaveCount(1);
+      await expect(page.locator("[data-detail-title]")).toHaveCount(0);
+
+      const wiresBefore = await wireGeometry(page);
+      expect(wiresBefore.length, `${where}: the graph is wired`).toBeGreaterThan(0);
+      expectWiresFollowCards(wiresBefore, `${where}, released`);
+
+      // The pick. Nothing remounts: the grid element is the same element
+      // before and after, and only its state hook changed (FR-004).
+      const identity = await page.evaluate(() => {
+        const cols = document.querySelector("[data-showfloor-cols]")!;
+        (cols as HTMLElement & { __mark?: number }).__mark = 1;
+        const detail = document.querySelector("[data-detail]")!;
+        (detail as HTMLElement & { __mark?: number }).__mark = 1;
+        return true;
+      });
+      expect(identity).toBe(true);
+
+      await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+      await page.waitForSelector("[data-detail-title]");
+
+      const survived = await page.evaluate(() => {
+        const cols = document.querySelector("[data-showfloor-cols]") as HTMLElement & {
+          __mark?: number;
+        };
+        const detail = document.querySelector("[data-detail]") as HTMLElement & {
+          __mark?: number;
+        };
+        return { cols: cols.__mark === 1, detail: detail.__mark === 1 };
+      });
+      expect(survived.cols, `${where}: the grid was not remounted`).toBe(true);
+      expect(survived.detail, `${where}: the live region was not remounted`).toBe(true);
+
+      const after = await roomMetrics(page);
+
+      // FR-006: the track returns at `26rem`, read through the room's own root
+      // font size rather than assumed to be 416px.
+      expect(after.selection, `${where}: the grid says a story is selected`).toBe("story");
+      expect(after.tracks[2], `${where}: the track returned at 26rem`).toBeCloseTo(
+        26 * after.root,
+        1,
+      );
+      expect(after.detailWidth, `${where}: the pane paints its track`).toBeCloseTo(
+        26 * after.root,
+        1,
+      );
+
+      // FR-004, the other half: the stage track is wider by exactly what the
+      // pane released, at this width and at every other.
+      expect(
+        before.tracks[1] - after.tracks[1],
+        `${where}: the stage took the width the pane released`,
+      ).toBeCloseTo(26 * after.root, 1);
+      expect(
+        before.scroll!.clientWidth - after.scroll!.clientWidth,
+        `${where}: the scroller gained the released width`,
+      ).toBeCloseTo(26 * after.root, 0);
+
+      // FR-006: the explanation is gone from beneath the stage, and the pane
+      // is telling the story instead.
+      await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
+      await expect(page.locator("[data-detail-title]")).toHaveText(story.title);
+
+      // And the wires still join the cards they name, measured against the
+      // boxes as the restored pane leaves them.
+      //
+      // What this does *not* assert is that the path data changed, because on
+      // this room it does not, and measuring it here is what showed why: the
+      // wires' coordinate space is the canvas's own (plan D1), the cards are
+      // fixed-width and left-aligned inside it, and restoring the track moves
+      // the whole canvas — measured at 1280, the metrics grid gains a row and
+      // the SVG origin drops 4.95px while every card keeps its offset from it
+      // to the fraction. A translation leaves relative geometry alone. So this
+      // is the standing guard for a *future* relayout that does move a card,
+      // and the case that can actually go red on a missing re-measure is
+      // `tests/unit/Wires.test.tsx` — a canvas whose boxes really move between
+      // two renders, which jsdom will let a test say and a browser will not.
+      const wiresAfter = await wireGeometry(page);
+      expect(wiresAfter.map((wire) => wire.edge)).toEqual(wiresBefore.map((wire) => wire.edge));
+      expectWiresFollowCards(wiresAfter, `${where}, selected`);
+    }
+  });
+
+  test("the room's two sentences sit beneath the stage, verbatim and visible (FR-005)", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    const staged = rail.filter((entry) => entry.stories.length > 0);
+    expect(staged.length).toBeGreaterThanOrEqual(5);
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of US2_WIDTHS) {
+        await page.setViewportSize({ width, height: 1000 });
+        for (const entry of staged) {
+          await page.goto(`/showfloor/${entry.spec_dir}`);
+          await page.waitForSelector("[data-stage-canvas]");
+          const where = `${entry.spec_dir} at ${width} in ${scheme}`;
+
+          const read = await page.evaluate(() => {
+            const empty = document.querySelector("[data-detail-empty]") as HTMLElement | null;
+            if (empty === null) return null;
+            const style = getComputedStyle(empty);
+            const box = empty.getBoundingClientRect();
+            const scroller = document.querySelector("[data-stage-scroll]")!;
+            const legend = document.querySelector("[data-legend]")!;
+            const stage = document.querySelector("[data-stage]")!;
+            const pane = document.querySelector("[data-detail]")!;
+            return {
+              text: (empty.textContent ?? "").replace(/\s+/g, " ").trim(),
+              display: style.display,
+              visibility: style.visibility,
+              opacity: style.opacity,
+              overflow: style.overflow,
+              textOverflow: style.textOverflow,
+              width: box.width,
+              height: box.height,
+              top: box.top,
+              bottom: box.bottom,
+              graphBottom: scroller.getBoundingClientRect().bottom,
+              legendTop: legend.getBoundingClientRect().top,
+              insideStage: stage.contains(empty),
+              insidePane: pane.contains(empty),
+              clippedWide: empty.scrollWidth > empty.clientWidth + 0.5,
+              clippedTall: empty.scrollHeight > empty.clientHeight + 0.5,
+            };
+          });
+
+          expect(read, `${where}: the room is explained somewhere`).not.toBeNull();
+
+          // The same words, not a paraphrase and not a shortened one.
+          expect(read!.text, `${where}: the two sentences, verbatim`).toBe(ROOM_EXPLAINED);
+          expect(read!.text.split(". "), `${where}: two sentences`).toHaveLength(2);
+
+          // Visible, not merely present. Plan D1: a `display: none` would pass
+          // 005's `toHaveCount(1)` and would be the pane withholding what the
+          // room says (constitution III).
+          expect(read!.display, `${where}: not display:none`).not.toBe("none");
+          expect(read!.visibility, `${where}: computed visible`).toBe("visible");
+          expect(Number(read!.opacity), `${where}: opaque`).toBeGreaterThan(0);
+          expect(read!.width, `${where}: a non-zero box`).toBeGreaterThan(0);
+          expect(read!.height, `${where}: a non-zero box`).toBeGreaterThan(0);
+
+          // And never truncated: no clipped overflow, no ellipsis.
+          expect(read!.clippedWide, `${where}: not clipped sideways`).toBe(false);
+          expect(read!.clippedTall, `${where}: not clipped vertically`).toBe(false);
+          expect(read!.textOverflow, `${where}: no ellipsis`).toBe("clip");
+
+          // Beneath the stage, above the legend row — and inside the stage
+          // column rather than in the track it just gave up (D-016 clause b).
+          expect(read!.top, `${where}: beneath the graph`).toBeGreaterThanOrEqual(
+            read!.graphBottom - 0.5,
+          );
+          expect(read!.bottom, `${where}: above the legend row`).toBeLessThanOrEqual(
+            read!.legendTop + 0.5,
+          );
+          expect(read!.insideStage, `${where}: inside the stage column`).toBe(true);
+          expect(read!.insidePane, `${where}: not in the collapsed track`).toBe(false);
         }
       }
     }

@@ -24,9 +24,11 @@
  *
  * And measurement has to happen after layout, so it runs in a layout effect
  * (before paint) and again in a `requestAnimationFrame` (after the browser has
- * settled fonts and scrollbars), and once more on every `resize`. In jsdom
- * every box is zero, which is why the unit tests assert the path set — one path
- * per edge, each carrying its kind — and the smoke asserts the geometry.
+ * settled fonts and scrollbars), once more on every `resize` — and, since 008
+ * US2, once more whenever the room's selection relays the stage without the
+ * window changing size (`relayout` below). In jsdom every box is zero, which is
+ * why the unit tests assert the path set — one path per edge, each carrying its
+ * kind — and the smoke asserts the geometry.
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -41,6 +43,19 @@ export interface WireEdge {
 
 interface WiresProps {
   edges: WireEdge[];
+  /**
+   * Anything whose change relays the cards without resizing the window.
+   *
+   * 008 US2 is why this exists. Measurement runs on mount and on `resize`, and
+   * collapsing or restoring the detail grid track fires neither: the stage gets
+   * 416px wider, the metrics grid unwraps a row, every card below it moves —
+   * and the paths keep the geometry of a layout that is gone. Nothing FR-014
+   * committed can see that, because a stale wire is inside its stage, inside
+   * the viewport and overlapping no text. So the selection is passed in and
+   * re-measures explicitly, and `Stage.tsx` memoises the edge list so this is
+   * the only thing driving it rather than an incidental array identity.
+   */
+  relayout?: unknown;
 }
 
 interface DrawnWire extends WireEdge {
@@ -70,7 +85,7 @@ export function pathBetween(from: DOMRect, to: DOMRect, origin: DOMRect): string
   return `M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
 }
 
-export default function Wires({ edges }: WiresProps): JSX.Element {
+export default function Wires({ edges, relayout = null }: WiresProps): JSX.Element {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [drawn, setDrawn] = useState<DrawnWire[]>([]);
   const frame = useRef<number | null>(null);
@@ -93,7 +108,9 @@ export default function Wires({ edges }: WiresProps): JSX.Element {
     }
 
     setDrawn(paths);
-  }, [edges]);
+    // `relayout` is read by the dependency list and not by the body: what it
+    // changes is the layout this function measures, not the measurement.
+  }, [edges, relayout]);
 
   useLayoutEffect(() => {
     measure();

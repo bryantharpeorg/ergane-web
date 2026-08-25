@@ -393,3 +393,77 @@ describe("the badge follows floor events (003's guarantee, on the new frame)", (
     document.body.removeChild(container);
   });
 });
+
+/**
+ * 008 US2 — the room's shape while nothing is selected (FR-004 … FR-006).
+ *
+ * The measured half is `tests/smoke/showfloor.spec.ts`: jsdom computes no
+ * cascade, so what `data-selection="none"` *resolves to* is a Playwright
+ * assertion. What is provable here is the half a stylesheet cannot fix — that
+ * the grid carries the state at all, that the room's two sentences are mounted
+ * beneath the stage and above the legend rather than inside the track that is
+ * about to collapse, and that a pick changes an attribute instead of rebuilding
+ * the room (D-016 clauses a and b; plan D2).
+ */
+describe("the released detail track (008 US2, FR-004 … FR-006)", () => {
+  const cols = (container: HTMLElement) =>
+    container.querySelector("[data-showfloor-cols]") as HTMLElement;
+
+  it("hooks the grid with the selection, and opens on none", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", CORPUS);
+
+    expect(cols(container).getAttribute("data-selection")).toBe("none");
+
+    document.body.removeChild(container);
+  });
+
+  it("mounts the room's two sentences beneath the stage, above the legend", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", CORPUS);
+
+    const empty = container.querySelector("[data-detail-empty]")!;
+    const stage = container.querySelector("[data-stage]")!;
+    const legend = container.querySelector("[data-legend]")!;
+    const pane = container.querySelector("[data-detail]")!;
+
+    expect(empty).not.toBeNull();
+    // Inside the stage column — so FR-014's law (a) measures it — and out of
+    // the track it used to hold open.
+    expect(stage.contains(empty)).toBe(true);
+    expect(pane.contains(empty)).toBe(false);
+    expect((pane.textContent ?? "").trim()).toBe("");
+
+    // Above the legend row, in document order: `DOCUMENT_POSITION_FOLLOWING`
+    // is the DOM's own word for "comes after me".
+    expect(empty.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    document.body.removeChild(container);
+  });
+
+  it("flips the hook on a pick, takes the words back, and remounts nothing", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", CORPUS);
+
+    const grid = cols(container);
+    const pane = container.querySelector("[data-detail]")!;
+    const card = container.querySelector("[data-node-card]") as HTMLButtonElement;
+    expect(card).not.toBeNull();
+
+    await act(async () => {
+      card.click();
+      await Promise.resolve();
+    });
+
+    expect(grid.getAttribute("data-selection")).toBe("story");
+    // FR-006: the explanation leaves the stage as the pane fills.
+    expect(container.querySelector("[data-detail-empty]")).toBeNull();
+    expect(container.querySelector("[data-detail-title]")).not.toBeNull();
+
+    // FR-004: "with no remount". The grid and the live region are the same two
+    // elements they were — a region that is unmounted and remounted per story
+    // announces nothing at all, and a grid that remounts throws away every box
+    // the wires were measured against.
+    expect(cols(container)).toBe(grid);
+    expect(container.querySelector("[data-detail]")).toBe(pane);
+
+    document.body.removeChild(container);
+  });
+});
