@@ -167,13 +167,17 @@ def test_one_subscription_carries_both_types(tmp_path):
 
 
 def test_event_types_vocabulary():
-    """001's vocabulary plus the one type spec 003 declares (FR-005).
+    """001's vocabulary plus the types 003 and 005 declare (003 FR-005, 005 FR-005).
 
-    `attention` is a declared extension, not a redefinition: a consumer that
-    ignores unknown types is unaffected until it opts in, so every surface built
-    against 001 keeps working unchanged.
+    `attention` and `showfloor` are declared *extensions*, not redefinitions: a
+    consumer that ignores unknown types is unaffected until it opts in, so every
+    surface built against 001 keeps working unchanged.  This assertion is the
+    same one spec 003 committed, widened by exactly the one name spec 005 adds —
+    the closed-vocabulary property it exists to hold is unchanged, and the two
+    older names still have to be there in the same order.
     """
-    assert EVENT_TYPES == ("floor", "attention")
+    assert EVENT_TYPES == ("floor", "attention", "showfloor")
+    assert EVENT_TYPES[:2] == ("floor", "attention")
 
 
 class _RecordingReader:

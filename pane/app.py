@@ -18,6 +18,7 @@ from pane.fixture_floor import FixtureReader
 from pane.floor_document import assemble_floor_document
 from pane.intake import create_intake_router
 from pane.readers import LiveReader, Reader
+from pane.showfloor import ShowfloorReaders, assemble_showfloor
 
 log = logging.getLogger("pane")
 
@@ -83,6 +84,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         document = await assemble_floor_document(reader)
         return JSONResponse(document)
 
+    # 005 US1 (T005): the whole Showfloor in one document.  Mounted on the same
+    # guarded router as `/api/floor`, so `require_viewer` covers it by
+    # construction — there is no per-route auth code here, and none is wanted
+    # (constitution VI, D-007).
+    @router.get("/api/showfloor")
+    async def api_showfloor():
+        document = await assemble_showfloor(
+            settings.specs_root,
+            ShowfloorReaders.from_reader(reader, settings.specs_root),
+        )
+        return JSONResponse(document)
+
     @router.get("/api/attention")
     async def api_attention():
         degraded: list[dict] = []
@@ -98,6 +111,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     interval_s=settings.poll_interval_s,
                     should_stop=request.is_disconnected,
                     broadcaster=broadcaster,
+                    specs_root=settings.specs_root,
                 )
             )
         )
