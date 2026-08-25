@@ -1,0 +1,385 @@
+<title>Showfloor Redrawn</title>
+
+<style>
+  /* Tokens lifted from the Container-onramp review the operator pinned as the
+     reference aesthetic. This is a PROPOSAL to replace DESIGN.md's world for the
+     Showfloor, reviewed here before anything is amended — not product code. */
+  :root {
+    --ground:   #EDF0F2;
+    --surface:  #FFFFFF;
+    --sunken:   #E3E8EB;
+    --ink:      #14202A;
+    --muted:    #566873;
+    --faint:    #7D8F9A;
+    --rule:     #C7D1D7;
+    --hairline: #D8E0E4;
+    --accent:   #0E6F79;
+    --accent-w: #DCEDEF;
+    --alarm:    #9E3319;
+    --alarm-w:  #F6E3DD;
+    --gold:     #7E5D12;
+    --gold-w:   #F4EBD4;
+    --olive:    #5A6B2F;
+    --olive-w:  #EBEFD9;
+    --shadow:   0 1px 2px rgba(20,32,42,.05), 0 8px 24px -12px rgba(20,32,42,.14);
+    --serif: ui-serif, "Iowan Old Style", Georgia, "Times New Roman", serif;
+    --sans:  ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0D1418; --surface:#131E24; --sunken:#0A1013;
+      --ink:#D8E3E8; --muted:#8A9EA9; --faint:#6B7F8A;
+      --rule:#27373F; --hairline:#1E2C33;
+      --accent:#46B7C1; --accent-w:#102D31;
+      --alarm:#E2795A; --alarm-w:#2E1710;
+      --gold:#D3A845; --gold-w:#2B2210;
+      --olive:#A9BC62; --olive-w:#20260F;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0D1418; --surface:#131E24; --sunken:#0A1013;
+    --ink:#D8E3E8; --muted:#8A9EA9; --faint:#6B7F8A;
+    --rule:#27373F; --hairline:#1E2C33;
+    --accent:#46B7C1; --accent-w:#102D31;
+    --alarm:#E2795A; --alarm-w:#2E1710;
+    --gold:#D3A845; --gold-w:#2B2210;
+    --olive:#A9BC62; --olive-w:#20260F;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 15.5px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .note-wrap { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; }
+  code { font-family: var(--mono); font-size: .85em; background: var(--sunken); padding: .1em .35em; }
+  a { color: var(--accent); }
+  button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── intro strip ─────────────────────────────────────────── */
+  .intro { border-bottom: 2px solid var(--ink); padding: 2.6rem 0 1.6rem; margin-bottom: 0; }
+  .eyebrow { font-family: var(--mono); font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { font-family: var(--serif); font-size: clamp(1.9rem, 4.5vw, 2.8rem); line-height: 1.08; letter-spacing: -.02em; font-weight: 600; margin: .4rem 0 .5rem; text-wrap: balance; }
+  .standfirst { font-family: var(--serif); font-size: 1.12rem; color: var(--muted); max-width: 46rem; margin: 0; }
+  .provenance { font-family: var(--mono); font-size: .72rem; color: var(--faint); margin-top: .8rem; }
+
+  /* ── the mock app frame ──────────────────────────────────── */
+  .frame {
+    background: var(--surface); border: 1px solid var(--rule);
+    box-shadow: var(--shadow); margin: 2.2rem auto; max-width: 96rem;
+  }
+  .appbar {
+    display: flex; align-items: center; gap: 1.4rem;
+    padding: .7rem 1.3rem; border-bottom: 1px solid var(--rule);
+  }
+  .brand { font-family: var(--mono); font-weight: 700; letter-spacing: .06em; }
+  .brand::before { content: "◆ "; color: var(--accent); }
+  .nav { display: flex; gap: 1rem; font-size: .9rem; }
+  .nav span { color: var(--muted); }
+  .nav .on { color: var(--ink); border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
+  .badge {
+    margin-left: auto; font-family: var(--mono); font-size: .74rem; font-weight: 600;
+    color: var(--gold); background: var(--gold-w); border: 1px solid currentColor;
+    padding: .3em .7em;
+  }
+
+  .cols { display: grid; grid-template-columns: 17rem 1fr 26rem; min-height: 34rem; }
+  @media (max-width: 1180px) { .cols { grid-template-columns: 15rem 1fr; } .detail { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--rule); } }
+  @media (max-width: 820px)  { .cols { grid-template-columns: 1fr; } .rail { border-right: none; border-bottom: 1px solid var(--rule); } }
+
+  /* ── epic rail ───────────────────────────────────────────── */
+  .rail { border-right: 1px solid var(--rule); padding: 1rem 0; background: var(--surface); }
+  .rail h2 { font-family: var(--mono); font-size: .66rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; margin: 0 1.2rem .6rem; }
+  .epic-row { display: block; width: 100%; text-align: left; background: none; border: none; border-left: 3px solid transparent; padding: .6rem 1.2rem .6rem calc(1.2rem - 3px); cursor: pointer; color: var(--ink); font: inherit; }
+  .epic-row:hover { background: var(--sunken); }
+  .epic-row.sel { border-left-color: var(--accent); background: var(--accent-w); }
+  .epic-row .eid { font-family: var(--mono); font-weight: 700; font-size: 1.05rem; color: var(--accent); letter-spacing: -.01em; }
+  .epic-row .ename { display: block; font-size: .82rem; color: var(--muted); line-height: 1.3; margin-top: .1rem; }
+  .epic-row .estat { display: inline-block; margin-top: .3rem; }
+
+  .chip {
+    font-family: var(--mono); font-size: .62rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    padding: .24em .55em; border: 1px solid currentColor; white-space: nowrap;
+  }
+  .chip.landed   { color: var(--olive);  background: var(--olive-w); }
+  .chip.building { color: var(--accent); background: var(--accent-w); }
+  .chip.ready    { color: var(--muted);  background: var(--sunken); }
+  .chip.draft    { color: var(--faint);  background: transparent; border-style: dashed; }
+  .chip.wait     { color: var(--gold);   background: var(--gold-w); }
+  .chip.dead     { color: var(--alarm);  background: var(--alarm-w); }
+
+  /* ── stage (DAG) ─────────────────────────────────────────── */
+  .stage { padding: 1.4rem 1.6rem 1.8rem; overflow-x: auto; }
+  .stage-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .6rem 1rem; margin-bottom: 1rem; }
+  .spec-id { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: var(--accent); }
+  .spec-name { font-family: var(--serif); font-size: 1.2rem; font-weight: 600; flex: 1 1 16rem; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.8rem, 1fr)); gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); margin-bottom: 1.5rem; max-width: 46rem; }
+  .metric { background: var(--surface); padding: .55rem .75rem; }
+  .metric b { display: block; font-family: var(--mono); font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .metric span { font-family: var(--mono); font-size: .6rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+
+  .dag { position: relative; padding: .4rem 0 .2rem; min-width: 46rem; }
+  .dag svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .dag .wire { stroke: var(--rule); stroke-width: 2; fill: none; }
+  .dag .wire.merge { stroke: var(--olive); }
+  .ranks { position: relative; display: flex; gap: 1.6rem; align-items: flex-start; }
+  .rank { display: flex; flex-direction: column; gap: 1.2rem; }
+
+  .node {
+    width: 11.5rem; text-align: left; cursor: pointer; font: inherit; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 2px;
+    padding: .65rem .8rem .7rem; box-shadow: var(--shadow); position: relative;
+  }
+  .node:hover { border-color: var(--accent); }
+  .node.sel { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 0; }
+  .node .nid { display: block; font-family: var(--mono); font-weight: 700; font-size: .82rem; color: var(--accent); }
+  .node .ntitle { font-size: .84rem; line-height: 1.3; margin: .15rem 0 .5rem; }
+  .node .nstat { display: flex; align-items: center; gap: .5rem; }
+  .node .nsub { font-family: var(--mono); font-size: .66rem; color: var(--muted); margin-top: .4rem; }
+
+  /* per-node status rail: seven fixed stops */
+  .ladder { display: flex; gap: 3px; margin-top: .55rem; }
+  .ladder i {
+    flex: 1; height: 4px; background: var(--sunken); border-radius: 1px;
+  }
+  .ladder i.done { background: var(--olive); }
+  .ladder i.now  { background: var(--accent); animation: pulse 1.6s ease-in-out infinite; }
+  .ladder i.hold { background: var(--gold); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .ladder i.now { animation: none; } }
+
+  .legend { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin-top: 1.4rem; font-family: var(--mono); font-size: .64rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .legend b { font-weight: 600; }
+  .swatch { display: inline-block; width: 1.1em; height: 4px; border-radius: 1px; vertical-align: middle; margin-right: .35em; }
+
+  /* ── detail pane ─────────────────────────────────────────── */
+  .detail { border-left: 1px solid var(--rule); background: var(--surface); padding: 1.3rem 1.4rem 1.6rem; }
+  .detail .dhead { display: flex; align-items: baseline; gap: .7rem; flex-wrap: wrap; }
+  .detail .dtitle { font-family: var(--serif); font-size: 1.15rem; font-weight: 600; line-height: 1.25; margin: .2rem 0 .6rem; text-wrap: balance; }
+  .detail .dprose { font-size: .9rem; color: var(--muted); max-width: 38rem; }
+  .dsec { font-family: var(--mono); font-size: .64rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; margin: 1.2rem 0 .45rem; }
+  .steps { list-style: none; margin: 0; padding: 0; }
+  .steps li { display: grid; grid-template-columns: 1.1rem 7.2rem 1fr; gap: .55rem; padding: .28rem 0; font-size: .82rem; align-items: baseline; }
+  .steps .dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--sunken); align-self: center; justify-self: center; }
+  .steps li.done .dot { background: var(--olive); }
+  .steps li.now  .dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-w); }
+  .steps li.hold .dot { background: var(--gold); box-shadow: 0 0 0 3px var(--gold-w); }
+  .steps .sname { font-family: var(--mono); font-size: .74rem; font-weight: 600; }
+  .steps li.pending { color: var(--faint); }
+  .steps .swhen { font-family: var(--mono); font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: .2rem 1rem; font-size: .82rem; }
+  .kv dt { font-family: var(--mono); font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .kv dd { margin: 0; font-family: var(--mono); font-size: .78rem; font-variant-numeric: tabular-nums; }
+  .frlist { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .fr { font-family: var(--mono); font-size: .68rem; border: 1px solid var(--hairline); background: var(--sunken); padding: .18em .5em; }
+
+  /* ── notes below the mock ────────────────────────────────── */
+  section.notes { padding: 2.4rem 0 1rem; }
+  h2.nh { font-family: var(--serif); font-size: 1.5rem; font-weight: 600; letter-spacing: -.01em; margin: 0 0 .8rem; }
+  .findgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 1rem; margin: 1rem 0 1.5rem; }
+  .find { background: var(--surface); border: 1px solid var(--rule); padding: .95rem 1.1rem; }
+  .find b { font-family: var(--mono); font-size: .74rem; color: var(--alarm); display: block; margin-bottom: .3rem; }
+  .find p { margin: 0; font-size: .86rem; color: var(--muted); }
+  table.seams { border-collapse: collapse; width: 100%; max-width: 56rem; font-size: .86rem; background: var(--surface); border: 1px solid var(--rule); }
+  table.seams th { font-family: var(--mono); font-size: .64rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); text-align: left; padding: .5rem .8rem; background: var(--sunken); }
+  table.seams td { padding: .5rem .8rem; border-top: 1px solid var(--hairline); vertical-align: top; }
+  td.gap { color: var(--alarm); font-weight: 600; }
+  footer { padding: 2rem 0 3.5rem; font-family: var(--mono); font-size: .72rem; color: var(--faint); }
+</style>
+
+<div class="note-wrap">
+  <header class="intro">
+    <p class="eyebrow">UX pass · proposal for review · not product code</p>
+    <h1>Showfloor Redrawn</h1>
+    <p class="standfirst">One epic at a time, as a master–detail: the rail picks the spec, the stage draws its work graph, the pane tells the whole story of one story. Every status below is derivable from a seam ergane already exports — except one, which is marked.</p>
+    <p class="provenance">Data recomposed from the real 004 run of 24 Aug — snapshot 4:45 PM CT, when four statuses coexisted. Styling per the pinned Container-onramp reference. Click any node.</p>
+  </header>
+</div>
+
+<div class="frame" id="mock">
+  <div class="appbar">
+    <span class="brand">ERGANE</span>
+    <nav class="nav"><span>Desk</span> <span class="on">Showfloor</span></nav>
+    <span class="badge">1 waiting on you → Desk</span>
+  </div>
+  <div class="cols">
+
+    <aside class="rail" aria-label="Specs">
+      <h2>Specs · 4</h2>
+      <button class="epic-row"><span class="eid">001</span> <span class="chip landed estat">landed 4/4</span><span class="ename">the desk sees the floor</span></button>
+      <button class="epic-row"><span class="eid">002</span> <span class="chip landed estat">landed 4/4</span><span class="ename">the showfloor stages an epic</span></button>
+      <button class="epic-row"><span class="eid">003</span> <span class="chip landed estat">landed 4/4</span><span class="ename">an answer reaches the factory</span></button>
+      <button class="epic-row sel" aria-current="true"><span class="eid">004</span> <span class="chip building estat">building 1/4</span><span class="ename">the pane fits the screen</span></button>
+    </aside>
+
+    <div class="stage">
+      <div class="stage-head">
+        <span class="spec-id">004</span>
+        <span class="spec-name">The pane fits the screen</span>
+        <span class="chip building">us3 building · att 1</span>
+      </div>
+      <div class="metrics">
+        <div class="metric"><b>4</b><span>stories</span></div>
+        <div class="metric"><b>1</b><span>merged</span></div>
+        <div class="metric"><b>15</b><span>FRs</span></div>
+        <div class="metric"><b>19m</b><span>last story</span></div>
+        <div class="metric"><b>$0.00</b><span>spend to date</span></div>
+      </div>
+
+      <div class="dag" id="dag">
+        <svg class="wires" id="wires" aria-hidden="true"></svg>
+        <div class="ranks" id="ranks"></div>
+      </div>
+
+      <p class="legend">
+        <span><span class="swatch" style="background:var(--olive)"></span><b>done</b></span>
+        <span><span class="swatch" style="background:var(--accent)"></span><b>now</b></span>
+        <span><span class="swatch" style="background:var(--gold)"></span><b>waiting on you</b></span>
+        <span><span class="swatch" style="background:var(--sunken);border:1px solid var(--rule)"></span><b>ahead</b></span>
+        <span style="margin-left:auto">solid wire = merge edge · dashed = pass edge</span>
+      </p>
+    </div>
+
+    <aside class="detail" id="detail" aria-live="polite"></aside>
+  </div>
+</div>
+
+<div class="note-wrap">
+  <section class="notes">
+    <h2 class="nh">What the pass measured on the shipped pane</h2>
+    <div class="findgrid">
+      <div class="find"><b>graphs render outside their canvas</b><p>Every populated stage: 9 of 9 stations laid out beyond their map's box (077's map is 392px tall; its stations sit at y≈1060–1675, two at x=−24). A fitView-vs-computed-height regression 004 introduced — the plan predicted it, no scenario asserted containment.</p></div>
+      <div class="find"><b>one screen per epic, mostly empty</b><p>Six epics stack vertically, each with its own landing rail and its own copy of the edge legend (×3). The master–detail above replaces the stack: one graph, one rail, one legend.</p></div>
+      <div class="find"><b>text collisions on the Desk</b><p>Measured overlapping pairs on every epic row: "COMPLETED · epic-002" × "dispatch", "implementer" × "us1 · paged". The milestone bar needs collision-free label slots, not smaller fonts.</p></div>
+      <div class="find"><b>hard 1216px cap</b><p>Desk content is centred at 1216px regardless of viewport: 672px of dead margin per side at 2560. The frame above is fluid to 96rem.</p></div>
+      <div class="find"><b>stale attention forever</b><p>The fixture floor's escalation and question are pinned to a 22 Aug capture instant, so the Desk leads with two expired countdowns permanently. Expired items should collapse to one line each under a "stale" fold.</p></div>
+      <div class="find"><b>status is scattered</b><p>Spec state lives in the rail of nowhere, node state on cards, landing state on a separate rail. The seven-stop ladder above unifies them per story — the thing this mock exists to show.</p></div>
+    </div>
+
+    <h2 class="nh">The status ladder, and where each stop comes from</h2>
+    <table class="seams">
+      <thead><tr><th>stop</th><th>source seam</th><th>notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>draft</code> / <code>ready</code></td><td>roadmap frontmatter read (<code>spec list</code>)</td><td>spec-level, applies to undispatched stories</td></tr>
+        <tr><td><code>building</code></td><td><code>epic_status</code> · <code>state=RUNNING</code>, <code>attempt</code></td><td>show attempt n and elapsed</td></tr>
+        <tr><td class="gap"><code>task x of y</code></td><td class="gap">no seam exists</td><td>tasks.md boxes are never ticked (0 ticked in 004's landed file). Needs ergane to emit task progress — filed as feedback, shown greyed in the pane until then</td></tr>
+        <tr><td><code>verifying</code></td><td><code>epic_status</code> · <code>state=VERIFYING</code></td><td>gates + judge window</td></tr>
+        <tr><td><code>pr open</code></td><td><code>pr_number</code>, <code>landing_state</code></td><td>link to the PR</td></tr>
+        <tr><td><code>queue</code></td><td><code>state=ENQUEUED</code></td><td>merge-group build running</td></tr>
+        <tr><td><code>merged</code></td><td><code>state=MERGED</code> + forge attribution</td><td>landing SHA shown in the detail pane</td></tr>
+        <tr><td><code>waiting on you</code></td><td><code>awaiting_operator</code>, open escalations</td><td>gold override on any stop; the Desk answers, the Showfloor only points</td></tr>
+        <tr><td><code>killed / failed</code></td><td><code>state</code>, <code>terminal_reason</code></td><td>alarm chip; terminal_reason surfaced verbatim</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="nh" style="margin-top:2rem">If you approve this direction</h2>
+    <p style="max-width:46rem">This world replaces DESIGN.md's for the Showfloor — new ground, new faces, master–detail instead of the vertical stack. Constitution VIII makes that an operator decision, so the order is: amend DESIGN.md to this world, then spec 005 against it, with containment invariants this time (<code>every station inside its map's box</code> — the assertion 004 lacked). The Desk keeps its layout fixes as a smaller second story: fluid width, collision-free milestone labels, stale-attention fold. The one verb stays at the Desk; this screen still never grows a button.</p>
+  </section>
+  <footer>Showfloor Redrawn · UX pass 2026-08-24 · mock data recomposed from the recorded 004 run · one legend, rendered once</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  /* Real 004 run, recomposed to the 4:45 PM CT instant. */
+  var stories = [
+    { id: "us1", title: "The stage is the size of its graph", stop: 7,
+      prose: "A stage occupies the space its graph needs; an epic with nothing staged is a line of text, not a screen of nothing.",
+      frs: ["FR-001","FR-002","FR-003"], scenarios: 4,
+      sub: "merged 4:14 PM · 19 min",
+      steps: [["ready","3:49 PM"],["building","3:55 PM · att 1"],["verifying","4:09 PM · gates + judge 4/4"],["pr open","4:11 PM · #24"],["queue","4:12 PM"],["merged","4:14 PM · cda0cdf"]],
+      kv: { attempt:"1 of 3", judge:"PASS · 4/4", pr:"#24", landed:"cda0cdfe9831", wall:"19 min" } },
+    { id: "us2", title: "The landing line is reachable", stop: 5,
+      prose: "The landing line and its four stations sit inside the horizontally scrolling map, exactly where DESIGN.md places them — reachable, never laid out past the edge.",
+      frs: ["FR-004","FR-005","FR-006","FR-007"], scenarios: 4,
+      sub: "in merge queue · #25",
+      steps: [["ready","3:49 PM"],["building","4:15 PM · att 1"],["verifying","4:41 PM · gates + judge 4/4"],["pr open","4:43 PM · #25"],["queue","4:44 PM · merge-group build running"],["merged",""]],
+      kv: { attempt:"1 of 3", judge:"PASS · 4/4", pr:"#25 · queued", landed:"—", wall:"29 min so far" } },
+    { id: "us3", title: "The escalation reads as the choices it offers", stop: 2,
+      prose: "The evidence is laid out as the decision it is — one block per choice, the factory's wording preserved byte-for-byte.",
+      frs: ["FR-008","FR-009","FR-010","FR-011"], scenarios: 4,
+      sub: "building · att 1 · 7 min",
+      steps: [["ready","3:49 PM"],["building","4:38 PM · att 1 · 7 min"],["task 5 of 9","needs a new seam — see table below"],["verifying",""],["pr open",""],["merged",""]],
+      kv: { attempt:"1 of 3", judge:"—", pr:"—", landed:"—", wall:"7 min so far" } },
+    { id: "us4", title: "The spend strip says something", stop: 1,
+      prose: "One row per persona, exactly the four metrics DESIGN.md names; a persona whose every value is unknown still renders its row.",
+      frs: ["FR-012","FR-013","FR-014","FR-015"], scenarios: 4,
+      sub: "ready · waits on us3 merge",
+      steps: [["ready","3:49 PM · reviewed, ready to build"],["building",""],["verifying",""],["pr open",""],["queue",""],["merged",""]],
+      kv: { attempt:"—", judge:"—", pr:"—", landed:"—", wall:"—" } }
+  ];
+  var LSTOPS = 7; /* draft/ready · building · verifying · pr · queue · merged + spare */
+
+  var ranks = document.getElementById("ranks");
+  var detail = document.getElementById("detail");
+  var wires = document.getElementById("wires");
+  var nodes = [];
+
+  stories.forEach(function (s, i) {
+    var col = document.createElement("div"); col.className = "rank";
+    var b = document.createElement("button");
+    b.className = "node"; b.setAttribute("data-id", s.id);
+    var lad = "";
+    for (var k = 1; k <= 6; k++) {
+      /* stop = the slot currently active; 7 = all six complete */
+      var cls = s.stop > 6 ? "done" : (k < s.stop ? "done" : (k === s.stop ? "now" : ""));
+      lad += "<i class=\"" + cls + "\"></i>";
+    }
+    var chip = s.id === "us1" ? "<span class=\"chip landed\">merged</span>"
+             : s.id === "us2" ? "<span class=\"chip building\">queue</span>"
+             : s.id === "us3" ? "<span class=\"chip building\">building</span>"
+             : "<span class=\"chip ready\">ready</span>";
+    b.innerHTML = "<span class=\"nid\">" + s.id.toUpperCase() + "</span>" +
+      "<span class=\"ntitle\">" + s.title + "</span>" +
+      "<span class=\"nstat\">" + chip + "</span>" +
+      "<span class=\"ladder\">" + lad + "</span>" +
+      "<span class=\"nsub\">" + s.sub + "</span>";
+    b.addEventListener("click", function () { select(i); });
+    col.appendChild(b); ranks.appendChild(col); nodes.push(b);
+  });
+
+  function select(i) {
+    nodes.forEach(function (n, j) { n.classList.toggle("sel", i === j); });
+    var s = stories[i];
+    var steps = s.steps.map(function (st) {
+      var name = st[0], when = st[1];
+      var state = when === "" ? "pending" : (/att 1 · 7|queue ·|task/.test(when) ? "now" : "done");
+      if (name === "task 5 of 9") state = "hold";
+      return "<li class=\"" + state + "\"><span class=\"dot\"></span><span class=\"sname\">" + name + "</span><span class=\"swhen\">" + when + "</span></li>";
+    }).join("");
+    var kv = Object.keys(s.kv).map(function (k) { return "<dt>" + k + "</dt><dd>" + s.kv[k] + "</dd>"; }).join("");
+    var frs = s.frs.map(function (f) { return "<span class=\"fr\">" + f + "</span>"; }).join("");
+    detail.innerHTML =
+      "<div class=\"dhead\"><span class=\"nid\" style=\"font-family:var(--mono);font-weight:700;color:var(--accent)\">" + s.id.toUpperCase() + "</span></div>" +
+      "<p class=\"dtitle\">" + s.title + "</p>" +
+      "<p class=\"dprose\">" + s.prose + "</p>" +
+      "<p class=\"dsec\">status</p><ul class=\"steps\">" + steps + "</ul>" +
+      "<p class=\"dsec\">facts</p><dl class=\"kv\">" + kv + "</dl>" +
+      "<p class=\"dsec\">implements · " + s.scenarios + " scenarios</p><div class=\"frlist\">" + frs + "</div>";
+  }
+
+  function drawWires() {
+    var dag = document.getElementById("dag");
+    var dr = dag.getBoundingClientRect();
+    wires.setAttribute("viewBox", "0 0 " + dr.width + " " + dr.height);
+    var path = "";
+    for (var i = 0; i < nodes.length - 1; i++) {
+      var a = nodes[i].getBoundingClientRect(), b = nodes[i + 1].getBoundingClientRect();
+      var x1 = a.right - dr.left, y1 = a.top + a.height / 2 - dr.top;
+      var x2 = b.left - dr.left,  y2 = b.top + b.height / 2 - dr.top;
+      var mx = (x1 + x2) / 2;
+      path += "<path class=\"wire merge\" d=\"M" + x1 + " " + y1 + " C" + mx + " " + y1 + " " + mx + " " + y2 + " " + x2 + " " + y2 + "\"/>";
+    }
+    wires.innerHTML = path;
+  }
+
+  select(2);            /* open on the story that is building */
+  drawWires();
+  addEventListener("resize", drawWires);
+})();
+</script>
