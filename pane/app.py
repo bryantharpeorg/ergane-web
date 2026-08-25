@@ -91,7 +91,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def api_showfloor():
         document = await assemble_showfloor(
             settings.specs_root,
-            ShowfloorReaders.from_reader(reader, settings.specs_root),
+            ShowfloorReaders.from_reader(
+                reader, settings.specs_root, landing_branch=settings.landing_branch
+            ),
         )
         return JSONResponse(document)
 
@@ -111,6 +113,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     should_stop=request.is_disconnected,
                     broadcaster=broadcaster,
                     specs_root=settings.specs_root,
+                    landing_branch=settings.landing_branch,
                 )
             )
         )

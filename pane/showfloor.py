@@ -14,6 +14,19 @@ seam that already exists:
   P<n>)` headings.  Titles exist nowhere else.
 * **live node state** — the `epic_status` answer, for the epic whose id is the
   spec dir.
+* **landing facts** — `factory.workgraph.landed.landed_facts` over the landing
+  branch, through `pane/landing.py`.  A workflow ages out; a landing does not.
+
+The last two are **layered, never swapped** (009 plan D1).  `epic_status` is the
+only thing that knows an attempt number, a persona, or any of the four stops
+between `ready` and `merged`, so a live answer governs every story it places and
+the branch overwrites none of it.  The branch answers for the rest: a story it
+carries reads `merged` whether or not a workflow still exists and whether or not
+anyone has attested the spec's frontmatter — which is the whole defect 009
+exists for, an epic that finished reading `READY 0/3` for as long as the
+operator slept.  A story *neither* can place takes the Unknown Rule and names
+the read that failed; it never takes the ladder's first stop, because `ready` is
+a claim and not an absence of information.
 
 Any may fail and none may take the room down with it (constitution III): a
 failed read appends one `{read, mode, detail}` note to *that spec's* entry —
@@ -36,6 +49,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pane.readers import Reader
 
+from pane.landing import LANDING_READ
 from pane.readers import QueryRefused, TransportFailed
 
 # --- the ladder: DESIGN.md § The status ladder, as a table ----------------
@@ -183,6 +197,7 @@ def derive_ladder(
     spec_state: str | None,
     *,
     dispatched: bool = False,
+    attested: bool = True,
 ) -> dict:
     """Derive one story's ladder object from DESIGN.md's table (FR-003).
 
@@ -201,6 +216,11 @@ def derive_ladder(
     * `dispatched` says an epic *did* answer and did not name this node — 002's
       skew.  It rests at `ready` with no chip: a running epic is newer news
       than an attestation.
+    * `attested=False` silences that `landed` exception: the caller read the
+      landing branch, and the branch does not carry this story.  An attestation
+      is a claim and a landing is a fact, so the fact wins and the caller names
+      the disagreement (009 Edge Cases).  It is never the *reverse* switch — a
+      branch that could not be read leaves the attestation speaking.
 
     A state this table has not learned lands with no stop and no chip, carrying
     the word verbatim (constitution III).
@@ -209,7 +229,9 @@ def derive_ladder(
     normalized = state if isinstance(state, str) and state else None
 
     if normalized is None:
-        return _undispatched_ladder(spec_state, awaiting, terminal_reason, dispatched)
+        return _undispatched_ladder(
+            spec_state, awaiting, terminal_reason, dispatched, attested
+        )
 
     if normalized in TERMINAL_STATES:
         # `terminal_reason` verbatim: the pane never rewrites the factory's own
@@ -264,7 +286,12 @@ def _ladder(
         "state": state,
         "spec_state": spec_state,
         "stops": [
-            {"key": key, "label": label, "status": status}
+            # `at` is the instant the factory recorded for this stop.  Only
+            # `merged` can be stamped today — it is the one stop the branch
+            # holds a commit for (FR-002a) — and the slot is on every stop so
+            # the six have one shape, filled by `_stamped` where it is known and
+            # left None where it is not (the Unknown Rule, never a dash here).
+            {"key": key, "label": label, "status": status, "at": None}
             for (key, label), status in zip(LADDER_STOPS, statuses, strict=True)
         ],
         "stop": STOP_LABELS[stop_key] if stop_key is not None else None,
@@ -291,15 +318,21 @@ def _all_done_ladder(
 
 
 def _undispatched_ladder(
-    spec_state: str | None, awaiting: bool, terminal_reason: str | None, dispatched: bool
+    spec_state: str | None,
+    awaiting: bool,
+    terminal_reason: str | None,
+    dispatched: bool,
+    attested: bool = True,
 ) -> dict:
     """The ladder of a story no epic answered for: it rests at `ready`.
 
     `landed` is the exception, the operator's own word: an attested spec's
     stories are all merged and nothing live will say so again.  It lapses once
-    an epic *is* answering, the newer of the two sources.
+    an epic *is* answering, the newer of the two sources — and once the landing
+    branch has been read and does not carry the story (`attested=False`), which
+    is the older and harder of the two.
     """
-    if spec_state == "landed" and not dispatched:
+    if spec_state == "landed" and not dispatched and attested:
         return _all_done_ladder(None, spec_state, awaiting, terminal_reason)
 
     statuses = [STOP_WAITING if awaiting else STOP_ACTIVE] + [STOP_AHEAD] * 5
@@ -310,6 +343,49 @@ def _undispatched_ladder(
         CHIP_WAITING if awaiting else chip,
         False, terminal_reason, awaiting,
     )
+
+
+def landed_ladder(spec_state: str | None) -> dict:
+    """The ladder of a story the landing branch carries (FR-001).
+
+    All six stops done, `merged`, with no live `state` — because there is none:
+    the workflow that would have said `MERGED` may have aged out years ago and
+    the commit is still there.  The same shape a live `MERGED` produces, so the
+    card, the rail and the pane cannot tell the two sources apart, which is the
+    point: a landed epic reads landed.
+    """
+    return _all_done_ladder(None, spec_state, False, None)
+
+
+def unplaceable_ladder(spec_state: str | None) -> dict:
+    """The ladder of a story neither source could place (FR-004).
+
+    The Unknown Rule, spelt exactly as a state the table has not learned is
+    spelt: no stop, no chip, tone `unknown`.  **Not** the first stop — `ready`
+    is a claim that nothing has started, and the whole of 009 is that the room
+    made that claim for eleven minutes about an epic that had finished.  The
+    read that could not be made is named in the entry's notes by the caller.
+    """
+    return _ladder(
+        None, spec_state, [STOP_AHEAD] * 6, None, "unknown", None, False, None, False
+    )
+
+
+def _stamped(ladder: dict, at: str | None) -> dict:
+    """The same ladder with the landing commit's instant on its `merged` stop.
+
+    Only a stop that is `done` is stamped: an instant on a stop the work has not
+    reached would be a time for something that has not happened.  This never
+    moves a stop or changes a status — a live answer still governs where the
+    story is (FR-003); the branch only says *when* the last stop happened, which
+    is a fact no `epic_status` answer carries at all.
+    """
+    if at is None:
+        return ladder
+    for stop in ladder["stops"]:
+        if stop["key"] == "merged" and stop["status"] == STOP_DONE:
+            stop["at"] = at
+    return ladder
 
 
 # --- the reads ------------------------------------------------------------
@@ -325,17 +401,29 @@ LIVE_FACTS = (
 
 @dataclasses.dataclass(frozen=True)
 class ShowfloorReaders:
-    """The two per-spec reads the document needs, injected rather than imported.
+    """The per-spec reads the document needs, injected rather than imported.
 
     Callables, so every 052 fault shape is drivable from a committed test with
     no live floor.  `workgraph` returns the parsed graph or raises
     `TransportFailed` / `QueryRefused` / `json.JSONDecodeError`; `epic_status`
     returns that spec's epic's answer, or `None` when none was dispatched.
+
+    `landing_facts` is 009's third read: `{story_key: LandingFact}` for one
+    spec, off the landing branch, raising the same two exceptions as the others.
+    `None` means *this build has no landing read at all* — not that nothing
+    landed.  The distinction is load-bearing in both directions: with no reader
+    the document behaves exactly as it did before 009 (the spec's attestation
+    still speaks for a story nothing else places), and with a reader that
+    *failed* a story nothing else places takes the Unknown Rule instead.
     """
 
     workgraph: Callable[[str], dict]
     epic_status: Callable[[str], Awaitable[dict | None]]
     reference_instant: str | None = None
+    landing_facts: Callable[[str], dict[str, Any]] | None = None
+    #: The branch `landing_facts` reads, for the wording of a disagreement note.
+    #: A setting, never a literal spelt into a reader (009 plan D3).
+    landing_branch: str | None = None
 
     @classmethod
     def from_reader(
@@ -344,8 +432,9 @@ class ShowfloorReaders:
         specs_root: Path | str,
         *,
         archive_root: Path | None = None,
+        landing_branch: str | None = None,
     ) -> "ShowfloorReaders":
-        """Bind the two reads to 001's reader seam.
+        """Bind the reads to 001's reader seam.
 
         The graph lives beside its spec — `specs/<dir>/workgraph.json` — but a
         target repo's is compiled on the operator's checkout and not committed
@@ -354,14 +443,26 @@ class ShowfloorReaders:
         second.  The live half is bound to the epics `read_floor` reports,
         matched by `epic_id == spec_dir`; a spec with no epic gets `None`,
         undispatched rather than degraded.
+
+        The landing half reads the repository the corpus lives in — `specs/` is
+        a directory *of* the target repository, so its parent is the checkout
+        whose landing branch carries the landings.  The branch is the caller's
+        setting (`Settings.landing_branch`, D-011's `dev` by default); a caller
+        that passes none takes that same default rather than a name typed here.
         """
+        from pane.config import DEFAULT_LANDING_BRANCH
+        from pane.landing import LandingReader
+
         root = Path(specs_root)
         archive = archive_root if archive_root is not None else root.parent / "docs" / "dags"
+        branch = landing_branch or DEFAULT_LANDING_BRANCH
         bound = _BoundReads(reader, archive)
         return cls(
             workgraph=bound.workgraph,
             epic_status=bound.epic_status,
             reference_instant=getattr(reader, "reference_instant", None),
+            landing_facts=LandingReader(root.parent, branch).facts,
+            landing_branch=branch,
         )
 
 
@@ -509,10 +610,33 @@ async def _assemble_spec(
             epic_state = answer.get("epic_state")
             live_nodes = answer.get("nodes") or {}
 
+    # --- the landing branch: which stories are on it, and what their commits say
+    #     `landing is None` and `landing == {}` are different answers.  The
+    #     first is "I could not ask"; the second is "I asked, and the branch
+    #     carries none of them".  Only the second may silence an attestation.
+    landing: dict[str, Any] | None = None
+    landing_failed = False
+    if readers.landing_facts is not None:
+        try:
+            landing = readers.landing_facts(spec_dir)
+        except (TransportFailed, QueryRefused) as exc:
+            landing_failed = True
+            notes.append({"read": exc.read, "mode": _exc_mode(exc), "detail": exc.detail})
+
     stories, story_source = _stories(
-        spec_state, graph, headings, live_nodes, dispatched, unknown
+        spec_state, graph, headings, live_nodes, dispatched, unknown,
+        landing, landing_failed,
     )
 
+    disagreement = _attestation_disagreement(
+        spec_state, spec_dir, landing, stories, readers.landing_branch
+    )
+    if disagreement is not None:
+        notes.append(disagreement)
+
+    # `stories_landed` is counted off the *layered* ladders, so an epic that
+    # finished with no live workflow and no attestation still reports n/n
+    # (FR-002).  Counting the live answer alone is what reported 0/3.
     landed = sum(1 for story in stories if story["ladder"]["stop_key"] == "merged")
 
     return {
@@ -538,6 +662,8 @@ def _stories(
     live_nodes: dict[str, dict],
     dispatched: bool,
     unknown: list[str],
+    landing: dict[str, Any] | None = None,
+    landing_failed: bool = False,
 ) -> tuple[list[dict], str]:
     """The spec's stories, from the compiled graph when it was readable.
 
@@ -555,7 +681,8 @@ def _stories(
         nodes = graph.get("nodes") or []
         stories = [
             _story(
-                node.get("story_key"), node, headings, live_nodes, dispatched, spec_state, unknown
+                node.get("story_key"), node, headings, live_nodes, dispatched, spec_state,
+                unknown, landing, landing_failed,
             )
             for node in nodes
             if node.get("id") is not None
@@ -563,7 +690,10 @@ def _stories(
         source = "workgraph"
     else:
         stories = [
-            _story(story_key, None, headings, live_nodes, dispatched, spec_state, unknown)
+            _story(
+                story_key, None, headings, live_nodes, dispatched, spec_state,
+                unknown, landing, landing_failed,
+            )
             for story_key in sorted(headings, key=_story_number)
         ]
         source = "headings"
@@ -586,6 +716,8 @@ def _story(
     dispatched: bool,
     spec_state: str | None,
     unknown: list[str],
+    landing: dict[str, Any] | None = None,
+    landing_failed: bool = False,
 ) -> dict:
     """One story: identity, title, requirement keys, ladder, landing facts."""
     node_id = node.get("id") if node else (story_key.lower() if story_key else None)
@@ -615,13 +747,59 @@ def _story(
             facts[field] = None
             missing.append(field)
 
-    ladder = derive_ladder(
-        facts["state"],
-        facts["awaiting_operator"],
-        facts["terminal_reason"],
-        spec_state,
-        dispatched=dispatched,
-    )
+    # --- the two sources, layered (plan D1, FR-003)
+    #
+    # The live answer *places* a story when it carries a state for it; that is
+    # the only thing that knows the four stops between `ready` and `merged`, so
+    # where it speaks nothing below may overrule it.  Where it does not, the
+    # branch answers, and where neither can, the Unknown Rule does.
+    landing_fact = landing.get(story_key) if landing is not None and story_key else None
+    on_branch = landing_fact is not None and landing_fact.on_branch
+    placed_by_live = isinstance(facts["state"], str) and bool(facts["state"])
+
+    if placed_by_live:
+        ladder = derive_ladder(
+            facts["state"],
+            facts["awaiting_operator"],
+            facts["terminal_reason"],
+            spec_state,
+            dispatched=dispatched,
+        )
+    elif on_branch:
+        ladder = landed_ladder(spec_state)
+    elif landing is not None or not landing_failed:
+        # Either the branch answered and does not carry this story — in which
+        # case an attestation may not speak over it — or this build has no
+        # landing read at all, and the document reads as it did before 009.
+        ladder = derive_ladder(
+            None,
+            facts["awaiting_operator"],
+            facts["terminal_reason"],
+            spec_state,
+            dispatched=dispatched,
+            attested=landing is None,
+        )
+    else:
+        # The live answer did not place it and the branch could not be read.
+        # `ready` here would be the very defect 009 fixes, one layer down.
+        ladder = unplaceable_ladder(spec_state)
+        if story_key is not None:
+            unknown.append(f"{story_key} ladder")
+
+    # --- the three facts the branch already holds (FR-002a)
+    #
+    # `landing_sha` is not a live field: `epic_status` carries no merge commit
+    # at all, which is why DESIGN.md's landing SHA cell has drawn a dash since
+    # 005.  `pr_number` *is* a live field, so the branch fills it only where the
+    # answer did not — the corpus read overwrites no live fact, as it overwrites
+    # no live stop.  Everything the branch cannot supply stays None: the Unknown
+    # Rule, and no store is added and no history read that the branch lacks.
+    facts["landing_sha"] = landing_fact.commit if on_branch else None
+    if on_branch and facts["pr_number"] is None and landing_fact.pr_number is not None:
+        facts["pr_number"] = landing_fact.pr_number
+        if "pr_number" in missing:
+            missing.remove("pr_number")
+    _stamped(ladder, landing_fact.merged_at if on_branch else None)
 
     return {
         "id": node_id,
@@ -638,6 +816,43 @@ def _story(
         # An undispatched epic is not missing them; an answer that *was* read
         # and skipped this node — 002's skew — is missing all, and says so.
         "unknown": missing if dispatched else [],
+    }
+
+
+def _attestation_disagreement(
+    spec_state: str | None,
+    spec_dir: str,
+    landing: dict[str, Any] | None,
+    stories: list[dict],
+    branch: str | None,
+) -> dict | None:
+    """The note a spec attested `landed` earns when the branch disagrees.
+
+    An attestation is a claim and a landing is a fact.  Where the branch was
+    read and does not carry every story the spec declares, the branch wins —
+    `derive_ladder` has already refused the attestation — and the disagreement
+    is *said*, because a claim silently overruled is as opaque as a claim
+    silently believed (009 Edge Cases, constitution III).
+    """
+    if spec_state != "landed" or landing is None:
+        return None
+
+    unlanded = [
+        story["story_key"] or story["id"] or "an unnamed story"
+        for story in stories
+        if story["facts"].get("landing_sha") is None
+    ]
+    if not unlanded:
+        return None
+
+    where = branch or "the landing branch"
+    return {
+        "read": LANDING_READ,
+        "mode": "disagreement",
+        "detail": (
+            f"specs/{spec_dir}/spec.md attests state: landed, but {where} carries "
+            f"no landing for {', '.join(unlanded)}"
+        ),
     }
 
 
