@@ -639,6 +639,18 @@ async def _assemble_spec(
     # (FR-002).  Counting the live answer alone is what reported 0/3.
     landed = sum(1 for story in stories if story["ladder"]["stop_key"] == "merged")
 
+    # DESIGN.md's Unknown Rule, verbatim: "a total is unknown when any row in
+    # scope is".  A story nothing could place makes the count of landed stories
+    # a number nobody knows, and a `0` standing in for that is the zero
+    # constitution III forbids.  The field stays an integer — the rail draws
+    # `n/n` and there is no half of a fraction — and the entry says beside it
+    # that the number is not one to trust.
+    if any(
+        story["ladder"]["stop_key"] is None and story["ladder"]["tone"] == "unknown"
+        for story in stories
+    ):
+        unknown.append("stories_landed")
+
     return {
         "spec_dir": spec_dir,
         "name": name if name is not None else spec_dir,

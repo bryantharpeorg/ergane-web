@@ -300,7 +300,10 @@ def test_a_story_neither_source_can_place_takes_the_unknown_rule(mode, tmp_path)
     assert entry["notes"] == [
         {"read": "landed_facts", "mode": mode, "detail": failure.detail}
     ]
-    assert entry["stories_landed"] == 0
+    # "A total is unknown when any row in scope is" (DESIGN.md's Unknown Rule):
+    # the count is still an integer, because the rail draws `n/n`, and the entry
+    # says beside it that nobody knows the number.
+    assert "stories_landed" in entry["unknown"]
 
 
 def test_an_unreadable_branch_does_not_disturb_a_story_the_live_answer_placed(tmp_path):
