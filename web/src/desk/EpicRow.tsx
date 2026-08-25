@@ -206,6 +206,11 @@ function StoryCell({ card, story, answered }: StoryCellProps) {
   // chip; a VERIFYING node that is also awaited is *paged*, which is a fact the
   // chip's word does not carry, so it keeps the marker 001 gave it.
   const paged = card.awaiting_operator && card.state === "VERIFYING";
+  // "labelled by `story_key`" (FR-004). The floor's key when the workgraph
+  // declared one; failing that the document's, which read the same graph from
+  // the other side; failing both the node's own id, which is a fact too — never
+  // a blank, and never a key of the pane's own making.
+  const key = card.story_key ?? story?.story_key ?? null;
   const title =
     ladder !== null && ladder.frozen
       ? `${card.story_key ?? card.id}: ${ladder.terminal_reason ?? "unknown"}`
@@ -217,7 +222,7 @@ function StoryCell({ card, story, answered }: StoryCellProps) {
     <span
       className="story"
       data-story
-      data-story-key={card.story_key ?? undefined}
+      data-story-key={key ?? undefined}
       data-state={card.state}
       data-paged={paged || undefined}
       data-undeclared={!card.declared || undefined}
@@ -225,7 +230,7 @@ function StoryCell({ card, story, answered }: StoryCellProps) {
       title={title}
     >
       <span className="skey num" data-story-label>
-        {card.story_key ?? card.id}
+        {key ?? card.id}
       </span>
       {ladder !== null ? (
         <MiniLadder ladder={ladder} />

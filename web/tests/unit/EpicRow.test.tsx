@@ -304,9 +304,9 @@ describe("the fixture floor's six epics (US2-S1, FR-004)", () => {
     ).toEqual(["US1", "US2"]);
 
     // The landing scene's answer names three stories no workgraph declares, so
-    // the factory gave no key: the cell wears the node's own id rather than a
-    // blank, and says the key is absent in `data-story-key`.
-    const landing = render(FIXTURE_EPICS[1]);
+    // neither document has a key for them: the cell wears the node's own id
+    // rather than a blank, and says the key is absent in `data-story-key`.
+    const landing = render(FIXTURE_EPICS[1], unjoined);
     expect(stories(landing).map((cell) => cell.hasAttribute("data-story-key"))).toEqual([
       false,
       false,
@@ -315,6 +315,35 @@ describe("the fixture floor's six epics (US2-S1, FR-004)", () => {
     expect(
       stories(landing).map((cell) => cell.querySelector("[data-story-label]")?.textContent),
     ).toEqual(["us1", "us2", "us3"]);
+  });
+
+  it("takes the key from the document where the floor's answer carried none", () => {
+    // The landing scene again, this time with a document that answers for it:
+    // the graph declares `US1`–`US3` and the pane labels the cells with the
+    // keys rather than with the node ids the answer happened to use.
+    const answered: ShowfloorDocument = {
+      ...showfloor,
+      rail: [
+        entryOf({
+          spec_dir: "fx-landing-f0a0d6",
+          epic_id: "fx-landing-f0a0d6",
+          chip: "landed",
+          stories_landed: 3,
+          stories_total: 3,
+          stories: [merged("us1"), merged("us2"), merged("us3")],
+        }),
+      ],
+    };
+
+    const container = render(FIXTURE_EPICS[1], answered);
+    expect(
+      stories(container).map((cell) => cell.querySelector("[data-story-label]")?.textContent),
+    ).toEqual(["US1", "US2", "US3"]);
+    expect(stories(container).map((cell) => cell.getAttribute("data-story-key"))).toEqual([
+      "US1",
+      "US2",
+      "US3",
+    ]);
   });
 
   it("pairs the epic's chip with the document's own story count", () => {
