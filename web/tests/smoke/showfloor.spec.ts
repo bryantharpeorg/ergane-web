@@ -1980,3 +1980,347 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
     }
   });
 });
+
+/* ─────────────────────────────────────────────────────────────────────────
+   008 US3 — the scroll wears the room's clothes (FR-009 … FR-011).
+
+   US2 made the stage wide enough that no fixture graph clips at 1280, 1600 or
+   2560 with nothing picked. A scroller still exists, and that is exactly why
+   this story is not moot: picking a story hands `26rem` back to the pane, and
+   a graph 797px wide inside a 562px stage scrolls again. So both cases below
+   are *made* to scroll and then asserted to be scrolling, rather than hoped
+   to be.
+
+   Two halves, because the browser has two mechanisms and D-016 clause (c)
+   binds both:
+
+   * **the computed half** (FR-009) — `scrollbar-width` and `scrollbar-color`
+     as Chromium resolves them, in both themes, with `--rule` read out of the
+     live theme and never compared against a colour typed into this file. That
+     last part is what makes the assertion a *token* assertion: the same two
+     lines of CSS have to produce two different measured colours.
+   * **the authored half** (FR-010) — the `::-webkit-scrollbar` rules read as
+     text out of the stylesheet the page actually loaded. They are asserted as
+     text and not by measuring a rendered scrollbar because headless Chromium
+     paints an overlay scrollbar of zero layout height where the operator's
+     browser paints a classic widget (plan § Risks); a gate that measured the
+     box would disagree with the machine the operator is looking at, and would
+     agree with a stylesheet that said nothing at all.
+
+   FR-011 is the third test: the room that does *not* scroll must be
+   unchanged, and a `scrollbar-gutter` reservation — the obvious shortcut for
+   "keep the layout from jumping" — must fail it.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/** The widest graph on the fixture floor needs 797px; 1000 gives it ~716. */
+const US3_NARROW = 1000;
+
+/**
+ * Resolve a token the way the browser resolves it *in the theme now emulated*.
+ *
+ * A probe element takes `color: var(--token)` and hands back the computed
+ * `rgb(…)`, which is the same serialisation `scrollbar-color` computes to. No
+ * colour is typed into this file, so a token swap in `global.css` moves the
+ * assertion with it instead of breaking it (FR-009, plan D4).
+ */
+async function resolvedColour(page: Page, value: string): Promise<string> {
+  return page.evaluate((declared) => {
+    const probe = document.createElement("span");
+    probe.style.color = declared;
+    document.body.appendChild(probe);
+    const resolved = getComputedStyle(probe).color;
+    probe.remove();
+    return resolved;
+  }, value);
+}
+
+interface ScrollerStyle {
+  scrollbarWidth: string;
+  scrollbarColor: string;
+  scrollbarGutter: string;
+  clientWidth: number;
+  scrollWidth: number;
+  offsetWidth: number;
+  borders: number;
+  canvasWidth: number;
+  stageTrack: number;
+  stagePadding: number;
+  gutters: string[];
+}
+
+/** The stage scroller, measured and read, in one layout pass. */
+async function scrollerStyle(page: Page): Promise<ScrollerStyle> {
+  return page.evaluate(() => {
+    const scroller = document.querySelector("[data-stage-scroll]") as HTMLElement;
+    const canvas = document.querySelector("[data-stage-canvas]") as HTMLElement;
+    const stage = document.querySelector("[data-stage]") as HTMLElement;
+    const cols = document.querySelector("[data-showfloor-cols]") as HTMLElement;
+    const style = getComputedStyle(scroller);
+    const stageStyle = getComputedStyle(stage);
+    return {
+      scrollbarWidth: style.scrollbarWidth,
+      scrollbarColor: style.scrollbarColor,
+      scrollbarGutter: style.scrollbarGutter,
+      clientWidth: scroller.clientWidth,
+      scrollWidth: scroller.scrollWidth,
+      offsetWidth: scroller.offsetWidth,
+      borders: parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth),
+      canvasWidth: canvas.getBoundingClientRect().width,
+      stageTrack: parseFloat(getComputedStyle(cols).gridTemplateColumns.split(/\s+/)[1]),
+      stagePadding: parseFloat(stageStyle.paddingLeft) + parseFloat(stageStyle.paddingRight),
+      // Every box between the grid track and the graph, so a gutter reserved
+      // anywhere on that chain is caught and not only one reserved on the
+      // scroller itself (FR-011).
+      gutters: [cols, stage, scroller, canvas].map((el) => getComputedStyle(el).scrollbarGutter),
+    };
+  });
+}
+
+/** The built stylesheet the page actually loaded, as text. */
+async function builtStylesheet(page: Page): Promise<string> {
+  const hrefs = await page.evaluate(() =>
+    Array.from(document.styleSheets)
+      .map((sheet) => sheet.href)
+      .filter((href): href is string => href !== null),
+  );
+  expect(hrefs.length, "the page loads at least one stylesheet of its own").toBeGreaterThan(0);
+  let text = "";
+  for (const href of hrefs) {
+    const response = await page.request.get(href);
+    expect(response.ok(), `${href} is served`).toBe(true);
+    text += `${await response.text()}\n`;
+  }
+  return text;
+}
+
+/**
+ * A colour literal, in every spelling CSS offers.
+ *
+ * The named-colour arm is deliberately generous rather than the full 148-name
+ * table: it carries the greys and the primaries a scrollbar is actually
+ * mis-styled with. It is the *whitelist* below that carries the proof — every
+ * value in the block must be a token, a length or `none` — and this is the
+ * second lock on the same door.
+ */
+const COLOUR_LITERAL =
+  /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(|\b(?:white|black|gray|grey|silver|lightgray|lightgrey|darkgray|darkgrey|gainsboro|whitesmoke|red|green|blue|yellow|orange|purple|brown|pink|teal|navy|olive|maroon|aqua|fuchsia|lime|currentcolor)\b/i;
+
+/** What a declaration in the scrollbar block is allowed to be worth. */
+const TOKEN_OR_METRIC = /^(?:var\(--[a-z0-9-]+\)|none|0|-?[\d.]+(?:px|rem|em|%)?)$/;
+
+test.describe("the scroll wears the room's clothes (FR-009, FR-010, FR-011)", () => {
+  test("a scrolling stage computes thin, on --rule over a transparent trough, in both themes", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    const staged = rail.filter((entry) => entry.stories.length > 0);
+    expect(staged.length, "the fixture floor stages a graph").toBeGreaterThanOrEqual(5);
+
+    // Every measured `--rule`, so the two themes can be proven to differ. If
+    // both resolved to the same colour this test would pass on a hard-coded
+    // literal, which is the failure D-016 clause (c) and plan D4 forbid.
+    const rulePerScheme: Record<string, string> = {};
+    let scrolled = 0;
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+
+      // Case one: a viewport narrower than the graph — the story's own
+      // independent test. Case two: the full-width room with a story picked,
+      // which is the case US2 left behind and this story's priority names.
+      const cases = [
+        { width: US3_NARROW, pick: false },
+        { width: 1280, pick: true },
+      ] as const;
+
+      for (const shape of cases) {
+        await page.setViewportSize({ width: shape.width, height: 1000 });
+
+        for (const entry of staged) {
+          await page.goto(`/showfloor/${entry.spec_dir}`);
+          await page.waitForSelector("[data-stage-canvas]");
+          const where = `${entry.spec_dir} at ${shape.width} in ${scheme}${shape.pick ? ", picked" : ""}`;
+
+          if (shape.pick) {
+            const story = entry.stories.find((candidate) => candidate.id !== null);
+            if (story === undefined) continue;
+            await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+            await page.waitForSelector("[data-detail-title]");
+          }
+
+          const read = await scrollerStyle(page);
+
+          // Only a stage that is really scrolling is evidence for FR-009, so
+          // the ones that fit are skipped here and are FR-011's subject
+          // instead. This is the Given of US3-S1, asserted rather than assumed.
+          if (read.scrollWidth <= read.clientWidth) continue;
+          scrolled++;
+
+          const rule = await resolvedColour(page, "var(--rule)");
+          const clear = await resolvedColour(page, "transparent");
+          rulePerScheme[scheme] = rule;
+
+          expect(read.scrollbarWidth, `${where}: the scroller is thin`).toBe("thin");
+          expect(read.scrollbarColor, `${where}: thumb on --rule, trough transparent`).toBe(
+            `${rule} ${clear}`,
+          );
+          // And the trough really is nothing, not a very pale colour.
+          expect(clear, `${where}: the trough is transparent`).toBe("rgba(0, 0, 0, 0)");
+        }
+      }
+    }
+
+    // The sweep visited scrolling stages in both themes, not one of them.
+    expect(scrolled, "scrolling stages were measured").toBeGreaterThanOrEqual(
+      2 * SCHEMES.length,
+    );
+    expect(Object.keys(rulePerScheme).sort()).toEqual(["dark", "light"]);
+    expect(
+      rulePerScheme.dark,
+      "the two themes resolve --rule to two different colours",
+    ).not.toBe(rulePerScheme.light);
+  });
+
+  test("the ::-webkit-scrollbar rules are stepper-free, hover-brightened, and all token (FR-010)", async ({
+    page,
+  }) => {
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-stage-canvas]");
+
+    const css = await builtStylesheet(page);
+
+    // Every rule the stage scroller declares against a WebKit scrollbar part,
+    // read out of the shipped bytes.
+    const rules = Array.from(
+      css.matchAll(/([^{}]*::-webkit-scrollbar[^{}]*)\{([^{}]*)\}/g),
+    ).map((match) => ({ selector: match[1].trim(), body: match[2].trim() }));
+
+    expect(rules.length, "the scroller declares WebKit scrollbar rules").toBeGreaterThanOrEqual(4);
+    for (const rule of rules) {
+      expect(rule.selector, "every scrollbar rule is scoped to the stage scroller").toContain(
+        ".dag-scroll",
+      );
+    }
+
+    // One set of rules, not two. A second theme block would repeat a
+    // selector — the failure mode DESIGN.md's three-block theme pattern and
+    // plan D4 both exist to prevent, and the reason every colour below is a
+    // token in the first place.
+    const selectors = rules.map((rule) => rule.selector);
+    expect(new Set(selectors).size, "no scrollbar selector is declared twice").toBe(
+      selectors.length,
+    );
+    expect(css.match(/@media[^{]*\{[^{]*::-webkit-scrollbar/), "no themed second block").toBeNull();
+
+    // No stepper buttons.
+    const button = rules.find((rule) => /::-webkit-scrollbar-button/.test(rule.selector));
+    expect(button, "the stepper buttons are declared away").toBeDefined();
+    expect(button!.body.replace(/\s+/g, ""), "the buttons are display:none").toContain(
+      "display:none",
+    );
+    expect(button!.body.replace(/\s+/g, ""), "and occupy no width").toMatch(/width:0(?:px)?[;}]?/);
+
+    // A thumb on `--rule` that brightens on hover — a different token, not the
+    // same one, and not a literal.
+    const thumb = rules.find((rule) => /::-webkit-scrollbar-thumb$/.test(rule.selector));
+    const hover = rules.find((rule) => /::-webkit-scrollbar-thumb:hover$/.test(rule.selector));
+    expect(thumb, "the thumb is styled").toBeDefined();
+    expect(hover, "the thumb has a hover state").toBeDefined();
+    expect(thumb!.body.replace(/\s+/g, ""), "the thumb is --rule").toContain(
+      "background:var(--rule)",
+    );
+    expect(hover!.body, "hover reaches for a token").toMatch(/background:\s*var\(--[a-z-]+\)/);
+    expect(hover!.body, "hover is not the resting colour").not.toContain("var(--rule)");
+
+    // A transparent trough: the bar and its track paint nothing of their own.
+    for (const part of ["::-webkit-scrollbar", "::-webkit-scrollbar-track"]) {
+      const rule = rules.find((candidate) => candidate.selector.endsWith(part));
+      expect(rule, `${part} is declared`).toBeDefined();
+      expect(rule!.body.replace(/\s+/g, ""), `${part} paints nothing`).toContain(
+        "background:none",
+      );
+    }
+
+    // And the whole point: not one colour in any of these rules is a literal.
+    // Both locks — nothing that looks like a colour, and every value a token,
+    // a length or `none`.
+    for (const rule of rules) {
+      expect(rule.body, `${rule.selector} spells a colour literal`).not.toMatch(COLOUR_LITERAL);
+      for (const declaration of rule.body.split(";").filter((part) => part.trim() !== "")) {
+        const value = declaration.slice(declaration.indexOf(":") + 1).trim();
+        expect(value, `${rule.selector}: "${declaration.trim()}" is not a token or a metric`).toMatch(
+          TOKEN_OR_METRIC,
+        );
+      }
+    }
+  });
+
+  test("a graph that fits gains no horizontal chrome (FR-011)", async ({ page, request }) => {
+    const rail = await stageRail(request);
+    const staged = rail.filter((entry) => entry.stories.length > 0);
+    expect(staged.length).toBeGreaterThanOrEqual(5);
+
+    // A gutter reservation is invisible to a measurement in headless
+    // Chromium, whose scrollbars are overlays: `scrollbar-gutter: stable`
+    // reserves nothing where the scrollbar takes no layout. The stylesheet is
+    // therefore asserted too, and it is the arm that would actually go red on
+    // the shortcut, on every machine.
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-stage-canvas]");
+    const css = await builtStylesheet(page);
+    expect(css, "no scrollbar gutter is reserved anywhere in the pane").not.toContain(
+      "scrollbar-gutter",
+    );
+
+    let fitted = 0;
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of US2_WIDTHS) {
+        await page.setViewportSize({ width, height: 1000 });
+        for (const entry of staged) {
+          await page.goto(`/showfloor/${entry.spec_dir}`);
+          await page.waitForSelector("[data-stage-canvas]");
+          const where = `${entry.spec_dir} at ${width} in ${scheme}`;
+
+          const read = await scrollerStyle(page);
+
+          // US2's own measurement, re-run: at these three widths, with nothing
+          // picked, no stage clips its graph. This story may not move it.
+          expect(read.scrollWidth, `${where}: the stage still fits its graph`).toBe(
+            read.clientWidth,
+          );
+          fitted++;
+
+          // The box: the content box is the border box less the borders and
+          // nothing else. Chrome between them is exactly what FR-011 refuses.
+          expect(read.offsetWidth - read.borders, `${where}: no chrome inside the border`).toBe(
+            read.clientWidth,
+          );
+
+          // And the graph's box is unchanged from US2's: the scroller takes
+          // the whole stage track less the stage's own padding, and the canvas
+          // fills the scroller. A reserved gutter shortens the first of these.
+          expect(
+            read.clientWidth,
+            `${where}: the scroller is the stage track less its padding`,
+          ).toBeCloseTo(read.stageTrack - read.stagePadding, 0);
+          expect(read.canvasWidth, `${where}: the graph fills its scroller`).toBeCloseTo(
+            read.clientWidth,
+            0,
+          );
+
+          // Nothing on the chain from the grid track to the graph reserves one.
+          expect(read.gutters, `${where}: a gutter was reserved`).toEqual(
+            read.gutters.map(() => "auto"),
+          );
+        }
+      }
+    }
+
+    expect(fitted, "fitting stages were measured at every width, in both themes").toBe(
+      staged.length * US2_WIDTHS.length * SCHEMES.length,
+    );
+  });
+});
