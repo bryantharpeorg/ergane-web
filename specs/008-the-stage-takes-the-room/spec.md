@@ -1,6 +1,24 @@
 ---
-state: draft
-depends_on_landed: [005-one-epic-on-stage]
+state: ready
+depends_on_landed: []
+# NO `depends_on_landed` EDGE, DELIBERATELY, AND THIS IS THE REASON.
+# This spec builds on 005's room, and the honest edge is
+# `[005-one-epic-on-stage]`. It is not declared because that edge is a cycle:
+# ergane resolves `depends_on_landed` from a spec's *frontmatter*, 005's
+# frontmatter still reads `ready`, and the PR that attests it `landed` (#37)
+# is red -- against a diff that changes one frontmatter line -- for exactly
+# the defect US1 below removes. 008 cannot wait on the thing 008 unblocks.
+#
+# The dependency is satisfied in fact, which is the part that matters for a
+# node: `ergane spec landed specs/005-one-epic-on-stage --default-branch dev`
+# reports all four stories landed by content --
+#   US1 ee9c0863b08d · US2 bd74ce6e7344 · US3 485b77503e3d · US4 bc7818ff7db6
+# -- so every node dispatched from this graph branches from a `dev` that
+# already carries the whole second world. What lags is the label, not the code.
+#
+# Restore the edge once #37 is green and 005 reads `landed`; it costs nothing
+# then and it keeps the corpus honest for whatever depends on 008.
+#
 # Drafted 2026-08-25 under D-016, which amended DESIGN.md FIRST -- the order
 # constitution VIII demands. Three clauses moved: the detail track collapses
 # while nothing is selected, the room's explanation moves beneath the stage,
