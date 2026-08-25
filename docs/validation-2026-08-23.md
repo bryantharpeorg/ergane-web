@@ -118,3 +118,38 @@ fails half the time thereafter.
   `CallbackBridge.handle_relay` in this validation.
 - **Visual conformance to `DESIGN.md`.** Constitution VIII is asserted through
   committed tests, not by an eye, and no eye has been applied.
+
+---
+
+## Correction, appended 2026-08-25
+
+This document stands as the record of what was run on 2026-08-23. Two claims in it
+were wrong, and both were disproved by measurement two days later. They are
+corrected here rather than edited out.
+
+**1. "the stations render correctly in a browser" (§ The flaky assertion).**
+False, and unevidenced when written. Nothing had been rendered at that point; the
+validation was conducted entirely through `curl`, committed tests and served JSON.
+When the pane was first opened in a real browser on 2026-08-24, **nine of nine
+stations on every populated stage were outside the canvas** — the graph was
+invisible, not merely mislaid. See `docs/pane-review-2026-08-24.md` (finding S1).
+The sentence asserted the one property the method could not observe.
+
+**2. "the fourth is a flaky assertion in a test, not a defect in the Showfloor"
+(§ Verdict).** The flake diagnosis was right; the exoneration was not. The
+Showfloor did carry defects — the off-canvas stations above, 514px empty stages,
+and a Desk whose attention strip spent half its vertical space on expired items.
+Four of them became spec 004. A test that cannot see a defect is not evidence the
+defect is absent.
+
+**What the error was, in one line:** the "Not validated here" section correctly
+warned that no eye had been applied to visual conformance, and the body then made
+a visual claim anyway. The warning was accurate; the claim contradicted it.
+
+**What changed because of it.** Rendering is now part of verification rather than
+a step after it. Spec 005's FR-014 commits three layout laws as browser
+assertions, and the 2026-08-25 render review measured the live pane on 42 screens
+with that same harness — which held, and which still missed two defects that were
+plainly visible in a screenshot (`docs/pane-review-2026-08-25.md`). Both halves of
+that sentence matter: the laws are load-bearing, and they are not a substitute for
+looking.
