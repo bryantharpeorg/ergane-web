@@ -69,6 +69,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // 005 US2: `shell.spec.ts` matched no project and so was collected by no
+      // gate — the defect 001 US1-S1 exists to prevent, found while replacing
+      // the first world's assertions in it. Same backend as the Desk's.
+      name: "shell",
+      testMatch: /shell\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       // Its own backend on 8789: this is the one smoke that *writes*, and a
       // settled Question on the shared demo floor is a different floor from the
       // one `desk.spec.ts` asserts against. Separate ports, no interference.

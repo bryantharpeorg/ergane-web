@@ -81,9 +81,17 @@ async function renderShowfloor(doc: FloorDocument): Promise<HTMLElement> {
   containers.push(container);
 
   (globalThis as unknown as { EventSource: unknown }).EventSource = InertEventSource;
-  globalThis.fetch = vi
-    .fn()
-    .mockResolvedValue({ ok: true, json: async () => doc }) as unknown as typeof fetch;
+  // 005 US2: the room reads two documents — `/api/showfloor` for the rail and
+  // `/api/floor` for this badge's count — so the stub answers by route. The
+  // rail is empty here on purpose: this file is about the badge, and an empty
+  // rail is a shape the assembler really emits (a corpus that did not parse).
+  globalThis.fetch = vi.fn(async (url: string) => ({
+    ok: true,
+    json: async () =>
+      url === "/api/showfloor"
+        ? { reference_instant: null, specs_root: "specs", rail: [], degraded: [] }
+        : doc,
+  })) as unknown as typeof fetch;
 
   await act(async () => {
     createRoot(container).render(<Showfloor />);
@@ -116,7 +124,9 @@ describe("AttentionBadge", () => {
     const badge = badges[0] as HTMLAnchorElement;
     expect(badge.tagName).toBe("A");
     expect(badge.textContent ?? "").toMatch(new RegExp(`^${N}\\b`));
-    expect(badge.getAttribute("href")).toBe("/desk");
+    // 005 US2 (T011) points the badge at `/`; the Desk answers there and at
+    // `/desk`, and the named route is the appbar nav's job.
+    expect(badge.getAttribute("href")).toBe("/");
     expect((badge.textContent ?? "").toLowerCase()).toContain("waiting on you");
 
     // The control: the same document with the list emptied at the document

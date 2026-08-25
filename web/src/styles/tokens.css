@@ -1,34 +1,56 @@
+/* The first world's token names, kept alive as aliases onto the second world's.
+
+   D-015 replaced `DESIGN.md`'s content, and with it the palette this file used
+   to hold: sage ground, mid-century hues, four vendored Red Hat faces. The
+   second world's tokens are defined in `global.css` (§ Colors, three blocks,
+   both themes). Every name below is now a *pointer* into that set.
+
+   Why aliases rather than a rewrite of the rules that use them: the Desk's
+   restyle is spec 006's whole job, and this spec is forbidden from making a
+   Desk visual change beyond token names (plan § Risks, tasks T010). Pointing
+   the old names at the new tokens moves the Desk into the new world's colours —
+   both themes, since a `var()` resolves at use — without touching a Desk
+   component. When 006 rewrites those rules against § Colors directly, this file
+   goes with them.
+
+   Nothing here defines a colour: a literal in this file would be a colour
+   outside § Colors, which `tests/unit/tokens2.test.ts` forbids. The scalars at
+   the bottom are sizes, rhythm and shapes the Desk still measures itself in;
+   they are not part of § Colors and 006 retires them with the rest. */
+
 :root {
   /* ground + ink */
-  --ground: #E3E8E0;        /* sage — a cool mid-century ground; never cream or beige */
-  --panel: #F4F6F1;         /* mist — near-white with a green cast */
-  --panel-deep: #D2D9CE;    /* moss grey, for wells and timeline tracks */
-  --ink: #23292A;           /* graphite with a green cast */
-  --ink-soft: #5C6962;      /* tinted secondary text (never neutral grey) */
-  --rule: #BDC7BA;          /* hairline */
-  --walnut: #3E4A3C;        /* headings, the Ergane mark: deep moss, not brown */
+  --panel: var(--surface);
+  --panel-deep: var(--sunken);
+  --ink-soft: var(--muted);
+  --walnut: var(--ink);
+  --white: var(--surface);
 
-  /* the four state hues (mid-century) */
-  --teal: #1F7A78;          /* live / RUNNING / the one accent */
-  --teal-ink: #0E4F4D;
-  --mustard: #D9A521;       /* VERIFYING / attention medium */
-  --mustard-ink: #7A5A06;
-  --olive: #6E7F3E;         /* landing run / MERGED */
-  --olive-ink: #415022;
-  --orange: #B9774F;        /* WAITING_OPERATOR / escalation high — muted clay, never red */
-  --orange-ink: #7A4A2B;
-  --aqua: #8FB8C9;          /* PENDING / KEY_ISSUED — upstream, not yet live */
-  --aqua-ink: #3E6C80;
-  --white: #FFFFFF;
+  /* the four state hues → the second world's semantic set. Teal was the one
+     accent and still is; mustard and clay both carried "the operator is waited
+     on", which § Colors now says in one hue (gold); aqua carried "upstream, not
+     yet live", which is `ready` — muted on sunken. */
+  --teal: var(--accent);
+  --teal-ink: var(--accent);
+  --mustard: var(--gold);
+  --mustard-ink: var(--gold);
+  --olive-ink: var(--olive);
+  --orange: var(--alarm);
+  --orange-ink: var(--alarm);
+  --aqua: var(--muted);
+  --aqua-ink: var(--muted);
 
-  /* type */
-  --display: "Red Hat Display", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --text: "Red Hat Text", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --mono: "Red Hat Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  /* type: the vendored faces are gone (§ Typography, "nothing downloads"), so
+     the two display names both point at the system sans stack. `--mono` is not
+     redefined here — `global.css` already carries the one mono stack under that
+     exact name. */
+  --display: var(--sans);
+  --text: var(--sans);
 
+  /* the first world's ramp, still measured by Desk rules 006 will rewrite */
   --fs-clock: clamp(1.9rem, 2.6vw, 2.6rem);
   --fs-display: 1.5rem;
-  --fs-readout: 1.25rem;   /* DESIGN.md § Typography › Readout */
+  --fs-readout: 1.25rem;
   --fs-headline: 1.125rem;
   --fs-body: 0.95rem;
   --fs-small: 0.8125rem;
@@ -44,11 +66,8 @@
   --s7: 3rem;
 
   /* shapes */
-  --radius: 3px;             /* mid-century: tight radii, no pills except chips */
+  --radius: 3px;
   --chip: 999px;
-
-  /* elevation & depth */
-  --shadow: 0 2px 6px rgba(42, 42, 38, 0.12), 0 10px 24px -12px rgba(42, 42, 38, 0.18);
 
   /* motion */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

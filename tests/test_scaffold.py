@@ -132,7 +132,16 @@ def test_dependency_roster():
         assert dep in APPROVED_NODE
 
 
-def test_fonts_and_index_html():
+def test_index_html_loads_no_font_file():
+    """005 US2 (FR-007): the page fetches no font file and nothing remote.
+
+    This assertion is the inverse of the one 001 committed here, and the
+    inversion is the design's: D-015 replaced DESIGN.md's content on 2026-08-24,
+    and § Typography of the second world is system stacks only -- "nothing
+    downloads", "no remote stylesheet, ever".  The vendored faces may stay in the
+    tree as history (the document says so), so their files are still asserted
+    present; what may not survive is the link that loaded them.
+    """
     root = Path(__file__).resolve().parents[1]
     fonts_dir = root / "web" / "public" / "fonts"
     for name in (
@@ -145,7 +154,8 @@ def test_fonts_and_index_html():
         assert (fonts_dir / name).is_file()
 
     index_html = (root / "web" / "index.html").read_text()
-    assert 'href="/fonts/fonts.css"' in index_html
+    assert 'href="/fonts/' not in index_html
+    assert "stylesheet" not in index_html
     assert "https://" not in index_html
 
 
