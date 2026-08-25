@@ -119,7 +119,96 @@ test.describe("the second world is on the screen (FR-006)", () => {
       for (const word of words) expect(word.length).toBeGreaterThan(0);
     }
   });
+
+  test("the draft chip is dashed and every other chip is not", async ({ page }) => {
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-chip]");
+
+    const chips = await page.locator("[data-chip]").evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const style = getComputedStyle(node);
+        return {
+          tone: node.getAttribute("data-chip-tone"),
+          borderStyle: style.borderTopStyle,
+          colour: style.color,
+          wash: style.backgroundColor,
+          borderColour: style.borderTopColor,
+          radius: style.borderTopLeftRadius,
+        };
+      }),
+    );
+
+    // This floor really carries both kinds; an assertion over one would prove
+    // half of the pair.
+    const drafts = chips.filter((chip) => chip.tone === "draft");
+    const others = chips.filter((chip) => chip.tone !== "draft");
+    expect(drafts.length).toBeGreaterThan(0);
+    expect(others.length).toBeGreaterThan(0);
+
+    // § Chips: `draft` is "faint, transparent, **dashed border**".
+    for (const chip of drafts) {
+      expect(chip.borderStyle).toBe("dashed");
+      expect(chip.wash).toBe("rgba(0, 0, 0, 0)");
+    }
+    for (const chip of others) {
+      expect(chip.borderStyle).toBe("solid");
+    }
+
+    // "chips are `border: 1px solid currentColor` over the wash", squared, and
+    // each tone's ink differs from the next one's.
+    for (const chip of chips) {
+      expect(chip.borderColour).toBe(chip.colour);
+      expect(chip.radius).toBe("0px");
+    }
+    const inks = new Set(chips.map((chip) => `${chip.tone}:${chip.colour}`));
+    const tones = new Set(chips.map((chip) => chip.tone));
+    expect(inks.size).toBe(tones.size);
+  });
+
+  test("the selected rail row wears the wash and the 3px accent bar", async ({ page }) => {
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-rail-row][data-selected='true']");
+
+    const measured = await page.locator("[data-rail-row]").evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const style = getComputedStyle(node);
+        return {
+          selected: node.getAttribute("data-selected"),
+          wash: style.backgroundColor,
+          bar: style.borderLeftWidth,
+          barColour: style.borderLeftColor,
+        };
+      }),
+    );
+
+    const selected = measured.filter((row) => row.selected === "true");
+    const rest = measured.filter((row) => row.selected !== "true");
+    expect(selected.length).toBe(1);
+    expect(rest.length).toBeGreaterThan(0);
+
+    // § Epic rail: "accent-w wash + 3px accent bar"; § Shapes says the 3px.
+    const accent = await page.evaluate(() => ({
+      bar: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
+      wash: getComputedStyle(document.documentElement).getPropertyValue("--accent-w").trim(),
+    }));
+    expect(selected[0].bar).toBe("3px");
+    expect(selected[0].barColour).toBe(hexToRgb(accent.bar));
+    expect(selected[0].wash).toBe(hexToRgb(accent.wash));
+
+    // And an unselected row wears neither — the bar is there, and transparent.
+    for (const row of rest) {
+      expect(row.wash).toBe("rgba(0, 0, 0, 0)");
+      expect(row.barColour).not.toBe(hexToRgb(accent.bar));
+    }
+  });
 });
+
+/** `#RRGGBB` as a browser reports it back from a computed style. */
+function hexToRgb(hex: string): string {
+  const value = hex.replace("#", "");
+  const channels = [0, 2, 4].map((at) => parseInt(value.slice(at, at + 2), 16));
+  return `rgb(${channels.join(", ")})`;
+}
 
 test.describe("the frame is fluid to 96rem (FR-007)", () => {
   const WIDTHS = [1280, 1600, 2560] as const;

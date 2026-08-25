@@ -74,6 +74,18 @@
   font-size: var(--t-tag);
 }
 
+/* "room nav with a 2px accent underline on the active room" (§ Layout), said
+   here in the second world's own token rather than reached through the first
+   world's alias. */
+.showfloor .mast nav a {
+  color: var(--muted);
+}
+
+.showfloor .mast nav a[aria-current] {
+  color: var(--ink);
+  border-bottom: 2px solid var(--accent);
+}
+
 /* § Attention badge: a gold chip in the appbar — count and destination — and
    nothing else. */
 .showfloor .attention-badge,

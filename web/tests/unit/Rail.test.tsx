@@ -8,6 +8,7 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
+import showfloorCss from "../../src/showfloor/showfloor.css?raw";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import Rail from "../../src/showfloor/Rail";
@@ -117,6 +118,18 @@ describe("the chip is § Chips' word, with the story count", () => {
     });
   }
 
+  it("wears gold wherever the epic waits on the operator", () => {
+    const entry = waitingEntry("010-i", 4);
+    // The Given, from the document rather than from the chip: some story of
+    // this epic really is waiting on the operator.
+    expect(entry.stories.some((story) => story.ladder.awaiting_operator)).toBe(true);
+    expect(entry.stories.filter((story) => story.ladder.awaiting_operator).length).toBe(1);
+
+    const chip = chipOf(rows(render([entry]))[0]);
+    expect(chip.textContent).toBe("waiting on you 0/4");
+    expect(chip.getAttribute("data-chip-tone")).toBe("wait");
+  });
+
   it("gives a spec that declares no stories a word and no count", () => {
     const row = rows(render([storylessEntry("007-a-spec-remembers-its-build")]))[0];
     expect(chipOf(row).textContent).toBe("draft");
@@ -173,5 +186,56 @@ describe("selection is one row, marked three ways", () => {
   it("marks nothing when nothing is selected", () => {
     const container = render(FLOOR, null);
     expect(container.querySelectorAll("[data-selected='true']").length).toBe(0);
+  });
+});
+
+/**
+ * § Chips gives each row of its table a pair of colours and, for `draft`, a
+ * dashed border. A unit test cannot see a computed style in jsdom, so the
+ * dressing is read out of the stylesheet here and measured in a real browser in
+ * `tests/smoke/showfloor.spec.ts` — the two together are what US2-S3's "a
+ * `draft` spec wearing the dashed chip" is proven by.
+ */
+describe("the chip's dressing is § Chips' own", () => {
+  const ruleFor = (tone: string): string => {
+    const selector = `.showfloor .chip.${tone} {`;
+    const at = showfloorCss.indexOf(selector);
+    expect(at, `no rule for .chip.${tone}`).toBeGreaterThan(-1);
+    return showfloorCss.slice(at, showfloorCss.indexOf("}", at));
+  };
+
+  const CHIP_COLOURS: Array<[string, string, string]> = [
+    ["landed", "var(--olive)", "var(--olive-w)"],
+    ["building", "var(--accent)", "var(--accent-w)"],
+    ["ready", "var(--muted)", "var(--sunken)"],
+    ["wait", "var(--gold)", "var(--gold-w)"],
+    ["dead", "var(--alarm)", "var(--alarm-w)"],
+  ];
+
+  for (const [tone, ink, wash] of CHIP_COLOURS) {
+    it(`dresses ${tone} in ${ink} over ${wash}`, () => {
+      const rule = ruleFor(tone);
+      expect(rule).toContain(`color: ${ink}`);
+      expect(rule).toContain(`background: ${wash}`);
+    });
+  }
+
+  it("dresses draft in faint on nothing, with a dashed border", () => {
+    const rule = ruleFor("draft");
+    expect(rule).toContain("color: var(--faint)");
+    expect(rule).toContain("background: transparent");
+    expect(rule).toContain("border-style: dashed");
+  });
+
+  it("borders every chip in its own ink, over the wash", () => {
+    const base = showfloorCss.slice(
+      showfloorCss.indexOf(".showfloor .chip {"),
+      showfloorCss.indexOf("}", showfloorCss.indexOf(".showfloor .chip {")),
+    );
+    expect(base).toContain("border: 1px solid currentColor");
+    expect(base).toContain("border-radius: 0");
+    expect(base).toContain("font-family: var(--mono)");
+    expect(base).toContain("font-size: var(--t-chip)");
+    expect(base).toContain("text-transform: uppercase");
   });
 });
