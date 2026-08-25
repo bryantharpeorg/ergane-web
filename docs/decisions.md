@@ -495,3 +495,99 @@ is retired at every width, and `desk-world.spec.ts` proves it at all three the s
 working as designed, not a defect in this spec; if the operator wants the Desk to use that room,
 it is a `DESIGN.md` amendment to § Layout and a new entry here — with the Showfloor's "centred at
 the cap" assertion moving with it — and it is the operator's to take, not a node's.
+
+---
+
+## D-018 · The room's claims outlive the workflow, and a fourth layout law (decided 2026-08-25)
+
+**Raised by** the operator, from the pane's own Showfloor at 3:22 PM CT on 2026-08-25, looking at a
+spec that had finished eleven minutes earlier.
+
+### The defect
+
+`006-the-desk-matches-the-stage` had all three stories merged on `dev` — `55920c9`, `9872850`,
+`5cb5441`, observed by content. The Showfloor rendered it **`READY 0/3`**, with every story parked at
+the `ready` stop of the ladder. Not "unknown", not "the live read is gone": *ready*, which in this
+room's vocabulary means **not started**. The room stated the opposite of the truth, with confidence,
+about the only thing it exists to report.
+
+The mechanism is one line. `pane/showfloor.py:518`:
+
+```python
+landed = sum(1 for story in stories if story["ladder"]["stop_key"] == "merged")
+```
+
+The ladder comes from `readers.epic_status(spec_dir)` — a Temporal query against a **live workflow**.
+When 006's workflow completed, the query answered nothing, `dispatched` went `False`, `live_nodes`
+went empty, and `_stories` fell back to the spec's frontmatter `state:`, which still read `ready`
+because nobody had attested it yet. Every story inherited that stop.
+
+**So the room's landing truth has exactly one source, and that source is designed to disappear.** A
+Temporal workflow ends when the epic ends, and retention is 72 hours besides. The window in which a
+finished epic reads as unstarted opens the moment the last story merges and closes only when a human
+edits a YAML frontmatter line by hand. For 006 that window was eleven minutes because the operator
+happened to be watching. Overnight, under `/away-mode`, it is however long the operator sleeps — and
+the pane spends that whole time telling them nothing has started.
+
+**Git already knows the answer.** `ergane spec landed specs/<dir> --default-branch dev` reports every
+story's landing SHA by content, from the branch, with no workflow involved. It is the same seam the
+corpus already trusts for attestation. The room does not ask it.
+
+### What is decided
+
+1. **Landing truth is read from the corpus, not only from the live workflow.** A story that is landed
+   on the landing branch by content reads `merged`, whether or not a workflow still exists to say so
+   and whether or not the frontmatter has been attested. `epic_status` remains the authority for
+   everything *in flight* — attempt, persona, the four stops before `merged` — because only it knows
+   those. The two are layered, not swapped: live where live exists, corpus underneath.
+
+2. **A read whose live source is gone renders as gone, never as a default.** Where neither source can
+   answer, the ladder shows the Unknown Rule's vocabulary — constitution III, "a value the factory did
+   not record is shown as unknown, never as zero". Falling back to the *first* stop of a six-stop
+   ladder is exactly the "shown as zero" failure the principle names, wearing a different costume.
+
+3. **A fourth layout law: no element with an opaque background may paint over a text leaf that is not
+   its own.** `DESIGN.md` § Layout carries three laws today — containment, nothing past the viewport,
+   no two text leaves overlapping. On 2026-08-25 a degraded note rendered unreadable in both themes,
+   its heading cut mid-word, and **all three laws passed**. They measure *glyph* geometry via a `Range`
+   over each leaf, deliberately and correctly, because inline fragment rects in Chromium carry the whole
+   inline box's height. That decision is right and it is precisely the blind spot: an opaque box painted
+   over text is not a text-leaf overlap. No glyphs intersected. The text was simply not readable. The
+   instance was fixed incidentally when 006 rewrote `global.css` for the second world — measured today,
+   zero occlusion hits — but nothing prevents its return, and a law the suite does not carry is a
+   guarantee the repository does not have.
+
+### What is deliberately NOT decided, and the measurements that closed it
+
+**The rank wrap is dropped, not deferred again.** D-016 deferred wrapping an over-wide rank by name,
+on the evidence of the 2026-08-25 review: 235px of graph hidden at 1280, US4 fully invisible, on specs
+001 and 002. That evidence does not survive re-measurement, and the reason matters.
+
+The review measured a **fabricated** topology. At the time the Showfloor could not find a work graph
+for those specs and fell back to listing their stories as an edgeless flat rank — four cards side by
+side, which is what overflowed. The archives landed in `#40`, and the real graphs are these:
+
+| spec | true topology |
+|---|---|
+| 001, 002, 005 | `us1 → us2 → us3 → us4`, serial on `depends_on_merged` |
+| 006, 008 | `us1 → us2 → us3`, serial |
+
+Every one is a chain. Measured across the whole corpus at 1280, 1600 and 2560 — eighteen renders —
+**clipping is 0px everywhere, and the empty space below the graph is 0px everywhere.** Both halves of
+F1 are gone. The clipped rank was a symptom of the fabricated topology, and archiving the DAGs cured
+the disease; 008's collapsing detail track had already taken the rest.
+
+An attempt to reproduce the wide rank synthetically — injecting eight, ten and fourteen edgeless
+sibling stories into a real epic's document and rendering at all three widths — also produced **no
+clipping at any size**, because the stage lays an edgeless set out vertically rather than as one
+horizontal rank. There is no shape in reach that reproduces the defect.
+
+So there is nothing to fix here, and a spec that wrapped ranks would be designing for a geometry that
+does not occur, with a wire-drawing complication (`Wires.tsx` draws rank-to-rank left-to-right and a
+row break leaves a stub diagonal) as its cost. **If a genuinely parallel spec ever lands and clips,
+that is the moment to write it, with the real measurement in hand.** D-016's deferral is discharged.
+
+**Why an entry at all.** Constitution VIII: appearance changes are the operator's to take, and the
+authority is amended before the spec that builds to it, never after. Clause 3 adds a law to
+`DESIGN.md` § Layout; clauses 1 and 2 are behavioural and bind spec 009's stories. Spec 009 cites
+these clauses.
