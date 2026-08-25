@@ -658,3 +658,43 @@ a {
     transition: none;
   }
 }
+
+/* --- The stale fold (006 US3, DESIGN.md § The Desk in this world) ----------
+   Expired is a fact, not an emergency: the fold is quiet by construction —
+   muted, no rank colour on its edge, no motion — so that the eye keeps going
+   to the live clocks above it. Every value here is a token DESIGN.md names. */
+.attention .stale { margin-top: 1rem; border-top: 1px solid var(--hairline); padding-top: 0.8rem; }
+.attention .stale-summary {
+  cursor: pointer;
+  font-size: var(--t-small);
+  color: var(--muted);
+  list-style: none;
+}
+/* The disclosure triangle, drawn as text so both themes get the same mark. */
+.attention .stale-summary::-webkit-details-marker { display: none; }
+.attention .stale-summary::before { content: "▸ "; color: var(--faint); }
+.attention .stale[open] > .stale-summary::before { content: "▾ "; }
+.attention .stale-count { font-weight: 700; }
+.attention .stale-items { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.6rem; }
+/* One line: kind, id, how long ago the deadline passed — laid out in a row so
+   a collapsed item cannot grow to a second line at any frame width. */
+.attention .stale-line {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  font-size: var(--t-small);
+  list-style: none;
+}
+.attention .stale-line::-webkit-details-marker { display: none; }
+.attention .stale-item .kind { color: var(--muted); }
+.attention .stale-item .ago { color: var(--faint); font-family: var(--mono); }
+/* Opened, it is the item again: the factory's expiry and its text, verbatim. */
+.attention .stale-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0 0.6rem 1rem;
+  border-left: 1px solid var(--hairline);
+  margin-top: 0.4rem;
+}
