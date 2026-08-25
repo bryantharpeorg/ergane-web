@@ -1,0 +1,92 @@
+{
+  "epic_state": "RUNNING",
+  "landing_config": {
+    "max_free_rebases": 3,
+    "max_recovery_cycles": 1,
+    "merge_method": "squash",
+    "poll_interval_s": 3,
+    "stall_after_s": 7200
+  },
+  "landing_overrides": [
+    "poll_interval_s"
+  ],
+  "nodes": {
+    "us1": {
+      "attempt": 1,
+      "awaiting_operator": false,
+      "branch": "factory/fx-landing-f0a0d6/us1",
+      "free_rebases": 0,
+      "history": [
+        {
+          "attempt": 1,
+          "judge_outcome": null,
+          "model_alias": "implementer-alias",
+          "persona": "implementer",
+          "verdict": "PASS"
+        }
+      ],
+      "landing_history": [
+        {
+          "at": "2026-08-22T17:40:54Z",
+          "failing_checks": [],
+          "outcome": "MERGED"
+        }
+      ],
+      "landing_state": "MERGED",
+      "model_alias": "implementer-alias",
+      "persona": "implementer",
+      "pr_number": 486,
+      "provenance": null,
+      "recovery_cycles": 0,
+      "rejection_cause": null,
+      "state": "MERGED",
+      "terminal_reason": null,
+      "verified": true
+    },
+    "us2": {
+      "attempt": 1,
+      "awaiting_operator": false,
+      "branch": "factory/fx-landing-f0a0d6/us2",
+      "free_rebases": 0,
+      "history": [
+        {
+          "attempt": 1,
+          "judge_outcome": null,
+          "model_alias": "implementer-alias",
+          "persona": "implementer",
+          "verdict": "PASS"
+        }
+      ],
+      "landing_history": [],
+      "landing_state": "ENQUEUED",
+      "model_alias": "implementer-alias",
+      "persona": "implementer",
+      "pr_number": 467,
+      "provenance": null,
+      "recovery_cycles": 0,
+      "rejection_cause": null,
+      "state": "ENQUEUED",
+      "terminal_reason": null,
+      "verified": true
+    },
+    "us3": {
+      "attempt": 1,
+      "awaiting_operator": false,
+      "branch": "factory/fx-landing-f0a0d6/us3",
+      "free_rebases": 0,
+      "history": [],
+      "landing_history": [],
+      "landing_state": null,
+      "model_alias": "implementer-alias",
+      "persona": "implementer",
+      "pr_number": null,
+      "provenance": null,
+      "recovery_cycles": 0,
+      "rejection_cause": null,
+      "state": "RUNNING",
+      "terminal_reason": null,
+      "verified": false
+    }
+  },
+  "worker_revision": "6443221"
+}

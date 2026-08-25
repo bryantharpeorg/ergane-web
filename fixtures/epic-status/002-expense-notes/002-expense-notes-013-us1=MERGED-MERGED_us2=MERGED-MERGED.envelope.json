@@ -1,0 +1,9 @@
+{
+  "captured_at": "2026-08-22T17:32:40+00:00",
+  "seam": "EpicWorkflow.epic_status (Temporal query, polled)",
+  "source": "workflow_id=epic-002-expense-notes @ 127.0.0.1:7233/ergane",
+  "host": "tharpebox",
+  "ergane_version": "0.2.0",
+  "notes": "",
+  "sequence": 13
+}

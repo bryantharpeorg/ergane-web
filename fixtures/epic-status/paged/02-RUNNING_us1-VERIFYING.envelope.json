@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-08-22T17:41:11Z",
+  "scene": "paged-while-verifying",
+  "seam": "WorkflowHandle.query(\"epic_status\") \u2014 raw payload JSON, as factory/cli/nouns/build.py:_query_status reads it",
+  "workflow_id": "epic-fx-paged-5e2e8a",
+  "notes": "distinct snapshot #2 of epic fx-paged-5e2e8a, polled every 0.5s",
+  "document": "epic-status/paged/02-RUNNING_us1-VERIFYING.json",
+  "run_id": "run-20260822T174042Z-a692e2",
+  "recorder": "scripts/record-fixtures-harness.py",
+  "ergane_checkout_revision": "6443221",
+  "webhook_url": "http://127.0.0.1:35117/<redacted>"
+}

@@ -1,0 +1,8 @@
+{
+  "relay": {
+    "correlation_id": "bc592795f73a",
+    "reply_text": "is anybody there?",
+    "sender_identity": "fixture-operator"
+  },
+  "outcome": "UNKNOWN"
+}

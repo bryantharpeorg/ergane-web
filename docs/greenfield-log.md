@@ -184,4 +184,99 @@ ready, `ergane init --wire`, dispatch.
 
 ---
 
+## Entry 10 · 2026-08-22 ~10:00–10:50 AM CT — the dispatch ask, and a clean host
+
+A new session, a different shape of ask. The operator: *init yourself in the repo,
+read the specs, then use Ergane via the CLI to create yourself — assemble the specs
+into EpicWorkflow DAGs, execute them, validate the output against the specs — and
+keep a full feedback log on both the installation and the build-out for the Ergane
+agent.* Dogfooding that keeps the byproduct. Two constraints arrived mid-interview:
+the build runs on Kimi (`kimi-k2.7-code`, Ollama Cloud) with GLM (`glm-5.2`) as
+judge, and no persona may route to a metered provider — the gateway `closer` on
+`anthropic/claude-opus-5` is gone; the subscription-routed `opus-closer` is the
+only opt-in rung, and it asks first.
+
+The host is bare: ergane was torn down 2026-08-19, no Temporal, no tool, no state.
+LiteLLM is up at `127.0.0.1:4000` serving the four aliases the registry will name.
+`ergane-cli 0.2.0` reached PyPI today — which retires spec 001's "unpublished"
+assumption before the first attempt reads it. That, the landing branch, the
+manifest rename, the ladder, the routing and the fixture method were settled in a
+seven-question interview and recorded as **D-011**.
+
+Phase 0, operator session, inline: branched `dev`; `factory.yaml` → `ergane.yaml`
+(`landing_branch: dev`, `ladder: 6/3`); every live mention renamed (decisions and
+earlier log entries left as written); 001's assumption amended to pin
+`ergane-cli==0.2.0`; D-011; this entry; a `CLAUDE.md` for the two audiences that
+will read it (operator sessions and dispatched nodes); the ten `speckit-*` skills
+copied from the sibling test repo so nodes can see them. Zero questions asked of
+the factory yet — it is not installed. The install is the next entry, and the
+feedback log (`~/code/ergane-feedback-round2-2026-08-22.md`) starts there.
+
+---
+
+## Entry 11 · 2026-08-22 10:50 AM – 1:30 PM CT — install, wiring, a design system, and the floor recorded
+
+**Install (10:50–11:05).** `uv tool install ergane-cli==0.2.0` from PyPI, then one
+`ergane install --from-file` with a five-block answer file: config and registry written,
+seven control-plane probes green in the same pass, zero prompts. The registry was rewritten
+per D-011 — Kimi builds, GLM judges, `local/qwen3.6-27b` every fallback, and the metered
+`closer` alias deleted outright; the only Opus rung left is `opus-closer` on ergane's
+`subscription` agent, which never auto-promotes.
+
+Temporal was the cost. `temporal.mode = "managed"` — spec 042's own path — is a dead end in
+0.2.0: `worker install` never reads the declared mode, so the unit is never generated; the
+generated wrapper drops every argument after the module name; and nothing creates the
+directory the dev server's SQLite file lives in. Three patches to the tool venv (kept as
+`.patch` under `~/code/ergane-patches/`) and the server came up. Meanwhile `install --verify`
+had been printing `[PASS] temporal` the whole time, because in managed mode it does not dial.
+
+**Wiring (11:02–11:06).** `ergane init --wire --non-interactive` did the entire GitHub side in
+one verb — ruleset, merge queue, four named checks, `PR_TITLE`, `allow_auto_merge`, the gates
+workflow, the roadmap schedule — and said in words that the default branch and the declared
+landing branch disagreed. Two costs: it rewrote the committed `ergane.yaml` and silently
+dropped `standards` (the key that injects the constitution into every node) and `ladder`; and
+a freshly wired repo cannot land the workflow its own queue requires, so PR #1 went in through
+a temporary enforcement toggle.
+
+**A design system (11:10–12:20).** The operator asked that the pane inherit styling rather
+than leave appearance to each implementer. Nothing existed to inherit, so one was set: a
+product record, two rolled direction rounds with operator steers (no red; not cream or beige;
+a tame primary), two built comps, a finish review, and `DESIGN.md` recorded from the built
+world — a launch-telemetry mission timeline in a mid-century palette on sage, with the
+Showfloor staged as a transit map. Constitution VIII now binds every rendering diff to it.
+Recorded as **D-012**.
+
+**The Fixture floor (11:45–1:00).** Hybrid, as decided. A two-story scratch spec was authored
+into the sibling test repo and dispatched on Kimi: `us1` landed on attempt 1; `us2` failed the
+judge three times for one specific gap (*no JavaScript intercepts the 422 and writes
+`errors.note` into `#error-note`*), ran the debugger rung, and landed on attempt 4. **Zero
+interventions, zero escalations, two PRs through a real merge queue.** A recorder polled
+`epic_status` at three seconds throughout and kept every distinct answer. Then the worker was
+stopped for three minutes and ergane's own interpreter harness was run as a worker against the
+real Temporal — real notify activities, real store, real webhook adapter — to provoke the
+states a happy floor never shows: a node paged while still reading VERIFYING, a query refusal,
+escalations with 15- and 20-minute expiries, a question asked and answered and another expired,
+six bridge rulings. 80 documents, every one verbatim from a seam, each with an envelope.
+
+Then the sibling repo was forgotten from the factory: only `ergane-web` is provisioned. The
+pane is now the factory's only work.
+
+**Refinement (12:25–1:30).** A three-agent workflow authored `plan.md` and `tasks.md` for all
+three specs, looping against `ergane spec validate` until clean, then one cross-spec critic.
+Two things came out of it that no per-spec check could see. First, spec 002's FR-003 stated no
+obligation — no MUST — so ergane refused to compile its work graph at all; the 002 author
+diagnosed the exact one-word fix and, forbidden from editing spec.md, said so instead of
+guessing. Second, **both authors independently cited the same wrong fixture paths**, because
+the recorded set had a `raw-harness/` directory: capture method leaking into consumer paths.
+Two independent agents making the same wrong guess is a design finding, not an author error —
+the documents were promoted into a semantic layout and the citations now resolve.
+
+The critic returned NEEDS_FIXES with 13 findings, none of them per-spec: assertions that
+contradict the recorded documents, an epic that closes the auth seam while landed tests pin it
+open, two concurrent epics writing the same four files with no edge available to order them,
+and a demo Question that one epic changes out from under another's committed smoke. Each one
+is a judge failure the factory would otherwise have discovered attempt by attempt.
+
+---
+
 *(Append below; entries are immutable once written.)*

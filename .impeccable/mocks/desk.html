@@ -1,0 +1,268 @@
+<!doctype html>
+<!--
+DIRECTION CONTRACT — the Desk (room 1 of the Ergane pane). Comp, not product code.
+THESIS: an operator's glance lands on a row of T-minus clocks, not on a grid of metric
+cards. The Desk is a mission timeline: attention first, then one timeline row per epic.
+It refuses the hero-metric grid the category ships.
+OWN-WORLD: putty ground, bone panels, graphite ink, walnut headings. Four mid-century
+hues carry state — teal (live), mustard (verifying), olive (landing run), clay
+(waiting on you; clay, never red) — doubled by a chevron glyph and a caption. Red Hat Display/Text/Mono.
+Hairline rules, tight radii, one shadow on the one thing you can press.
+STORY: "does anything need me?" → clocks say yes/no in a second → answer from here →
+the factory's ruling lands in the same row; everything else is detail below.
+FIRST VIEWPORT: masthead (mark · Desk/Showfloor · floor line); the attention strip —
+each item a clock, ranked by time left, Answer beside it; then the epic timeline rows
+with the shared milestone bar PASSED → PR_OPEN → ENQUEUED → MERGED.
+FORM: launch-telemetry timeline, candidate 5 of the ordered list, seed 78126538, re-dressed
+in MCM on a warm light ground by the operator's pinned steer. Staging for the Desk is the
+world's own channel rows; the Showfloor takes the dealt visible-transit staging.
+DATA: comp data — real derived graphs (001-trip-expenses, 077) with synthetic states,
+clocks, spend. Nothing here is a recorded fixture.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ergane — Desk (comp)</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .desk { max-width: 1280px; margin: 0 auto; padding: 0 var(--s6) var(--s7); }
+
+  /* attention strip */
+  .attention { padding: var(--s5) 0 var(--s4); border-bottom: 1px solid var(--rule); }
+  .attention-head { display: flex; align-items: baseline; gap: var(--s3); margin-bottom: var(--s3); }
+  .attention-head h1 { font-size: var(--fs-display); }
+  .attention-head .count { font-family: var(--mono); color: var(--ink-soft); }
+  .items { display: grid; gap: var(--s3); }
+  .item { display: grid; grid-template-columns: 250px 1fr auto; gap: var(--s5); align-items: start; background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--s4) var(--s5); }
+  .item.high { border-color: var(--orange); box-shadow: inset 3px 0 0 var(--orange); }
+  .item.medium { box-shadow: inset 3px 0 0 var(--mustard); }
+  .item.low { box-shadow: inset 3px 0 0 var(--aqua); }
+  .clock { display: grid; gap: var(--s1); }
+  .clock .t { font-family: var(--mono); font-size: var(--fs-clock); line-height: 1; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .item.high .clock .t { color: var(--orange-ink); }
+  .clock .until { font-size: var(--fs-small); color: var(--ink-soft); }
+  .clock .kind { font-family: var(--display); font-weight: 600; font-size: var(--fs-small); }
+  .item.high .kind { color: var(--orange-ink); } .item.medium .kind { color: var(--mustard-ink); } .item.low .kind { color: var(--aqua-ink); }
+  .body .where { font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); margin-bottom: var(--s2); }
+  .body p { margin: 0 0 var(--s2); max-width: 68ch; }
+  .body .ruling { font-size: var(--fs-small); color: var(--olive-ink); font-weight: 500; }
+  .answer { display: grid; gap: var(--s2); min-width: 220px; justify-items: stretch; }
+  .answer textarea { font: inherit; font-size: var(--fs-small); border: 1.5px solid var(--rule); background: #fff; border-radius: var(--radius); padding: var(--s2) var(--s3); min-height: 4.5em; resize: vertical; }
+  .answer textarea:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; border-color: var(--teal); }
+  .choices { display: grid; gap: var(--s2); }
+  .choices .btn { text-align: left; }
+  .choices .btn small { display: block; font-family: var(--mono); font-weight: 400; font-size: var(--fs-micro); color: var(--ink-soft); }
+  .choices .btn-answer small { color: rgba(255,255,255,0.8); }
+  .notice .answer { align-self: center; color: var(--ink-soft); font-size: var(--fs-small); font-style: italic; }
+
+  /* epic timeline rows */
+  .floor { padding-top: var(--s5); }
+  .floor-head { display: flex; align-items: baseline; gap: var(--s3); margin-bottom: var(--s4); }
+  .floor-head h2 { font-size: var(--fs-display); }
+  .epic { display: grid; grid-template-columns: 250px 1fr 300px; gap: var(--s5); padding: var(--s4) 0; border-top: 1px solid var(--rule); align-items: center; }
+  .epic:last-child { border-bottom: 1px solid var(--rule); }
+  .epic .id { font-family: var(--display); font-weight: 600; }
+  .epic .id small { display: block; font-family: var(--mono); font-weight: 400; font-size: var(--fs-micro); color: var(--ink-soft); letter-spacing: 0.04em; margin-top: 2px; }
+  .epic .persona { font-size: var(--fs-small); color: var(--ink-soft); margin-top: var(--s1); }
+
+  /* the shared milestone bar: every epic reads the same way */
+  .bar { position: relative; height: 56px; }
+  .bar .track { position: absolute; left: 0; right: 0; top: 26px; height: 4px; background: var(--panel-deep); border-radius: 2px; }
+  .bar .ms { position: absolute; top: 0; display: grid; justify-items: center; gap: var(--s1); transform: translateX(-50%); font-size: var(--fs-micro); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); font-weight: 500; }
+  .bar .ms i { width: 12px; height: 12px; background: var(--panel); border: 2px solid var(--rule); transform: rotate(45deg); margin-top: 22px; }
+  .bar .ms.done i { background: var(--olive); border-color: var(--olive); }
+  .bar .ms.done { color: var(--olive-ink); }
+  .bar .ms .lab { order: -1; margin-top: 0; }
+  .bar .token { position: absolute; top: 20px; z-index: 1; transform: translateX(-50%); display: grid; justify-items: center; }
+  .bar .token b { width: 16px; height: 16px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px var(--panel); }
+  .bar .token.verifying b { background: var(--mustard); }
+  .bar .token.waiting b { background: var(--orange); }
+  .bar .token span { font-family: var(--mono); font-size: var(--fs-micro); color: var(--ink); background: var(--panel); padding: 1px 4px; border-radius: 2px; margin-top: var(--s2); white-space: nowrap; }
+  .bar .fill { position: absolute; left: 0; top: 26px; height: 4px; background: var(--olive); border-radius: 2px; }
+
+  .readouts { display: grid; grid-template-columns: repeat(3, auto); gap: var(--s5); justify-content: end; padding-left: var(--s5); }
+  .ro { display: grid; gap: 2px; text-align: right; }
+  .ro .v { font-family: var(--mono); font-size: var(--fs-readout); font-variant-numeric: tabular-nums; line-height: 1; }
+  .ro .v.unknown { color: var(--ink-soft); font-style: italic; font-family: var(--text); font-size: var(--fs-small); }
+  .ro .k { font-size: var(--fs-micro); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); white-space: nowrap; }
+
+  .nodes { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); padding-left: 0; }
+  .nodes .n { display: inline-flex; gap: 0.5em; align-items: center; font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); }
+
+  .quiet { padding: var(--s5) 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); color: var(--ink-soft); font-style: italic; }
+
+  /* health + spend — two columns, same grammar */
+  .lower { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s6); padding-top: var(--s6); }
+  .lower h2 { font-size: 1.125rem; margin-bottom: var(--s3); }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-small); }
+  th { text-align: left; font-weight: 500; color: var(--ink-soft); font-size: var(--fs-micro); letter-spacing: 0.06em; text-transform: uppercase; padding: var(--s2) var(--s3) var(--s2) 0; border-bottom: 1px solid var(--rule); }
+  td { padding: var(--s2) var(--s3) var(--s2) 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td.num, th.num { text-align: right; padding-right: 0; }
+  td .unknown { color: var(--ink-soft); font-style: italic; }
+  .sev { font-family: var(--display); font-weight: 600; font-size: var(--fs-micro); letter-spacing: 0.06em; text-transform: uppercase; }
+  .sev.critical { color: var(--orange-ink); } .sev.warning { color: var(--mustard-ink); } .sev.info { color: var(--aqua-ink); }
+  .refs { font-family: var(--mono); font-size: var(--fs-micro); color: var(--ink-soft); }
+  .degraded { margin-top: var(--s3); padding: var(--s3) var(--s4); background: var(--panel-deep); border-radius: var(--radius); font-size: var(--fs-small); }
+  .degraded b { font-family: var(--display); }
+
+  @media (max-width: 900px) {
+    .desk { padding: 0 var(--s4) var(--s6); }
+    .item { grid-template-columns: 1fr; gap: var(--s3); }
+    .epic { grid-template-columns: 1fr; gap: var(--s3); }
+    .readouts { justify-content: start; }
+    .bar { margin: 0 32px; } .bar .ms .lab { display: none; }
+    .lower { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="mast">
+  <span class="mark">ERGANE</span>
+  <nav><a href="desk.html" aria-current="page">Desk</a><a href="showfloor.html">Showfloor</a></nav>
+  <span class="floorline"><span class="live">live floor</span> · specs/ on tharpebox · 2 epics running · read 12:04:31</span>
+</header>
+
+<main class="desk">
+  <section class="attention" aria-labelledby="att">
+    <div class="attention-head"><h1 id="att">Waiting on you</h1><span class="count num">2 items · 1 notice</span></div>
+    <div class="items">
+
+      <article class="item high">
+        <div class="clock">
+          <span class="kind">Escalation</span>
+          <span class="t num" aria-live="polite">−00:41:12</span>
+          <span class="until">until 12:45:43Z · then KILL the node</span>
+        </div>
+        <div class="body">
+          <div class="where">001-trip-expenses / us4 · attempt 3 of 6 · esc 7c2f9a1e4b0d</div>
+          <p>Verification escalation. Three attempts spent and the debugger cycle; the last diff changed <code>src/validators.py</code> cosmetically to put the file in the graded diff (judge: padding, principle IV).</p>
+          <p class="micro">What each button does</p>
+          <p>Retry spends attempt 4 of 6 · Kill ends this node only; us5 stays blocked on it · Pause parks the whole epic until you resume.</p>
+        </div>
+        <div class="answer choices" aria-label="Answer">
+          <button class="btn btn-answer">Retry the node <small>esc:7c2f9a1e4b0d:RETRY</small></button>
+          <button class="btn">Kill the node <small>esc:7c2f9a1e4b0d:KILL</small></button>
+          <button class="btn">Pause the epic <small>esc:7c2f9a1e4b0d:PAUSE_EPIC</small></button>
+        </div>
+      </article>
+
+      <article class="item medium">
+        <div class="clock">
+          <span class="kind">Question</span>
+          <span class="t num">−06:58:40</span>
+          <span class="until">until 19:03:11Z · then the node proceeds as a FAIL</span>
+        </div>
+        <div class="body">
+          <div class="where">077-a-scanner-the-operator-chooses / us3 · attempt 1 · q 3e9b0c44a1f2</div>
+          <p>The spec names <code>scanners.toml</code> under the runtime root but the constitution says declarations live in <code>ergane.yaml</code>. Which file owns the scanner list?</p>
+          <p class="ruling">Your last answer on 8d1e… was RESOLVED — waiting workflow signalled.</p>
+        </div>
+        <form class="answer" aria-label="Answer">
+          <textarea placeholder="Reply to the node. Sent as your identity; the factory rules on it.">ergane.yaml owns it; the runtime root is state, never declaration (constitution VII).</textarea>
+          <button class="btn btn-answer" type="submit">Answer</button>
+        </form>
+      </article>
+
+      <article class="item low notice">
+        <div class="clock">
+          <span class="kind">Notice</span>
+          <span class="t num" style="font-size:1.25rem">no clock</span>
+          <span class="until">asks for nothing · supervision, 11:01Z</span>
+        </div>
+        <div class="body">
+          <div class="where">supervision</div>
+          <p>ergane stack — recovered — all units up (ergane.slice 0 GiB) (for 6m 0s)</p>
+        </div>
+        <div class="answer">Asks for nothing; no answer exists.</div>
+      </article>
+    </div>
+  </section>
+
+  <section class="floor" aria-labelledby="fl">
+    <div class="floor-head"><h2 id="fl">The floor</h2><span class="num" style="color:var(--ink-soft)">2 running · queue empty · 3 drafts</span></div>
+
+    <article class="epic">
+      <div class="id">001-trip-expenses<small>epic-001-trip-expenses · RUNNING</small><div class="persona">implementer · ollama-cloud/kimi-k2.7-code</div></div>
+      <div class="bar" role="img" aria-label="Landing run, tracking the furthest-behind open story: us4 has PASSED and is paged short of PR_OPEN; 3 of 5 merged; us5 pending">
+        <div class="track"></div><div class="fill" style="width:34%"></div>
+        <div class="ms done" style="left:0%"><span class="lab">dispatch</span><i></i></div>
+        <div class="ms done" style="left:34%"><span class="lab">PASSED</span><i></i></div>
+        <div class="ms" style="left:56%"><span class="lab">PR_OPEN</span><i></i></div>
+        <div class="ms" style="left:78%"><span class="lab">ENQUEUED</span><i></i></div>
+        <div class="ms" style="left:100%"><span class="lab">MERGED</span><i></i></div>
+        <div class="token waiting" style="left:46%"><b></b><span>us4 · paged</span></div>
+      </div>
+      <div class="readouts">
+        <div class="ro"><span class="v">2 / 5</span><span class="k">stories left</span></div>
+        <div class="ro"><span class="v">3</span><span class="k">attempts · us4</span></div>
+        <div class="ro"><span class="v">$0.00</span><span class="k">spend to date</span></div>
+      </div>
+      <div class="nodes">
+        <span class="n"><span class="chev st-MERGED"><i></i>MERGED</span>us1</span>
+        <span class="n"><span class="chev st-MERGED"><i></i>MERGED</span>us2</span>
+        <span class="n"><span class="chev st-MERGED"><i></i>MERGED</span>us3</span>
+        <span class="n"><span class="chev st-VERIFYING paged"><i></i>VERIFYING</span>us4</span>
+        <span class="n"><span class="chev st-PENDING"><i></i>PENDING</span>us5</span>
+      </div>
+    </article>
+
+    <article class="epic">
+      <div class="id">077-a-scanner-the-operator-chooses<small>epic-077-a-scanner… · RUNNING</small><div class="persona">implementer · ollama-cloud/kimi-k2.7-code</div></div>
+      <div class="bar" role="img" aria-label="Landing run, tracking the furthest-behind open story: us3 is waiting on the operator before dispatch; us2 is ENQUEUED; us1 merged">
+        <div class="track"></div><div class="fill" style="width:18%"></div>
+        <div class="ms done" style="left:0%"><span class="lab">dispatch</span><i></i></div>
+        <div class="ms done" style="left:34%"><span class="lab">PASSED</span><i></i></div>
+        <div class="ms done" style="left:56%"><span class="lab">PR_OPEN</span><i></i></div>
+        <div class="ms done" style="left:78%"><span class="lab">ENQUEUED</span><i></i></div>
+        <div class="ms" style="left:100%"><span class="lab">MERGED</span><i></i></div>
+        <div class="token" style="left:84%"><b></b><span>us2 · queued 4m</span></div>
+        <div class="token waiting" style="left:18%"><b></b><span>us3 · question</span></div>
+      </div>
+      <div class="readouts">
+        <div class="ro"><span class="v">4 / 5</span><span class="k">stories left</span></div>
+        <div class="ro"><span class="v">1</span><span class="k">attempts · us2</span></div>
+        <div class="ro"><span class="v unknown">unknown</span><span class="k">spend to date</span></div>
+      </div>
+      <div class="nodes">
+        <span class="n"><span class="chev st-MERGED"><i></i>MERGED</span>us1</span>
+        <span class="n"><span class="chev st-ENQUEUED"><i></i>ENQUEUED</span>us2</span>
+        <span class="n"><span class="chev st-WAITING_OPERATOR"><i></i>WAITING_OPERATOR</span>us3</span>
+        <span class="n"><span class="chev st-KEY_ISSUED"><i></i>KEY_ISSUED</span>us4</span>
+        <span class="n"><span class="chev st-PENDING"><i></i>PENDING</span>us5</span>
+      </div>
+    </article>
+
+    <div class="degraded"><b>One epic refused its query.</b> epic-053-worker-skew is open on the orchestrator but <code>epic_status</code> raised: <span class="num">'NodeRecord' object has no attribute 'provenance'</span>. Shown as unavailable, not hidden.</div>
+  </section>
+
+  <section class="lower">
+    <div>
+      <h2>Health</h2>
+      <table>
+        <thead><tr><th>Severity</th><th>Finding</th><th class="num">Seen</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sev critical">critical</span></td><td>hardening/agent-worktree-boundary — an attempt wrote outside its worktree<div class="refs">factory/workgraph/detector.py:638 · 2 paths</div></td><td class="num">3×</td></tr>
+          <tr><td><span class="sev warning">warning</span></td><td>ops/stale-worktree — .ergane/worktrees/001-trip-expenses-us2 has no epic behind it</td><td class="num">1×</td></tr>
+          <tr><td><span class="sev info">info</span></td><td>docs/readme-omits-temporal — README prerequisites never name Temporal</td><td class="num">1×</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h2>Spend to date</h2>
+      <table>
+        <thead><tr><th>Persona</th><th class="num">Prompt</th><th class="num">Completion</th><th class="num">Requests</th><th class="num">USD</th></tr></thead>
+        <tbody>
+          <tr><td>implementer</td><td class="num">1,284,210</td><td class="num">96,402</td><td class="num">41</td><td class="num">0.00</td></tr>
+          <tr><td>judge</td><td class="num">412,900</td><td class="num">18,114</td><td class="num">9</td><td class="num">0.00</td></tr>
+          <tr><td>debugger</td><td class="num"><span class="unknown">unknown</span></td><td class="num"><span class="unknown">unknown</span></td><td class="num">2</td><td class="num"><span class="unknown">unknown</span></td></tr>
+          <tr><td><b>total</b></td><td class="num"><span class="unknown">unknown</span></td><td class="num"><span class="unknown">unknown</span></td><td class="num">52</td><td class="num"><span class="unknown">unknown</span></td></tr>
+        </tbody>
+      </table>
+      <p class="micro" style="margin-top:var(--s2)">A total is unknown when any row in scope is unknown — the ledger never fabricates a zero.</p>
+    </div>
+  </section>
+</main>
+<span class="comp-tag">COMP · synthetic states on real graphs</span>
+</body>
+</html>

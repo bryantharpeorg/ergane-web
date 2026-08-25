@@ -1,0 +1,102 @@
+{
+  "epic_id": "077-a-scanner-the-operator-chooses-runs-in-the-loop",
+  "feature": "077-a-scanner-the-operator-chooses-runs-in-the-loop",
+  "specs_root": "/home/tharpeboxadmin/code/ergane/specs",
+  "target_repo": "/home/tharpeboxadmin/code/ergane",
+  "nodes": [
+    {
+      "id": "us1",
+      "story_key": "US1",
+      "persona": "implementer",
+      "spec_ref": "077-a-scanner-the-operator-chooses-runs-in-the-loop:US1",
+      "requirement_keys": [
+        "US1",
+        "FR-001",
+        "FR-002",
+        "FR-003",
+        "FR-004"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": null
+    },
+    {
+      "id": "us2",
+      "story_key": "US2",
+      "persona": "implementer",
+      "spec_ref": "077-a-scanner-the-operator-chooses-runs-in-the-loop:US2",
+      "requirement_keys": [
+        "US2",
+        "FR-005",
+        "FR-006",
+        "FR-007",
+        "FR-008",
+        "FR-009",
+        "FR-010",
+        "FR-011"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": null
+    },
+    {
+      "id": "us3",
+      "story_key": "US3",
+      "persona": "implementer",
+      "spec_ref": "077-a-scanner-the-operator-chooses-runs-in-the-loop:US3",
+      "requirement_keys": [
+        "US3",
+        "FR-012",
+        "FR-013",
+        "FR-014",
+        "FR-015",
+        "FR-016"
+      ],
+      "depends_on": [
+        "us2"
+      ],
+      "depends_on_merged": [],
+      "timeout_override_s": null
+    },
+    {
+      "id": "us4",
+      "story_key": "US4",
+      "persona": "implementer",
+      "spec_ref": "077-a-scanner-the-operator-chooses-runs-in-the-loop:US4",
+      "requirement_keys": [
+        "US4",
+        "FR-017",
+        "FR-018",
+        "FR-019",
+        "FR-020",
+        "FR-021",
+        "FR-022"
+      ],
+      "depends_on": [
+        "us3"
+      ],
+      "depends_on_merged": [
+        "us2"
+      ],
+      "timeout_override_s": null
+    },
+    {
+      "id": "us5",
+      "story_key": "US5",
+      "persona": "implementer",
+      "spec_ref": "077-a-scanner-the-operator-chooses-runs-in-the-loop:US5",
+      "requirement_keys": [
+        "US5",
+        "FR-023",
+        "FR-024",
+        "FR-025"
+      ],
+      "depends_on": [
+        "us4"
+      ],
+      "depends_on_merged": [],
+      "timeout_override_s": null
+    }
+  ],
+  "inferred_edges": []
+}

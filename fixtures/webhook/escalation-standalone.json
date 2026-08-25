@@ -1,0 +1,22 @@
+{
+  "correlation_id": "de7c63c0fbb8",
+  "text": "⚠️ Verification escalation\nepic: fx-standalone-efe2ce\nnode: us1\n\nattempt 1: gate `test` FAIL (exit 1)\n  E   AssertionError: attempt-one recorded no loan against the member\nattempt 2: gate `test` FAIL (exit 1)\n  E   TypeError: attempt-two Catalogue.borrow() missing 1 argument\n\n\nWhat each button does:\nRETRY (🔁 Retry the node) — node: one more attempt, on the tree this one left behind. epic: unchanged — it keeps dispatching.\nKILL (🛑 Kill the node) — node: ends KILLED, its branch preserved. epic: keeps dispatching, but every node waiting on this one is locked out and ends KILLED with it, undispatched.\nPAUSE_EPIC (⏸️ Pause the epic) — node: ends parked, not killed — nothing waiting on it is locked out. epic: stops dispatching until you resume it; the undispatched nodes keep their place and run then.\nKILL_EPIC (💥 End the whole epic) — node: ends KILLED, its branch preserved. epic: ends with it — nothing else dispatches, and any other node's open page is cancelled unanswered.\n\nNo answer by 2026-08-22T18:01:12Z applies the default: KILL the node.",
+  "actions": [
+    {
+      "label": "🔁 Retry the node",
+      "payload": "esc:de7c63c0fbb8:RETRY"
+    },
+    {
+      "label": "🛑 Kill the node",
+      "payload": "esc:de7c63c0fbb8:KILL"
+    },
+    {
+      "label": "⏸️ Pause the epic",
+      "payload": "esc:de7c63c0fbb8:PAUSE_EPIC"
+    },
+    {
+      "label": "💥 End the whole epic",
+      "payload": "esc:de7c63c0fbb8:KILL_EPIC"
+    }
+  ]
+}

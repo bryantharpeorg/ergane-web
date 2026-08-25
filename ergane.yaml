@@ -1,0 +1,70 @@
+# What "green" means for ergane-web.
+#
+# This repo is a target of the sibling factory (D-003): its specs are dispatched by
+# ergane against this checkout, and every node that works here reads this file to
+# learn which commands decide its fate. Declared, never auto-detected.
+#
+# DRAFT until spec 001 lands (the repository is wired as of D-011): spec 001's scaffold
+# story is what makes each command below exist and exit 0 in a fresh checkout. A
+# gate whose command is not installed is a FAIL, not a skip — so this file lands
+# with the scaffold, not before it.
+#
+# Schema v2 — ergane specs/002-verification-gating/contracts/factory-yaml.md.
+# v2, not v1: schema v1 fixes the gate names to test/lint/typecheck and refuses
+# anything else as CONFIG_ERROR; the pane needs unit and smoke, and v2 accepts
+# declared, non-reserved gate names.
+
+version: 2
+
+runtime: bwrap
+
+# Four gates, two package worlds. `uv` owns the backend, `npm` owns web/ (D-006,
+# constitution VII). The npm gates assume dependencies are installed — the CI
+# workflow that wiring scaffolds runs `npm ci --prefix web` before the checks, and
+# spec 001's scaffold story owes a fresh checkout the same courtesy locally.
+#
+# Setup needs network egress: `uv sync` resolves ergane-cli from PyPI (pinned
+# 0.2.0; D-011) and `npm ci` fetches packages plus the Playwright chromium binary. A sandbox that
+# denies egress at gate time fails US1 by construction (001's Assumptions name
+# this); provide a cached channel before dispatch if the runtime is sealed.
+gates:
+  test: "uv run pytest -q"
+  typecheck: "npm --prefix web run typecheck"
+  unit: "npm --prefix web run test:unit"
+  smoke: "npm --prefix web run test:smoke"
+
+# The document every agent attempt in this repo is told to read and obey.
+standards: .specify/memory/constitution.md
+
+# Mirrors ergane's two-branch model: a continuous landing branch the queue owns,
+# with `main` promoted by the operator at milestones. Decided at wiring (D-011):
+# the operator chose `dev`; `main` is promoted from it after the build validates.
+landing_branch: dev
+
+# The verification ladder (schema v2), at ergane's own defaults. The 6/3 this
+# repo carried through epic 001 was a mistake worth recording: `max_attempts` is
+# shadowed by `max_judge_retries` (default 2) whenever the failure is
+# judge-driven, so the judge regime caps at three attempts no matter what this
+# says. The dial is live only where the judge never ran -- gate failures and
+# diff_check refusals -- which are the deterministic ones, where re-running the
+# same persona on the same input cannot change the answer. 001/us4 spent nine
+# rungs that way, the last four byte-identical. Raising the ceiling lengthens
+# exactly the fights that cannot converge. Nothing promotes to a closer
+# automatically; no promotion_persona is configured.
+ladder:
+  max_attempts: 3
+  debugger_cycles: 1
+
+# Roadmap dials (schema v2). ONE epic at a time. 002 and 003 both depend only on
+# 001 landing and were run concurrently on 2026-08-22; the merge queue did
+# arbitrate their shared files, exactly as intended, by failing the second one --
+# 003/us1 adds four required `Settings` fields and changes the reader protocol,
+# and 002/us1's `tests/test_stage.py` was written against the old signatures. No
+# conflict, two dead tests, and the second story has to be rebuilt rather than
+# patched. Both epics write `pane/floor_document.py`, `pane/config.py`,
+# `pane/app.py`, `pane/events.py` and `pane/readers.py`, so that toll is due on
+# every remaining story. Serial is slower on paper (seven rounds instead of four)
+# and cheaper in practice. Raise this to 2 again only for epics that share no
+# package.
+roadmap:
+  max_concurrent_epics: 1

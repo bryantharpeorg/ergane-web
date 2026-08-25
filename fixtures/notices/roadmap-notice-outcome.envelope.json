@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-08-22T17:41:27Z",
+  "scene": "supervision",
+  "seam": "factory.activities.notify_activities.send_roadmap_notice via temporalio.testing.ActivityEnvironment",
+  "workflow_id": "roadmap-fx-945757",
+  "notes": "message rendered by factory.notify.messages.roadmap_failure_notice; correlation id is the roadmap id",
+  "document": "notices/roadmap-notice-outcome.json",
+  "run_id": "run-20260822T174042Z-a692e2",
+  "recorder": "scripts/record-fixtures-harness.py",
+  "ergane_checkout_revision": "6443221",
+  "webhook_url": "http://127.0.0.1:35117/<redacted>"
+}

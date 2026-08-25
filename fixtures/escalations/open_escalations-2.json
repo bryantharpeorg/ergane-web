@@ -1,0 +1,18 @@
+[
+  {
+    "escalation_id": "d10263341dac",
+    "epic_id": "fx-paged-5e2e8a",
+    "node_id": "us1",
+    "question": "fx-paged-5e2e8a/us1: RETRY / KILL / PAUSE_EPIC / KILL_EPIC?",
+    "expires_at": "2026-08-22T17:56:11Z",
+    "resolution": null
+  },
+  {
+    "escalation_id": "de7c63c0fbb8",
+    "epic_id": "fx-standalone-efe2ce",
+    "node_id": "us1",
+    "question": "Keep retrying the loans ledger, or stop here?",
+    "expires_at": "2026-08-22T18:01:12Z",
+    "resolution": null
+  }
+]

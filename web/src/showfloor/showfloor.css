@@ -1,0 +1,575 @@
+/* Showfloor room styles built on 001's tokens.css */
+
+/* FR-015 / DESIGN.md § Layout (Showfloor): the room fills the viewport edge to
+   edge on the sage ground — the smoke measures this box against the viewport —
+   and the masthead is sticky inside it. */
+[data-showfloor-root] {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+}
+
+.showfloor {
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  color: var(--ink);
+}
+
+[data-showfloor-root] .mast {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ground);
+}
+
+.showfloor-room {
+  flex: 1;
+  padding: var(--s5) var(--s6) var(--s7);
+}
+
+.showfloor .quiet {
+  font-style: italic;
+  color: var(--ink-soft);
+  padding: var(--s4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  margin: 0;
+}
+
+.epic-stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+}
+
+/* FR-004 / DESIGN.md § Layout (Showfloor): "Each route is a grid `220px 1fr`
+   (epic name and a meta paragraph on the left, the map on the right)". Two
+   columns, not three. The third `auto` column this story removes held the
+   landing line as a DOM sibling of the map, and it is what laid the lane out
+   121px past the container at every width — the lane belongs inside the map,
+   which is where DESIGN.md's x=930 puts it. */
+.epic-stage {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--s4) var(--s5);
+  padding-top: var(--s5);
+  border-top: 1px solid var(--rule);
+}
+
+.epic-stage-header {
+  grid-row: 1 / -1;
+  grid-column: 1;
+}
+
+.epic-stage-name {
+  font-size: var(--fs-display);
+  color: var(--walnut);
+  margin-bottom: var(--s2);
+}
+
+.epic-stage-meta {
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* FR-005 / DESIGN.md § Layout (Showfloor): "The map is an SVG of min-width
+   1040px inside a horizontally scrolling wrapper." The wrapper is the grid's
+   second column and nothing more; the map is what sits inside it.
+   `min-width: 0` is the whole of the fix: a `1fr` track takes its minimum from
+   its item's min-content width, so without it the map's 1040px floor forces the
+   column open to 1040px and the wrapper is never narrower than the thing it is
+   supposed to scroll. `overflow-y: hidden` keeps the one scroll axis DESIGN.md
+   names horizontal.
+
+   The wrapper holds a single grid cell, and the map and the landing line both
+   sit in it, origin-aligned. That cell is the coordinate space DESIGN.md
+   measures x=930 in, and stacking the two in it is what lets the cell be as
+   tall as whichever of them needs the room: the map's height stays exactly the
+   graph's (FR-002), and a shallow graph's 252px map is shorter than the
+   landing line DESIGN.md draws beside it — four stations 64px apart, its label
+   and its landed shelf. Pinning the cell to the map's height instead would cut
+   the shelf off the top of the line, which is this story's own defect in a
+   smaller box. */
+.epic-stage-scroll {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+/* FR-002: the map is exactly as tall as its graph. `--stage-height` arrives
+   from `stageHeight()` — rank depth times the 140px row spacing, plus the
+   station and the stage padding DESIGN.md § Layout names — so nothing here
+   resolves against the viewport and no floor is imposed on top of it. The
+   1040px min-width is DESIGN.md's stated map width and stays; it is now the
+   width the wrapper above scrolls across rather than a floor under the grid
+   column. */
+.epic-stage-map {
+  grid-area: 1 / 1;
+  height: var(--stage-height);
+  min-width: 1040px;
+}
+
+.epic-stage .react-flow {
+  background: transparent;
+}
+
+.stage-notes {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.stage-note .lead {
+  font-size: var(--fs-body);
+}
+
+/* FR-001: an epic with nothing staged is a named row, not a stage. No canvas is
+   rendered, so the route grid has nothing to hold open and the row collapses to
+   what is left — the epic's name and, beside it, the well naming the read that
+   failed. The well itself is DESIGN.md § Elevation & Depth's Well Rule and is
+   untouched; only the margins that separated it from a map that is not there
+   are dropped. */
+.epic-stage[data-staged="false"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s5);
+}
+
+.epic-stage[data-staged="false"] .epic-stage-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+.epic-stage[data-staged="false"] .epic-stage-name {
+  margin-bottom: 0;
+}
+
+.epic-stage[data-staged="false"] .stage-notes {
+  flex: 1 1 24rem;
+}
+
+/* The notice reads as one line: the Well Rule's Display lead-in, then the read
+   and the detail beside it, wrapping only if the detail is long. The words are
+   the factory's and are untouched — this is where they sit, not what they say. */
+.epic-stage[data-staged="false"] .stage-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s3);
+  margin: 0;
+}
+
+.epic-stage[data-staged="false"] .stage-note .lead {
+  margin: 0;
+}
+
+/* FR-014: an idle epic — no node in the live set — rests at the RUNNING
+   glow's rest opacity. The marker carries the state; nothing else changes. */
+.epic-stage[data-idle="true"] {
+  opacity: 0.55;
+}
+
+/* Landing line — DESIGN.md § Route Map and Landing Line, § Layout.
+   FR-004: "the landing line lives at x=930". x is the map's coordinate space,
+   not the stage's, so the lane is drawn inside the map — 110px short of
+   DESIGN.md's 1040px map width, which is what "at the right edge of every map"
+   means — and rides the wrapper's horizontal scroll with the graph it belongs
+   to. It was a grid item in a third column of the *stage*, laid out past the
+   container with nothing to scroll it into view; it is now in the map's own
+   cell, 930px into it. */
+.landing-line {
+  grid-area: 1 / 1;
+  justify-self: start;
+  margin-left: 930px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: var(--s3);
+}
+
+/* The hairline connector a story short of the line reaches across. It sits one
+   spacing step to the left of the olive line, so the line itself stays at the
+   x DESIGN.md names. */
+.landing-line::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--s5));
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--rule);
+}
+
+.landing-line-label {
+  font-family: var(--text);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.landing-line-track {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  gap: 48px; /* 16px stations 64px apart */
+  padding: var(--s2) 0;
+  border-left: 3px solid var(--olive);
+  box-shadow: inset 1px 0 0 var(--ground);
+  padding-left: var(--s3);
+}
+
+.landing-station {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  height: 16px;
+}
+
+.landing-station-mark {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  transform: skewX(-12deg);
+  border: 2px solid var(--olive);
+  background: var(--panel);
+}
+
+.landing-station-label {
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--olive-ink);
+  white-space: nowrap;
+}
+
+.landing-station-tokens {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.landing-token {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.landing-token::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 3px var(--panel);
+}
+
+.landing-token.queue::before {
+  background: var(--olive);
+}
+
+.landing-token-label {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.landed-shelf {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.landed-shelf-count {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.04em;
+  color: var(--olive-ink);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.shelf-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  width: 40px;
+}
+
+.shelf-card .station-body {
+  width: 24px;
+  height: 24px;
+}
+
+/* Station card */
+.station {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  width: 40px;
+  position: relative;
+}
+
+.station-handle {
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  min-width: 1px;
+  min-height: 1px;
+  border: none;
+  background: transparent;
+}
+
+.station-body {
+  width: 40px;
+  height: 40px;
+  transform: skewX(-12deg);
+  border-radius: 1px;
+  border: 2px solid currentColor;
+  position: relative;
+}
+
+.station-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.node-id {
+  font-family: var(--mono);
+  font-size: var(--fs-small);
+  color: var(--ink);
+}
+
+.attempt-line {
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.attempt-pip {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.station-caption {
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Glyphs */
+.st-dashed .station-body {
+  border-style: dashed;
+  background: transparent;
+}
+
+.st-hatched .station-body {
+  background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 5px);
+}
+
+.st-solid .station-body {
+  background: currentColor;
+}
+
+.st-half .station-body {
+  background: linear-gradient(to right, currentColor 50%, var(--panel) 50%);
+}
+
+.st-most .station-body {
+  background: linear-gradient(to right, currentColor 78%, var(--panel) 78%);
+}
+
+.st-crossed .station-body::before,
+.st-crossed .station-body::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  top: 50%;
+  width: 80%;
+  height: 2px;
+  background: var(--ink);
+}
+
+.st-crossed .station-body::before { transform: rotate(45deg); }
+.st-crossed .station-body::after { transform: rotate(-45deg); }
+
+.st-bell .station-body {
+  border-radius: 50% 50% 2px 2px;
+  transform: skewX(0deg);
+}
+
+.st-filled .station-body {
+  background: currentColor;
+}
+
+/* Edges */
+.edge-pass path {
+  stroke: var(--ink-soft);
+  stroke-width: 1.5px;
+  stroke-dasharray: 4 5;
+  fill: none;
+}
+
+.edge-merge path {
+  stroke: var(--ink);
+  stroke-width: 4px;
+  fill: none;
+}
+
+/* Legend */
+.legend {
+  grid-column: 2;
+  display: flex;
+  gap: var(--s5);
+  margin-top: var(--s3);
+}
+
+.legend-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.legend-sample {
+  display: inline-block;
+  width: 24px;
+  height: 0;
+}
+
+.legend-pass {
+  border-bottom: 1.5px dashed var(--ink-soft);
+}
+
+.legend-merge {
+  border-bottom: 4px solid var(--ink);
+}
+
+.legend-name {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.legend-def {
+  max-width: 60ch;
+}
+
+/* The attention badge — DESIGN.md § Navigation (far right of the masthead, in
+   clay-ink with a clay bell dot; it is a link, the Showfloor's only one) and
+   § Colors (clay is waiting-on-you and it is never red). The bell dot is the
+   one organic shape in the system, so the badge's hue is doubled by a glyph
+   and by the words beside it (the Never-Colour-Alone Rule). */
+.attention-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: var(--fs-small);
+  letter-spacing: 0.02em;
+  color: var(--orange-ink);
+  text-decoration: none;
+}
+
+.attention-badge::before {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  background: var(--orange);
+  border-radius: 50% 50% 2px 2px;
+}
+
+.attention-badge .num {
+  color: var(--orange-ink);
+}
+
+/* A degraded attention read is a note in the badge's place: what could not be
+   learned and the mode in words, never the numeral zero (constitution III). */
+.attention-degraded {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+  font-style: italic;
+  max-width: 48ch;
+}
+
+/* Motion — DESIGN.md § Motion. Three authored motions and the transition
+   pulse, all authored inside the no-preference gate and all using the one
+   easing, so under `prefers-reduced-motion: reduce` nothing animates and no
+   override is needed. Every piece of information the room carries is a marker
+   or a word; none of it lives in the movement (FR-013). */
+@media (prefers-reduced-motion: no-preference) {
+  /* RUNNING station glow */
+  .station[data-state="RUNNING"] .station-body {
+    animation: station-glow 2.4s var(--ease-out) infinite;
+  }
+
+  /* Landing-line token travel: up one station, holding at each end */
+  .landing-token.queue {
+    animation: landing-travel 6s var(--ease-out) infinite;
+  }
+
+  /* The transition pulse: applied and cleared with the marker (FR-012) */
+  .station[data-transition="true"] .station-body {
+    animation: station-pulse 0.9s var(--ease-out) 1;
+  }
+
+  @keyframes station-glow {
+    0% { opacity: 1; }
+    50% { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes landing-travel {
+    0%, 12% { transform: translateY(0); }
+    45%, 62% { transform: translateY(-90px); }
+    95%, 100% { transform: translateY(0); }
+  }
+
+  @keyframes station-pulse {
+    0% { opacity: 1; }
+    45% { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
+}

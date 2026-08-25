@@ -1,0 +1,42 @@
+{
+  "get_escalation": {
+    "escalation_id": "d10263341dac",
+    "workflow_id": "d10263341dac",
+    "epic_id": "fx-paged-5e2e8a",
+    "node_id": "us1",
+    "choices": [
+      "RETRY",
+      "KILL",
+      "PAUSE_EPIC",
+      "KILL_EPIC"
+    ],
+    "history_summary": "Attempt 1 — FAIL\n  gate test: FAIL (exit 1, 9.0s)\n── test output ──\nE   AssertionError: attempt-one recorded no loan against the member\n\nAttempt 2 — FAIL\n  gate test: FAIL (exit 1, 9.0s)\n── test output ──\nE   TypeError: attempt-two Catalogue.borrow() missing 1 argument",
+    "sent_at": "2026-08-22T17:41:11Z",
+    "expires_at": "2026-08-22T17:56:11Z",
+    "delivered": true,
+    "resolution": null,
+    "resolved_at": null,
+    "check_evidence": []
+  },
+  "pending_escalations": [
+    {
+      "escalation_id": "d10263341dac",
+      "workflow_id": "d10263341dac",
+      "epic_id": "fx-paged-5e2e8a",
+      "node_id": "us1",
+      "choices": [
+        "RETRY",
+        "KILL",
+        "PAUSE_EPIC",
+        "KILL_EPIC"
+      ],
+      "history_summary": "Attempt 1 — FAIL\n  gate test: FAIL (exit 1, 9.0s)\n── test output ──\nE   AssertionError: attempt-one recorded no loan against the member\n\nAttempt 2 — FAIL\n  gate test: FAIL (exit 1, 9.0s)\n── test output ──\nE   TypeError: attempt-two Catalogue.borrow() missing 1 argument",
+      "sent_at": "2026-08-22T17:41:11Z",
+      "expires_at": "2026-08-22T17:56:11Z",
+      "delivered": true,
+      "resolution": null,
+      "resolved_at": null,
+      "check_evidence": []
+    }
+  ]
+}

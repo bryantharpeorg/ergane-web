@@ -1,0 +1,8 @@
+{
+  "relay": {
+    "correlation_id": "595ae18d48cf",
+    "reply_text": "member id",
+    "sender_identity": "fixture-operator"
+  },
+  "outcome": "EXPIRED"
+}

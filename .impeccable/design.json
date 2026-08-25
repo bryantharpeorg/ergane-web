@@ -1,0 +1,672 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-22T17:17:35+00:00",
+  "title": "Design System: Ergane pane",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Sage",
+        "canonical": "#E3E8E0",
+        "cssVar": "--ground",
+        "tonalRamp": [
+          "#252C21",
+          "#3D4936",
+          "#5B6C50",
+          "#768D68",
+          "#95A88A",
+          "#B5C2AD",
+          "#D5DCD0",
+          "#F2F4F0"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Mist",
+        "canonical": "#F4F6F1",
+        "cssVar": "--panel",
+        "tonalRamp": [
+          "#282F1E",
+          "#434E32",
+          "#62734A",
+          "#809560",
+          "#9DAF83",
+          "#BBC7A8",
+          "#D8DFCD",
+          "#F3F5EF"
+        ]
+      },
+      "panel-deep": {
+        "role": "neutral",
+        "displayName": "Moss Grey",
+        "canonical": "#D2D9CE",
+        "cssVar": "--panel-deep",
+        "tonalRamp": [
+          "#252B21",
+          "#3E4838",
+          "#5B6A52",
+          "#768A6B",
+          "#95A68C",
+          "#B5C1AF",
+          "#D5DBD1",
+          "#F2F4F1"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#23292A",
+        "cssVar": "--ink",
+        "tonalRamp": [
+          "#23292A",
+          "#3A4446",
+          "#566467",
+          "#6F8286",
+          "#90A0A2",
+          "#B1BCBE",
+          "#D2D9DA",
+          "#F1F3F3"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Tinted Slate",
+        "canonical": "#5C6962",
+        "cssVar": "--ink-soft",
+        "tonalRamp": [
+          "#242926",
+          "#3C443F",
+          "#58655E",
+          "#72827A",
+          "#92A098",
+          "#B3BCB7",
+          "#D4D9D6",
+          "#F1F3F2"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#BDC7BA",
+        "cssVar": "--rule",
+        "tonalRamp": [
+          "#242A22",
+          "#3C4639",
+          "#596855",
+          "#74876E",
+          "#93A48E",
+          "#B4BFB0",
+          "#D4DAD2",
+          "#F2F4F1"
+        ]
+      },
+      "walnut": {
+        "role": "neutral",
+        "displayName": "Deep Moss",
+        "canonical": "#3E4A3C",
+        "cssVar": "--walnut",
+        "tonalRamp": [
+          "#232A22",
+          "#3B4639",
+          "#576854",
+          "#71876E",
+          "#91A48E",
+          "#B2BFB0",
+          "#D3DAD2",
+          "#F1F4F1"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#5E5E5E",
+          "#7A7A7A",
+          "#999999",
+          "#B8B8B8",
+          "#D6D6D6",
+          "#F2F2F2"
+        ]
+      },
+      "teal": {
+        "role": "primary",
+        "displayName": "Teal",
+        "canonical": "#1F7A78",
+        "cssVar": "--teal",
+        "tonalRamp": [
+          "#0F3D3C",
+          "#1A6664",
+          "#269694",
+          "#32C3C0",
+          "#5CD6D3",
+          "#8DE2E0",
+          "#BEEEED",
+          "#EBFAF9"
+        ]
+      },
+      "teal-ink": {
+        "role": "primary",
+        "displayName": "Teal Ink",
+        "canonical": "#0E4F4D",
+        "cssVar": "--teal-ink",
+        "tonalRamp": [
+          "#0C413F",
+          "#136C6A",
+          "#1CA09C",
+          "#25D0CB",
+          "#52E0DC",
+          "#86EAE6",
+          "#BAF3F1",
+          "#E9FBFB"
+        ]
+      },
+      "mustard": {
+        "role": "secondary",
+        "displayName": "Mustard",
+        "canonical": "#D9A521",
+        "cssVar": "--mustard",
+        "tonalRamp": [
+          "#42320A",
+          "#6F5411",
+          "#A47D19",
+          "#D4A220",
+          "#E4BA4E",
+          "#ECCE83",
+          "#F4E3B8",
+          "#FCF6E9"
+        ]
+      },
+      "mustard-ink": {
+        "role": "secondary",
+        "displayName": "Mustard Ink",
+        "canonical": "#7A5A06",
+        "cssVar": "--mustard-ink",
+        "tonalRamp": [
+          "#493604",
+          "#7A5A06",
+          "#B48509",
+          "#E9AC0B",
+          "#F5C23D",
+          "#F8D577",
+          "#FBE7B1",
+          "#FEF7E7"
+        ]
+      },
+      "olive": {
+        "role": "secondary",
+        "displayName": "Olive",
+        "canonical": "#6E7F3E",
+        "cssVar": "--olive",
+        "tonalRamp": [
+          "#2D3319",
+          "#4A562A",
+          "#6E7F3E",
+          "#8EA450",
+          "#AABC76",
+          "#C3D09F",
+          "#DDE4C8",
+          "#F4F7EE"
+        ]
+      },
+      "olive-ink": {
+        "role": "secondary",
+        "displayName": "Olive Ink",
+        "canonical": "#415022",
+        "cssVar": "--olive-ink",
+        "tonalRamp": [
+          "#2C3617",
+          "#495926",
+          "#6C8438",
+          "#8CAC49",
+          "#A7C270",
+          "#C2D49B",
+          "#DCE7C6",
+          "#F4F7ED"
+        ]
+      },
+      "clay": {
+        "role": "secondary",
+        "displayName": "Clay",
+        "canonical": "#B9774F",
+        "cssVar": "--orange",
+        "tonalRamp": [
+          "#372216",
+          "#5B3924",
+          "#875436",
+          "#AF6D46",
+          "#C58E6D",
+          "#D6B099",
+          "#E8D2C5",
+          "#F8F1ED"
+        ]
+      },
+      "clay-ink": {
+        "role": "secondary",
+        "displayName": "Clay Ink",
+        "canonical": "#7A4A2B",
+        "cssVar": "--orange-ink",
+        "tonalRamp": [
+          "#392214",
+          "#5E3921",
+          "#8C5531",
+          "#B56E40",
+          "#CA8E68",
+          "#DAB095",
+          "#EAD2C3",
+          "#F8F1EC"
+        ]
+      },
+      "aqua": {
+        "role": "tertiary",
+        "displayName": "Aqua",
+        "canonical": "#8FB8C9",
+        "cssVar": "--aqua",
+        "tonalRamp": [
+          "#192C34",
+          "#294956",
+          "#3D6C7F",
+          "#508CA5",
+          "#75A8BD",
+          "#9FC2D1",
+          "#C8DCE4",
+          "#EEF4F7"
+        ]
+      },
+      "aqua-ink": {
+        "role": "tertiary",
+        "displayName": "Aqua Ink",
+        "canonical": "#3E6C80",
+        "cssVar": "--aqua-ink",
+        "tonalRamp": [
+          "#192B34",
+          "#2A4856",
+          "#3E6B7F",
+          "#508BA5",
+          "#76A7BC",
+          "#9FC1D0",
+          "#C8DCE4",
+          "#EEF4F7"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "clock": {
+        "displayName": "Clock",
+        "purpose": "T-minus digits on an attention item; tabular mono."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Section heads and Showfloor epic names; deep moss."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Lower Desk section heads; the ERGANE mark at weight 700."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Attention prose; 68ch max measure."
+      },
+      "readout": {
+        "displayName": "Mono",
+        "purpose": "Everything the factory wrote or counted: ids, payloads, figures, error strings.",
+        "size": "1.25rem",
+        "token": "--fs-readout",
+        "lineHeight": "1",
+        "fontVariantNumeric": "tabular-nums",
+        "usage": "epic timeline readout values and a Notice's 'no clock' slot; the only step between body and display"
+      },
+      "small": {
+        "displayName": "Small",
+        "purpose": "Tables, until lines, metadata, the reply textarea."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "State captions, attention kind word, buttons, nav."
+      },
+      "micro": {
+        "displayName": "Micro",
+        "purpose": "Uppercase tracked labels: table headers, milestone labels, readout keys."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Everything the factory wrote or counted: ids, payloads, figures, error strings."
+      }
+    },
+    "shadows": [
+      {
+        "name": "press",
+        "value": "0 2px 6px rgba(42, 42, 38, 0.12), 0 10px 24px -12px rgba(42, 42, 38, 0.18)",
+        "purpose": "The only shadow; a pressable control only. Applied to nothing at rest in the comps.",
+        "cssVar": "--shadow"
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The one easing for every transition and animation.",
+        "cssVar": "--ease-out"
+      },
+      {
+        "name": "breathe",
+        "value": "2.4s infinite; scale(1)->scale(0.6), opacity 1->0.55",
+        "purpose": "Masthead live dot and the Desk RUNNING chevron. Off under prefers-reduced-motion."
+      },
+      {
+        "name": "glow",
+        "value": "2.4s infinite; opacity 1->0.55->1",
+        "purpose": "Showfloor RUNNING station. Authored inside prefers-reduced-motion: no-preference."
+      },
+      {
+        "name": "travel",
+        "value": "6s infinite; translateY(0) hold to 45%, translateY(-90px) by 70%, hold",
+        "purpose": "Landing-line queue token moving one station. Authored inside prefers-reduced-motion: no-preference."
+      },
+      {
+        "name": "button-hover",
+        "value": "transform 0.18s ease-out, background 0.18s",
+        "purpose": "Buttons lift 1px on hover."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "900px",
+        "purpose": "Single max-width breakpoint: masthead wraps, grids collapse to one column, milestone labels hide, Showfloor maps scroll."
+      }
+    ],
+    "fonts": {
+      "policy": "Self-host as woff2 under web/public/fonts with @font-face; never load a remote stylesheet or font. The comps Google Fonts @import is a comp-only deviation.",
+      "faces": [
+        {
+          "family": "Red Hat Display",
+          "weights": [
+            500,
+            600,
+            700
+          ],
+          "license": "OFL-1.1"
+        },
+        {
+          "family": "Red Hat Text",
+          "weights": [
+            400,
+            500
+          ],
+          "italic": [
+            400
+          ],
+          "license": "OFL-1.1"
+        },
+        {
+          "family": "Red Hat Mono",
+          "weights": [
+            400,
+            500
+          ],
+          "license": "OFL-1.1"
+        }
+      ]
+    },
+    "stateGlyphs": {
+      "PENDING": {
+        "fill": "none",
+        "stroke": "aqua-ink dashed 2px",
+        "caption": "pending"
+      },
+      "KEY_ISSUED": {
+        "fill": "45deg hatch aqua-ink on mist",
+        "stroke": "aqua-ink",
+        "caption": "key issued"
+      },
+      "RUNNING": {
+        "fill": "teal",
+        "stroke": "teal-ink",
+        "caption": "running",
+        "motion": "glow"
+      },
+      "VERIFYING": {
+        "fill": "mustard",
+        "stroke": "mustard-ink",
+        "caption": "verifying"
+      },
+      "VERIFYING+paged": {
+        "fill": "mustard",
+        "stroke": "mustard-ink + dashed clay ring",
+        "caption": "verifying \u00b7 paged"
+      },
+      "PASSED": {
+        "fill": "none",
+        "stroke": "olive 2px",
+        "caption": "passed"
+      },
+      "PR_OPEN": {
+        "fill": "olive left 50%",
+        "stroke": "olive 2px",
+        "caption": "pr open"
+      },
+      "ENQUEUED": {
+        "fill": "olive left 78%",
+        "stroke": "olive 2px",
+        "caption": "enqueued"
+      },
+      "MERGED": {
+        "fill": "olive",
+        "stroke": "olive-ink",
+        "caption": "merged"
+      },
+      "FAILED": {
+        "fill": "mist with graphite X",
+        "stroke": "ink",
+        "caption": "failed"
+      },
+      "KILLED": {
+        "fill": "panel-deep",
+        "stroke": "ink-soft",
+        "caption": "killed"
+      },
+      "WAITING_OPERATOR": {
+        "fill": "clay",
+        "stroke": "clay-ink",
+        "caption": "waiting on you"
+      }
+    },
+    "edgeKinds": {
+      "depends_on_merged": "solid double rail: 4px ink (olive once merged) with a 1.5px ground stroke over it",
+      "depends_on": "1.5px ink-soft, stroke-dasharray 4 5"
+    },
+    "attentionRank": {
+      "high": {
+        "kind": "Escalation",
+        "hue": "clay"
+      },
+      "medium": {
+        "kind": "Question",
+        "hue": "mustard"
+      },
+      "low": {
+        "kind": "Notice",
+        "hue": "aqua"
+      }
+    },
+    "forbiddenWords": [
+      "dashboard",
+      "console",
+      "app",
+      "board",
+      "action",
+      "mutation",
+      "resolve"
+    ]
+  },
+  "components": [
+    {
+      "name": "Answer Button",
+      "kind": "button",
+      "refersTo": "button-answer",
+      "description": "The one verb on the Desk; teal fill, white text, teal focus ring.",
+      "html": "<button class=\"ds-btn ds-btn-answer\">Answer</button>",
+      "css": ".ds-btn{font-family:\"Red Hat Display\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-weight:600;font-size:0.8125rem;border:1.5px solid #23292A;background:#F4F6F1;color:#23292A;padding:0.5em 0.9em;border-radius:3px;cursor:pointer;transition:transform .18s cubic-bezier(0.16,1,0.3,1),background .18s}.ds-btn:hover{background:#D2D9CE;transform:translateY(-1px)}.ds-btn:focus-visible{outline:2px solid #1F7A78;outline-offset:2px}.ds-btn-answer{background:#1F7A78;border-color:#0E4F4D;color:#fff}.ds-btn-answer:hover{background:#0E4F4D}.ds-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}"
+    },
+    {
+      "name": "Choice Button",
+      "kind": "button",
+      "refersTo": "button-choice",
+      "description": "An escalation choice; label over its esc payload in mono.",
+      "html": "<button class=\"ds-btn ds-choice\">Kill the node <small>esc:7c2f9a1e4b0d:KILL</small></button>",
+      "css": ".ds-btn{font-family:\"Red Hat Display\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-weight:600;font-size:0.8125rem;border:1.5px solid #23292A;background:#F4F6F1;color:#23292A;padding:0.5em 0.9em;border-radius:3px;cursor:pointer;text-align:left;transition:transform .18s cubic-bezier(0.16,1,0.3,1),background .18s}.ds-btn:hover{background:#D2D9CE;transform:translateY(-1px)}.ds-btn:focus-visible{outline:2px solid #1F7A78;outline-offset:2px}.ds-choice small{display:block;font-family:\"Red Hat Mono\",\"SF Mono\",ui-monospace,Menlo,Consolas,monospace;font-weight:400;font-size:0.6875rem;color:#5C6962}"
+    },
+    {
+      "name": "Reply Textarea",
+      "kind": "input",
+      "refersTo": "input-reply",
+      "description": "Free-text reply to a Question; teal border and outline on focus.",
+      "html": "<textarea class=\"ds-reply\" placeholder=\"Reply to the node. Sent as your identity; the factory rules on it.\"></textarea>",
+      "css": ".ds-reply{font-family:\"Red Hat Text\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-size:0.8125rem;border:1.5px solid #BDC7BA;background:#fff;color:#23292A;border-radius:3px;padding:0.5rem 0.75rem;min-height:4.5em;width:260px;resize:vertical}.ds-reply:focus-visible{outline:2px solid #1F7A78;outline-offset:1px;border-color:#1F7A78}"
+    },
+    {
+      "name": "Masthead Navigation",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Mark, the two rooms, the live floor line.",
+      "html": "<header class=\"ds-mast\"><span class=\"ds-mark\">ERGANE</span><nav class=\"ds-nav\"><a href=\"#\" aria-current=\"page\">Desk</a><a href=\"#\">Showfloor</a></nav><span class=\"ds-floorline\"><span class=\"ds-live\">live floor</span> \u00b7 2 epics running \u00b7 read 12:04:31</span></header>",
+      "css": ".ds-mast{display:flex;align-items:baseline;gap:1.5rem;padding:1rem 2rem .75rem;border-bottom:1px solid #BDC7BA;background:#E3E8E0;font-family:\"Red Hat Text\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;color:#23292A}.ds-mark{font-family:\"Red Hat Display\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-weight:700;font-size:1.125rem;color:#3E4A3C;letter-spacing:.02em}.ds-mark::before{content:\"\";display:inline-block;width:.55em;height:.55em;background:#1F7A78;transform:rotate(45deg);margin-right:.6em;vertical-align:.05em}.ds-nav{display:flex;gap:1rem;font-family:\"Red Hat Display\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-weight:500}.ds-nav a{color:#5C6962;text-decoration:none;padding-bottom:2px;border-bottom:2px solid transparent}.ds-nav a:hover{color:#23292A}.ds-nav a:focus-visible{outline:2px solid #1F7A78;outline-offset:2px}.ds-nav a[aria-current]{color:#23292A;border-bottom-color:#1F7A78}.ds-floorline{margin-left:auto;font-size:.8125rem;color:#5C6962;display:flex;gap:.75rem;align-items:center}.ds-live{display:inline-flex;align-items:center;gap:.4em;color:#0E4F4D;font-weight:500}.ds-live::before{content:\"\";width:.5em;height:.5em;border-radius:50%;background:#1F7A78;animation:ds-breathe 2.4s cubic-bezier(0.16,1,0.3,1) infinite}@keyframes ds-breathe{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.6);opacity:.55}}@media(prefers-reduced-motion:reduce){.ds-live::before{animation:none}}"
+    },
+    {
+      "name": "State Chevron",
+      "kind": "chip",
+      "refersTo": "state-chevron",
+      "description": "The eleven-state glyph + caption as used on the Desk.",
+      "html": "<span class=\"ds-chev ds-st-MERGED\"><i></i>MERGED</span> <span class=\"ds-chev ds-st-VERIFYING ds-paged\"><i></i>VERIFYING</span> <span class=\"ds-chev ds-st-RUNNING\"><i></i>RUNNING</span> <span class=\"ds-chev ds-st-WAITING_OPERATOR\"><i></i>WAITING_OPERATOR</span> <span class=\"ds-chev ds-st-PENDING\"><i></i>PENDING</span> <span class=\"ds-chev ds-st-KEY_ISSUED\"><i></i>KEY_ISSUED</span> <span class=\"ds-chev ds-st-PR_OPEN\"><i></i>PR_OPEN</span> <span class=\"ds-chev ds-st-ENQUEUED\"><i></i>ENQUEUED</span> <span class=\"ds-chev ds-st-PASSED\"><i></i>PASSED</span> <span class=\"ds-chev ds-st-FAILED\"><i></i>FAILED</span> <span class=\"ds-chev ds-st-KILLED\"><i></i>KILLED</span>",
+      "css": ".ds-chev{display:inline-grid;grid-auto-flow:column;align-items:center;gap:.45em;margin:.25em .5em .25em 0;font-family:\"Red Hat Display\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-weight:600;font-size:.8125rem;letter-spacing:.02em;white-space:nowrap}.ds-chev i{width:.95em;height:.95em;display:inline-block;background:currentColor;transform:skewX(-20deg)}.ds-st-PENDING{color:#3E6C80}.ds-st-PENDING i{background:transparent;box-shadow:inset 0 0 0 2px currentColor;border-radius:1px}.ds-st-KEY_ISSUED{color:#3E6C80}.ds-st-KEY_ISSUED i{background:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 5px)}.ds-st-RUNNING{color:#0E4F4D}.ds-st-RUNNING i{background:#1F7A78;animation:ds-breathe 2.4s cubic-bezier(0.16,1,0.3,1) infinite}.ds-st-VERIFYING{color:#7A5A06}.ds-st-VERIFYING i{background:#D9A521}.ds-st-PASSED{color:#415022}.ds-st-PASSED i{background:transparent;box-shadow:inset 0 0 0 2px #6E7F3E}.ds-st-PR_OPEN{color:#415022}.ds-st-PR_OPEN i{background:linear-gradient(90deg,#6E7F3E 50%,transparent 50%);box-shadow:inset 0 0 0 2px #6E7F3E}.ds-st-ENQUEUED{color:#415022}.ds-st-ENQUEUED i{background:linear-gradient(90deg,#6E7F3E 78%,transparent 78%);box-shadow:inset 0 0 0 2px #6E7F3E}.ds-st-MERGED{color:#415022}.ds-st-MERGED i{background:#6E7F3E}.ds-st-FAILED{color:#23292A}.ds-st-FAILED i{background:transparent;position:relative;transform:none}.ds-st-FAILED i::before,.ds-st-FAILED i::after{content:\"\";position:absolute;inset:45% -10%;height:2px;background:currentColor;transform:rotate(45deg)}.ds-st-FAILED i::after{transform:rotate(-45deg)}.ds-st-KILLED{color:#5C6962;text-decoration:line-through}.ds-st-KILLED i{background:#5C6962;opacity:.5}.ds-st-WAITING_OPERATOR{color:#7A4A2B}.ds-st-WAITING_OPERATOR i{background:#B9774F;transform:none;border-radius:50% 50% 2px 2px}.ds-paged i{outline:2px solid #B9774F;outline-offset:2px}.ds-paged::after{content:\"paged\";font-family:\"Red Hat Text\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-weight:500;font-size:.6875rem;color:#7A4A2B;text-transform:uppercase;letter-spacing:.08em}@keyframes ds-breathe{0%,100%{transform:skewX(-20deg) scale(1);opacity:1}50%{transform:skewX(-20deg) scale(.6);opacity:.55}}@media(prefers-reduced-motion:reduce){.ds-st-RUNNING i{animation:none}}"
+    },
+    {
+      "name": "Attention Item",
+      "kind": "card",
+      "refersTo": "attention-item",
+      "description": "A clock with its answer beside it; rank stripe high/medium/low.",
+      "html": "<article class=\"ds-item ds-high\"><div class=\"ds-clock\"><span class=\"ds-kind\">Escalation</span><span class=\"ds-t\">\u221200:41:12</span><span class=\"ds-until\">until 12:45:43Z \u00b7 then KILL the node</span></div><div class=\"ds-body\"><div class=\"ds-where\">001-trip-expenses / us4 \u00b7 attempt 3 of 6 \u00b7 esc 7c2f9a1e4b0d</div><p>Verification escalation. Three attempts spent and the debugger cycle.</p></div></article>",
+      "css": ".ds-item{display:grid;grid-template-columns:220px 1fr;gap:1.5rem;align-items:start;background:#F4F6F1;border:1px solid #BDC7BA;border-radius:3px;padding:1rem 1.5rem;font-family:\"Red Hat Text\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-size:.95rem;line-height:1.45;color:#23292A}.ds-item.ds-high{border-color:#B9774F;box-shadow:inset 3px 0 0 #B9774F}.ds-item.ds-medium{box-shadow:inset 3px 0 0 #D9A521}.ds-item.ds-low{box-shadow:inset 3px 0 0 #8FB8C9}.ds-clock{display:grid;gap:.25rem}.ds-kind{font-family:\"Red Hat Display\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-weight:600;font-size:.8125rem}.ds-high .ds-kind,.ds-high .ds-t{color:#7A4A2B}.ds-medium .ds-kind{color:#7A5A06}.ds-low .ds-kind{color:#3E6C80}.ds-t{font-family:\"Red Hat Mono\",\"SF Mono\",ui-monospace,Menlo,Consolas,monospace;font-size:clamp(1.9rem,2.6vw,2.6rem);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.ds-until{font-size:.8125rem;color:#5C6962}.ds-where{font-family:\"Red Hat Mono\",\"SF Mono\",ui-monospace,Menlo,Consolas,monospace;font-size:.8125rem;color:#5C6962;margin-bottom:.5rem}.ds-body p{margin:0;max-width:68ch}"
+    },
+    {
+      "name": "Milestone Bar",
+      "kind": "custom",
+      "refersTo": "milestone-bar",
+      "description": "The shared landing run every epic reads along; tracks the furthest-behind open story.",
+      "html": "<div class=\"ds-bar\" role=\"img\" aria-label=\"Landing run: us4 PASSED and paged short of PR_OPEN\"><div class=\"ds-track\"></div><div class=\"ds-fill\" style=\"width:34%\"></div><div class=\"ds-ms ds-done\" style=\"left:0%\"><span>dispatch</span><i></i></div><div class=\"ds-ms ds-done\" style=\"left:34%\"><span>PASSED</span><i></i></div><div class=\"ds-ms\" style=\"left:56%\"><span>PR_OPEN</span><i></i></div><div class=\"ds-ms\" style=\"left:78%\"><span>ENQUEUED</span><i></i></div><div class=\"ds-ms\" style=\"left:100%\"><span>MERGED</span><i></i></div><div class=\"ds-token ds-waiting\" style=\"left:46%\"><b></b><span>us4 \u00b7 paged</span></div></div>",
+      "css": ".ds-bar{position:relative;height:56px;margin:0 40px;font-family:\"Red Hat Text\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif}.ds-track{position:absolute;left:0;right:0;top:26px;height:4px;background:#D2D9CE;border-radius:2px}.ds-fill{position:absolute;left:0;top:26px;height:4px;background:#6E7F3E;border-radius:2px}.ds-ms{position:absolute;top:0;display:grid;justify-items:center;gap:.25rem;transform:translateX(-50%);font-size:.6875rem;letter-spacing:.06em;text-transform:uppercase;color:#5C6962;font-weight:500}.ds-ms i{width:12px;height:12px;background:#F4F6F1;border:2px solid #BDC7BA;transform:rotate(45deg);margin-top:6px}.ds-ms.ds-done i{background:#6E7F3E;border-color:#6E7F3E}.ds-ms.ds-done{color:#415022}.ds-token{position:absolute;top:20px;z-index:1;transform:translateX(-50%);display:grid;justify-items:center}.ds-token b{width:16px;height:16px;border-radius:50%;background:#1F7A78;box-shadow:0 0 0 4px #F4F6F1}.ds-token.ds-verifying b{background:#D9A521}.ds-token.ds-waiting b{background:#B9774F}.ds-token span{font-family:\"Red Hat Mono\",\"SF Mono\",ui-monospace,Menlo,Consolas,monospace;font-size:.6875rem;color:#23292A;background:#F4F6F1;padding:1px 4px;border-radius:2px;margin-top:.5rem;white-space:nowrap}"
+    },
+    {
+      "name": "Station (Showfloor)",
+      "kind": "custom",
+      "refersTo": "station",
+      "description": "A story as a transit station: skewed square, mono id above, uppercase caption below; both edge kinds shown.",
+      "html": "<svg class=\"ds-map\" viewBox=\"0 0 520 130\" width=\"520\" height=\"130\"><defs><linearGradient id=\"ds-half\" x1=\"0\" x2=\"1\"><stop offset=\"50%\" stop-color=\"#6E7F3E\"/><stop offset=\"50%\" stop-color=\"#F4F6F1\"/></linearGradient></defs><path class=\"ds-rail ds-merged\" d=\"M90 60 H200\"/><path class=\"ds-rail2\" d=\"M90 60 H200\"/><path class=\"ds-dep\" d=\"M260 60 H370\"/><g transform=\"translate(70,60)\"><rect class=\"ds-station ds-MERGED\" x=\"-20\" y=\"-20\" width=\"40\" height=\"40\" transform=\"skewX(-12)\"/><text class=\"ds-id\" x=\"0\" y=\"-32\" text-anchor=\"middle\">us1</text><text class=\"ds-cap ds-MERGED\" x=\"0\" y=\"44\" text-anchor=\"middle\">merged</text></g><g transform=\"translate(230,60)\"><rect class=\"ds-station ds-RUNNING\" x=\"-20\" y=\"-20\" width=\"40\" height=\"40\" transform=\"skewX(-12)\"/><text class=\"ds-id\" x=\"0\" y=\"-32\" text-anchor=\"middle\">us2</text><text class=\"ds-cap ds-RUNNING\" x=\"0\" y=\"44\" text-anchor=\"middle\">running</text></g><g transform=\"translate(390,60)\"><rect class=\"ds-paged-ring\" x=\"-28\" y=\"-28\" width=\"56\" height=\"56\" transform=\"skewX(-12)\"/><rect class=\"ds-station ds-VERIFYING\" x=\"-20\" y=\"-20\" width=\"40\" height=\"40\" transform=\"skewX(-12)\"/><text class=\"ds-id\" x=\"0\" y=\"-36\" text-anchor=\"middle\">us3</text><text class=\"ds-cap ds-VERIFYING\" x=\"0\" y=\"48\" text-anchor=\"middle\">verifying \u00b7 paged</text></g><g transform=\"translate(480,60)\"><rect class=\"ds-station ds-PR_OPEN\" x=\"-20\" y=\"-20\" width=\"40\" height=\"40\" transform=\"skewX(-12)\"/><text class=\"ds-id\" x=\"0\" y=\"-32\" text-anchor=\"middle\">us4</text><text class=\"ds-cap ds-PR_OPEN\" x=\"0\" y=\"44\" text-anchor=\"middle\">pr open</text></g></svg>",
+      "css": ".ds-map{display:block;overflow:visible;background:#E3E8E0}.ds-rail{stroke:#23292A;stroke-width:4;fill:none}.ds-rail.ds-merged{stroke:#6E7F3E}.ds-rail2{stroke:#E3E8E0;stroke-width:1.5;fill:none}.ds-dep{stroke:#5C6962;stroke-width:1.5;stroke-dasharray:4 5;fill:none}.ds-station{fill:#F4F6F1;stroke:#23292A;stroke-width:2}.ds-station.ds-PENDING{stroke:#3E6C80;stroke-dasharray:3 3}.ds-station.ds-RUNNING{fill:#1F7A78;stroke:#0E4F4D;animation:ds-glow 2.4s cubic-bezier(0.16,1,0.3,1) infinite}.ds-station.ds-VERIFYING{fill:#D9A521;stroke:#7A5A06}.ds-station.ds-MERGED{fill:#6E7F3E;stroke:#415022}.ds-station.ds-PR_OPEN{stroke:#6E7F3E;fill:url(#ds-half)}.ds-station.ds-WAITING_OPERATOR{fill:#B9774F;stroke:#7A4A2B}.ds-paged-ring{fill:none;stroke:#B9774F;stroke-width:2;stroke-dasharray:2 3}.ds-id{font:500 12px \"Red Hat Mono\",\"SF Mono\",ui-monospace,Menlo,Consolas,monospace;fill:#23292A}.ds-cap{font:600 11px \"Red Hat Display\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase}.ds-cap.ds-MERGED,.ds-cap.ds-PR_OPEN{fill:#415022}.ds-cap.ds-RUNNING{fill:#0E4F4D}.ds-cap.ds-VERIFYING{fill:#7A5A06}@keyframes ds-glow{0%,100%{opacity:1}50%{opacity:.55}}@media(prefers-reduced-motion:reduce){.ds-station.ds-RUNNING{animation:none}}"
+    },
+    {
+      "name": "Degraded Well",
+      "kind": "card",
+      "refersTo": "degraded-well",
+      "description": "A refused seam said in words inside a moss-grey well.",
+      "html": "<div class=\"ds-well\"><b>One epic refused its query.</b> epic-053-worker-skew is open on the orchestrator but <code>epic_status</code> raised: <span class=\"ds-num\">'NodeRecord' object has no attribute 'provenance'</span>. Shown as unavailable, not hidden.</div>",
+      "css": ".ds-well{padding:.75rem 1rem;background:#D2D9CE;color:#23292A;border-radius:3px;font-family:\"Red Hat Text\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-size:.8125rem;line-height:1.45}.ds-well b{font-family:\"Red Hat Display\",\"Avenir Next\",\"Segoe UI\",system-ui,sans-serif;font-weight:600}.ds-well code,.ds-num{font-family:\"Red Hat Mono\",\"SF Mono\",ui-monospace,Menlo,Consolas,monospace}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Mission Timeline",
+    "overview": "The pane is launch telemetry for a software factory. An operator glances at it from the terminal beside it and needs one second to know whether anything is waiting on them. So the Desk opens on a row of T-minus clocks, not a grid of metric cards, and every running epic below it reads along one shared milestone bar (PASSED, PR_OPEN, ENQUEUED, MERGED). The Showfloor is the same world seen as a transit map: stories are stations on a route, the landing run is one shared line on the right edge, and the brightest moving thing on the page is a token travelling that line. A jam at ENQUEUED is a place you can point to.\n\nThe material is mid-century modern on a light sage ground: cool green-cast neutrals, graphite ink, deep-moss headings, and four state hues (teal, mustard, olive, clay) that are muted enough to sit in an enterprise room. It is flat, hairline-ruled, tight-cornered, and dense; the one shadow in the system sits under the one thing you can press. Motion exists in exactly three places, all of which stop under `prefers-reduced-motion`.\n\nState is the product, so state is never colour alone. Every one of the eleven node states is carried by a glyph (a skewed square, filled, half-filled, hatched, crossed, or dashed) and a one-word caption. Unknown values are written as the word \"unknown\" in soft italic, never a fabricated zero. Degradation is said in so many words inside a moss-grey well. Rejected outright: cream or beige grounds, red anywhere, generic cards-of-metrics, gradient text, glass blur decoration, and neon-on-black.",
+    "keyCharacteristics": [
+      "Light sage ground (`ground`) with near-white mist panels (`panel`) and hairline rules; never cream, beige, or neutral grey.",
+      "Four muted mid-century state hues, each paired with a darker \"-ink\" tone for text; teal is the single tame primary.",
+      "Eleven node states, each a skewed-square glyph plus an uppercase caption; two edge kinds drawn distinctly.",
+      "One shared milestone bar on the Desk and one shared landing line on the Showfloor.",
+      "Flat tonal layering; one shadow token, reserved for pressable things.",
+      "Three authored motions only (live-dot breathe, RUNNING glow, landing-line token travel), all gated by `prefers-reduced-motion`.",
+      "One verb (Answer) on the Desk; no controls on the Showfloor."
+    ],
+    "rules": [
+      {
+        "name": "The Never-Colour-Alone Rule",
+        "body": "Every hue that means something is doubled by a glyph and a caption (node states), a word (attention kind: Escalation / Question / Notice; severity: critical / warning / info), or a label (milestones). A reader with no colour perception loses nothing. Test: remove all `color`/`fill`/`background` declarations and every state must still be readable.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Red Rule",
+        "body": "Nothing in the pane is red. The highest-attention hue is clay (#B9774F) and the FAILED state is graphite (#23292A) with a cross glyph. Do not introduce a red, crimson, or \"danger\" token for any reason, including error states.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink-Pair Rule",
+        "body": "Each state hue is a pair: the base fills shapes (glyphs, stations, dots, tokens); the `-ink` tone colours text. Never set text in a base hue and never fill a shape with an ink tone (the one exception is the PENDING / KEY_ISSUED / PASSED outline glyphs, whose stroke is the ink or base as listed in the glyph table).",
+        "section": "colors"
+      },
+      {
+        "name": "The Attention Ranking Rule",
+        "body": "Attention items rank high / medium / low and each rank owns a hue: high = Escalation = clay, medium = Question = mustard, low = Notice = aqua. The rank is carried by the kind word in the item's `-ink` tone and by a 3px inset stripe on the item's left edge; a high item also takes a clay 1px border.",
+        "section": "colors"
+      },
+      {
+        "name": "The Factory Speaks in Mono Rule",
+        "body": "Anything the factory wrote or counted (ids, payloads, states in `UPPER_SNAKE`, figures, error messages, timestamps) is set in Red Hat Mono with tabular numerals. Prose the pane writes is Red Hat Text. Never the other way round.",
+        "section": "typography"
+      },
+      {
+        "name": "The Caption Case Rule",
+        "body": "State captions and micro labels are uppercase with tracking (0.02em to 0.08em). Prose is never uppercase and never tracked.",
+        "section": "typography"
+      },
+      {
+        "name": "The One-Shadow Rule",
+        "body": "Surfaces are flat. The single shadow token exists for the one thing you can press; if a surface cannot be pressed, it cannot carry a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Well Rule",
+        "body": "A state that needs to stand apart without alarm (a refused query, a degraded seam) sits in a moss-grey well (`panel-deep`, 3px radius, padding `0.75rem 1rem`) with a bold Display lead-in, in words. No icon, no hue.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Unknown Rule",
+        "body": "A NULL from the factory's rollup is rendered as the word \"unknown\" in Red Hat Text italic, tinted slate, at Small size, in the cell or readout where a figure would go. A total is unknown when any row in scope is unknown. Never print 0, a dash, or an empty cell for a NULL, and never style it as an error.",
+        "section": "components"
+      },
+      {
+        "name": "The Reduced-Motion Rule",
+        "body": "Under `prefers-reduced-motion: reduce` all three animations are off: the live dot and RUNNING glyph render solid at rest, the token sits still at its current station. Author the Showfloor motions inside `@media (prefers-reduced-motion: no-preference)` and the Desk breathe with an explicit `animation: none` override. State is never carried by motion alone, so nothing is lost.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "put the page on sage (#E3E8E0) with mist panels (#F4F6F1) and moss-grey wells (#D2D9CE); every neutral has a green cast.",
+      "double every state hue with a glyph and a caption, and every attention hue with the kind word; audit by stripping colour.",
+      "keep teal (#1F7A78) the only button colour and the only focus ring (2px, 2px offset).",
+      "set every factory-written value (ids, payloads, figures, states, error strings, clocks) in Red Hat Mono with tabular numerals.",
+      "render NULL as the italic word \"unknown\" and propagate it to totals.",
+      "anchor every countdown on the factory's `expires_at` and print the absolute expiry and its consequence beneath the clock.",
+      "draw `depends_on_merged` as a solid double rail and `depends_on` as a 1.5px dashed (4 5) route, with a legend once per map.",
+      "say degraded states in words inside a moss-grey well (\"One epic refused its query. \u2026 Shown as unavailable, not hidden.\").",
+      "self-host Red Hat Display, Text, and Mono as woff2 under `web/public/fonts/` with `@font-face` and the declared fallback stacks.",
+      "gate the three animations behind `prefers-reduced-motion` and leave the clock as a text update.",
+      "use the pane's own words: Pane, Showfloor, Desk, Floor, Answer, Attention item, Notice, Fixture floor, quiet floor."
+    ],
+    "donts": [
+      "use a cream, beige, ivory, or warm-paper ground; the ground is sage and the panels are green-cast near-white.",
+      "use red, crimson, or any \"danger\" hue anywhere; the hottest colour is clay (#B9774F) and FAILED is graphite with an X.",
+      "lay out a grid of metric cards; the Desk opens on clocks and reads epics as timeline rows.",
+      "put a coloured `border-left` wider than 1px on any element except the attention item's 3px inset rank stripe.",
+      "use gradient text, `backdrop-filter` blur, glass panels, or neon-on-black; the pane is flat and light.",
+      "add a shadow to anything that cannot be pressed.",
+      "load a remote stylesheet, font, script, or icon set; the sandbox has no network and the product forbids CDNs.",
+      "carry state by colour alone, by motion alone, or by icon without a caption.",
+      "print 0, a dash, or an empty cell for a NULL, and never fabricate a zero total.",
+      "collapse the paged-while-verifying case into WAITING_OPERATOR; it stays VERIFYING with a clay ring and the word \"paged\".",
+      "put a button, form, input, or any non-link control on the Showfloor, or any non-GET request on the Desk other than Answer.",
+      "use the words dashboard, console, app, board, action, mutation, or resolve anywhere in the interface copy; the one verb is Answer and the factory's rulings (RESOLVED, UNKNOWN, ALREADY_RESOLVED, EXPIRED, UNAUTHORIZED, SIGNAL_FAILED) are quoted verbatim in mono.",
+      "use a neutral grey for secondary text or a brown for headings; `ink-soft` (#5C6962) and `walnut` (#3E4A3C) are both moss-tinted."
+    ]
+  }
+}

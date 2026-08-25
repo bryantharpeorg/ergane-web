@@ -1,0 +1,8 @@
+{
+  "relay": {
+    "correlation_id": "800ee6b4c7df",
+    "reply_text": "Option A",
+    "sender_identity": "fixture-operator"
+  },
+  "outcome": "UNAUTHORIZED"
+}

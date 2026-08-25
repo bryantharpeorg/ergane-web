@@ -1,6 +1,15 @@
 ---
-state: draft
+state: landed
 depends_on_landed: [001-the-desk-sees-the-floor]
+# Attested landed 2026-08-23. US1 d70f2a6f9f86 (#9), US2 a9727825d52e (#11),
+# US3 b5df536a349a (#13), US4 1d4aa4d6a852 (#14) — all four observed on dev.
+# US1 and US2 were built on ollama-cloud/kimi-k2.7-code; US3 and US4 on
+# claude-opus-5 after the operator flipped the builder personas to conserve the
+# Ollama budget for judging. US3 and US4 passed on attempt 1, judge 7/7 and 5/5.
+# US1's landing was completed by the operator (PR #9): the factory built and
+# verified it (four gates, judge PASS, 7/7) but its own PR was based on an
+# operator branch rather than dev and could not reach the landing branch — see
+# the round-2 feedback log, N37. US2 landed by the factory's own path.
 # Drafted 2026-08-21 by an operator-session interview; see docs/decisions.md.
 #
 # WHY THIS SPEC. D-004 settled the metaphor argument: the spectacle IS the
@@ -19,7 +28,7 @@ depends_on_landed: [001-the-desk-sees-the-floor]
 # degraded-reads doctrine is not optional — a floor the pane cannot read is
 # rendered as exactly that, never as an empty floor. D-006 fixes the stack:
 # @xyflow/react with dagre layout, motion via CSS/Framer Motion, gates
-# already named in factory.yaml.
+# already named in ergane.yaml.
 #
 # D-008 sequences it: this spec depends on 001-the-desk-sees-the-floor
 # landing first — its worktrees' base must contain the scaffold, the
@@ -339,8 +348,8 @@ presence, count, target, and the absence of any interactive element.
   factory's filesystem. The pane re-derives no factory logic
   (constitution II).
 - **FR-003**: The static file is the structural truth: the staged graph
-  contains exactly the file's nodes and edges; a live-only node id is named
-  in the document's notes, never drawn.
+  MUST contain exactly the file's nodes and edges; a live-only node id MUST
+  be named in the document's notes, never drawn.
 - **FR-004**: A node absent from the live answer MUST render as its static
   self with live fields unknown; a missing key MUST take its default; a
   value the factory did not record MUST render as unknown, never as zero.
@@ -442,8 +451,12 @@ presence, count, target, and the absence of any interactive element.
 
 ## Assumptions
 
+- The Showfloor's appearance is governed by `DESIGN.md` (constitution VIII, D-012):
+  stations, the two edge strokes, the shared landing line, the state glyph grammar,
+  the motion rules. Scenarios here say *what* is staged; DESIGN.md says *how it
+  looks*.
 - **This spec's base contains 001-the-desk-sees-the-floor, landed.** The
-  scaffold, the four gates of `factory.yaml`, the recorded Fixture floor,
+  scaffold, the four gates of `ergane.yaml`, the recorded Fixture floor,
   the backend's floor reads, the SSE event stream, and the Desk route it
   deep-links to are all 001's work. The workgraph grammar has no cross-spec
   edge, but the roadmap grammar does: this spec's frontmatter declares

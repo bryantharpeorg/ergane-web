@@ -1,0 +1,40 @@
+{
+  "epic_state": "RUNNING",
+  "landing_config": {
+    "max_free_rebases": 3,
+    "max_recovery_cycles": 1,
+    "merge_method": "squash",
+    "poll_interval_s": 60,
+    "stall_after_s": 7200
+  },
+  "landing_overrides": [],
+  "nodes": {
+    "us1": {
+      "attempt": 2,
+      "awaiting_operator": false,
+      "branch": "factory/fx-paged-5e2e8a/us1",
+      "free_rebases": 0,
+      "history": [
+        {
+          "attempt": 1,
+          "judge_outcome": null,
+          "model_alias": "implementer-alias",
+          "persona": "implementer",
+          "verdict": "FAIL"
+        }
+      ],
+      "landing_history": [],
+      "landing_state": null,
+      "model_alias": "implementer-alias",
+      "persona": "implementer",
+      "pr_number": null,
+      "provenance": null,
+      "recovery_cycles": 0,
+      "rejection_cause": null,
+      "state": "VERIFYING",
+      "terminal_reason": null,
+      "verified": false
+    }
+  },
+  "worker_revision": "6443221"
+}

@@ -1,0 +1,110 @@
+{
+  "specs_root": "/home/tharpeboxadmin/code/ergane-test/specs",
+  "roadmap": {
+    "owner": "schedule",
+    "workflow_id": "roadmap-specs-2026-08-22T17:20:00Z",
+    "schedule_id": "ergane-roadmap-ergane-web",
+    "schedule_paused": false,
+    "next_action_at": "2026-08-22T17:25:00+00:00",
+    "looked_for": [
+      "workflow id roadmap-specs",
+      "a schedule starting workflows named roadmap-specs*"
+    ],
+    "dispatch_paused": false,
+    "running": [],
+    "parked": 0,
+    "dispatch_unavailable": null
+  },
+  "epics": [
+    {
+      "workflow_id": "epic-002-expense-notes",
+      "epic_id": "002-expense-notes",
+      "epic_state": "RUNNING",
+      "execution_status": "RUNNING",
+      "nodes": {
+        "us1": {
+          "attempt": 1,
+          "awaiting_operator": false,
+          "branch": "factory/002-expense-notes/us1",
+          "free_rebases": 0,
+          "history": [
+            {
+              "attempt": 1,
+              "judge_outcome": "PASS",
+              "model_alias": "ollama-cloud/kimi-k2.7-code",
+              "persona": "implementer",
+              "verdict": "PASS"
+            }
+          ],
+          "landing_history": [],
+          "landing_state": "ENQUEUED",
+          "model_alias": "ollama-cloud/kimi-k2.7-code",
+          "persona": "implementer",
+          "pr_number": 20,
+          "provenance": null,
+          "recovery_cycles": 0,
+          "rejection_cause": null,
+          "state": "ENQUEUED",
+          "terminal_reason": null,
+          "verified": true
+        },
+        "us2": {
+          "attempt": 0,
+          "awaiting_operator": false,
+          "branch": "factory/002-expense-notes/us2",
+          "free_rebases": 0,
+          "history": [],
+          "landing_history": [],
+          "landing_state": null,
+          "model_alias": "<unresolved>",
+          "persona": "",
+          "pr_number": null,
+          "provenance": null,
+          "recovery_cycles": 0,
+          "rejection_cause": null,
+          "state": "PENDING",
+          "terminal_reason": null,
+          "verified": false
+        }
+      },
+      "refusal": null
+    }
+  ],
+  "queue": [
+    {
+      "spec_dir": "001-trip-expenses",
+      "state": "ready",
+      "dispatchable": true,
+      "blockers": []
+    }
+  ],
+  "drafts": [
+    {
+      "spec_dir": "002-expense-notes",
+      "state": "draft",
+      "dispatchable": false,
+      "blockers": []
+    }
+  ],
+  "pace": [
+    {
+      "epic_id": "002-expense-notes",
+      "attempts": [
+        {
+          "node_id": "us1",
+          "attempt": 1,
+          "verdict": "PASS",
+          "seconds": 4
+        }
+      ],
+      "stories_total": 2,
+      "stories_remaining": 2
+    }
+  ],
+  "readiness_basis": {
+    "observed": true,
+    "detail": "attestation, plus landings on main (ccc8120e5e04) in /home/tharpeboxadmin/code/ergane-test, read without fetching"
+  },
+  "notes": [],
+  "degraded": false
+}

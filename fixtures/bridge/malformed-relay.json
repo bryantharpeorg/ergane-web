@@ -1,0 +1,8 @@
+{
+  "event": {
+    "reply_text": "no correlation id here",
+    "sender_identity": "fixture-operator"
+  },
+  "relay": null,
+  "outcome": null
+}

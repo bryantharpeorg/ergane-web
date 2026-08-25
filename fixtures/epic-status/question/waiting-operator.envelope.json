@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-08-22T17:41:13Z",
+  "scene": "question",
+  "seam": "WorkflowHandle.query(\"epic_status\") while the node is parked on a QuestionWorkflow child",
+  "workflow_id": "epic-fx-question-e8c371",
+  "notes": "state == WAITING_OPERATOR, awaiting_operator == true, epic PAUSED",
+  "document": "epic-status/question/waiting-operator.json",
+  "run_id": "run-20260822T174042Z-a692e2",
+  "recorder": "scripts/record-fixtures-harness.py",
+  "ergane_checkout_revision": "6443221",
+  "webhook_url": "http://127.0.0.1:35117/<redacted>"
+}

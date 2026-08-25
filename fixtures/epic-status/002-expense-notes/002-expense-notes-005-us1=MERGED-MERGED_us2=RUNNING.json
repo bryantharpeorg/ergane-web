@@ -1,0 +1,72 @@
+{
+  "epic_state": "RUNNING",
+  "nodes": {
+    "us1": {
+      "state": "MERGED",
+      "attempt": 1,
+      "branch": "factory/002-expense-notes/us1",
+      "verified": true,
+      "landing_state": "MERGED",
+      "pr_number": 20,
+      "landing_history": [
+        {
+          "at": "2026-08-22T17:23:12Z",
+          "outcome": "MERGED",
+          "failing_checks": []
+        }
+      ],
+      "recovery_cycles": 0,
+      "history": [
+        {
+          "attempt": 1,
+          "persona": "implementer",
+          "verdict": "PASS",
+          "judge_outcome": "PASS",
+          "model_alias": "ollama-cloud/kimi-k2.7-code"
+        }
+      ],
+      "free_rebases": 0,
+      "rejection_cause": null,
+      "terminal_reason": null,
+      "provenance": null,
+      "persona": "implementer",
+      "model_alias": "ollama-cloud/kimi-k2.7-code",
+      "awaiting_operator": false
+    },
+    "us2": {
+      "state": "RUNNING",
+      "attempt": 2,
+      "branch": "factory/002-expense-notes/us2",
+      "verified": false,
+      "landing_state": null,
+      "pr_number": null,
+      "landing_history": [],
+      "recovery_cycles": 0,
+      "history": [
+        {
+          "attempt": 1,
+          "persona": "implementer",
+          "verdict": "FAIL",
+          "judge_outcome": "RETRY",
+          "model_alias": "ollama-cloud/kimi-k2.7-code"
+        }
+      ],
+      "free_rebases": 0,
+      "rejection_cause": null,
+      "terminal_reason": null,
+      "provenance": null,
+      "persona": "implementer",
+      "model_alias": "ollama-cloud/kimi-k2.7-code",
+      "awaiting_operator": false
+    }
+  },
+  "worker_revision": null,
+  "landing_config": {
+    "merge_method": "squash",
+    "poll_interval_s": 60,
+    "stall_after_s": 7200,
+    "max_recovery_cycles": 1,
+    "max_free_rebases": 3
+  },
+  "landing_overrides": []
+}

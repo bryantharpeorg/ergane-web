@@ -1,0 +1,51 @@
+{
+  "specs_root": "specs",
+  "roadmap": {
+    "owner": "schedule",
+    "workflow_id": "roadmap-specs-2026-08-22T17:15:00Z",
+    "schedule_id": "ergane-roadmap-ergane-web",
+    "schedule_paused": false,
+    "next_action_at": "2026-08-22T17:20:00+00:00",
+    "looked_for": [
+      "workflow id roadmap-specs",
+      "a schedule starting workflows named roadmap-specs*"
+    ],
+    "dispatch_paused": false,
+    "running": [],
+    "parked": 0,
+    "dispatch_unavailable": null
+  },
+  "epics": [],
+  "queue": [],
+  "drafts": [
+    {
+      "spec_dir": "001-the-desk-sees-the-floor",
+      "state": "draft",
+      "dispatchable": false,
+      "blockers": []
+    },
+    {
+      "spec_dir": "002-the-showfloor-stages-an-epic",
+      "state": "draft",
+      "dispatchable": false,
+      "blockers": [
+        "001-the-desk-sees-the-floor"
+      ]
+    },
+    {
+      "spec_dir": "003-an-answer-reaches-the-factory",
+      "state": "draft",
+      "dispatchable": false,
+      "blockers": [
+        "001-the-desk-sees-the-floor"
+      ]
+    }
+  ],
+  "pace": [],
+  "readiness_basis": {
+    "observed": true,
+    "detail": "attestation, plus landings on dev (41a895cbbd24) in /home/tharpeboxadmin/code/ergane-web, read without fetching"
+  },
+  "notes": [],
+  "degraded": false
+}

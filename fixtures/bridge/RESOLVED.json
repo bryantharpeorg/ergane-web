@@ -1,0 +1,8 @@
+{
+  "relay": {
+    "correlation_id": "800ee6b4c7df",
+    "reply_text": "Go with Option A: a 12-hex id like escalations, for reply-routing parity.\nThe (epic, node, attempt) tuple collides across re-runs.",
+    "sender_identity": "fixture-operator"
+  },
+  "outcome": "RESOLVED"
+}

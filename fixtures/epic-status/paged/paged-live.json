@@ -1,0 +1,129 @@
+{
+  "epic_state": "RUNNING",
+  "nodes": {
+    "us1": {
+      "state": "VERIFYING",
+      "attempt": 6,
+      "branch": "factory/001-the-desk-sees-the-floor/us1",
+      "verified": false,
+      "landing_state": null,
+      "pr_number": null,
+      "landing_history": [],
+      "recovery_cycles": 0,
+      "history": [
+        {
+          "attempt": 1,
+          "persona": "implementer",
+          "verdict": "FAIL",
+          "judge_outcome": "RETRY",
+          "model_alias": "ollama-cloud/kimi-k2.7-code"
+        },
+        {
+          "attempt": 2,
+          "persona": "implementer",
+          "verdict": "FAIL",
+          "judge_outcome": "RETRY",
+          "model_alias": "ollama-cloud/kimi-k2.7-code"
+        },
+        {
+          "attempt": 3,
+          "persona": "implementer",
+          "verdict": "FAIL",
+          "judge_outcome": "RETRY",
+          "model_alias": "ollama-cloud/kimi-k2.7-code"
+        },
+        {
+          "attempt": 4,
+          "persona": "debugger",
+          "verdict": "FAIL",
+          "judge_outcome": "RETRY",
+          "model_alias": "ollama-cloud/kimi-k2.7-code"
+        },
+        {
+          "attempt": 5,
+          "persona": "debugger",
+          "verdict": "FAIL",
+          "judge_outcome": "RETRY",
+          "model_alias": "ollama-cloud/kimi-k2.7-code"
+        },
+        {
+          "attempt": 6,
+          "persona": "debugger",
+          "verdict": "FAIL",
+          "judge_outcome": "RETRY",
+          "model_alias": "ollama-cloud/kimi-k2.7-code"
+        }
+      ],
+      "free_rebases": 0,
+      "rejection_cause": null,
+      "terminal_reason": null,
+      "provenance": null,
+      "persona": "debugger",
+      "model_alias": "ollama-cloud/kimi-k2.7-code",
+      "awaiting_operator": true
+    },
+    "us2": {
+      "state": "PENDING",
+      "attempt": 0,
+      "branch": "factory/001-the-desk-sees-the-floor/us2",
+      "verified": false,
+      "landing_state": null,
+      "pr_number": null,
+      "landing_history": [],
+      "recovery_cycles": 0,
+      "history": [],
+      "free_rebases": 0,
+      "rejection_cause": null,
+      "terminal_reason": null,
+      "provenance": null,
+      "persona": "",
+      "model_alias": "<unresolved>",
+      "awaiting_operator": false
+    },
+    "us3": {
+      "state": "PENDING",
+      "attempt": 0,
+      "branch": "factory/001-the-desk-sees-the-floor/us3",
+      "verified": false,
+      "landing_state": null,
+      "pr_number": null,
+      "landing_history": [],
+      "recovery_cycles": 0,
+      "history": [],
+      "free_rebases": 0,
+      "rejection_cause": null,
+      "terminal_reason": null,
+      "provenance": null,
+      "persona": "",
+      "model_alias": "<unresolved>",
+      "awaiting_operator": false
+    },
+    "us4": {
+      "state": "PENDING",
+      "attempt": 0,
+      "branch": "factory/001-the-desk-sees-the-floor/us4",
+      "verified": false,
+      "landing_state": null,
+      "pr_number": null,
+      "landing_history": [],
+      "recovery_cycles": 0,
+      "history": [],
+      "free_rebases": 0,
+      "rejection_cause": null,
+      "terminal_reason": null,
+      "provenance": null,
+      "persona": "",
+      "model_alias": "<unresolved>",
+      "awaiting_operator": false
+    }
+  },
+  "worker_revision": null,
+  "landing_config": {
+    "merge_method": "squash",
+    "poll_interval_s": 60,
+    "stall_after_s": 7200,
+    "max_recovery_cycles": 1,
+    "max_free_rebases": 3
+  },
+  "landing_overrides": []
+}

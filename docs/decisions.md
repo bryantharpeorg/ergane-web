@@ -221,3 +221,161 @@ authorized here, not silently edited.
 7. **Constitution II's seam list extended** to the surfaces the specs actually
    ride: the Temporal queries (`epic_status`, `roadmap_status`,
    `escalation_status`) and the verify store's Question reader.
+
+## D-011 · The build run's operating choices: `dev`, `ergane.yaml`, PyPI, Kimi/GLM, no metered Opus (decided)
+
+Decided 2026-08-22 in the dispatch interview, the session that installs ergane on
+a clean host and lets the factory build this pane. D-010's open checklist left
+four things to the operator at wiring; this entry rules on them and on two facts
+that moved since the corpus was written.
+
+1. **Landing branch is `dev`** (operator override of D-008's assumed `buildout`).
+   `main` is promoted from `dev` by the operator after the landed output is
+   validated against the specs. `ergane.yaml` carries `landing_branch: dev`.
+2. **The manifest is `ergane.yaml`**, not `factory.yaml`. Ergane's resolver
+   (`factory/verify/factory_yaml.py`, `resolve_manifest_path`) honors the legacy
+   name with a one-time deprecation warning per process; the preferred name avoids
+   that warning in every attempt. Mentions in live documents (README, constitution,
+   draft specs) follow the rename; earlier decisions and log entries keep the old
+   name because they describe the past.
+3. **`ergane-cli` resolves from PyPI**, pinned `==0.2.0` (published 2026-08-22).
+   Spec 001's assumption that the distribution was unpublished is amended; the
+   git-source `[tool.uv.sources]` reference stays the documented fallback for a
+   seam newer than the release.
+4. **Ladder**: `max_attempts: 6`, `debugger_cycles: 3` — the same rungs the
+   sibling test repository runs. Nothing promotes to a closer automatically.
+5. **Persona routing for this build**, recorded here because the registry lives
+   outside this repo (`~/.config/ergane/personas.yaml`, constitution VII):
+   architect, implementer, debugger, researcher → `ollama-cloud/kimi-k2.7-code`;
+   judge → `ollama-cloud/glm-5.2`; every fallback `local/qwen3.6-27b`. **No persona
+   routes to a metered provider.** The gateway-routed `closer` alias
+   (`anthropic/claude-opus-5`, per-token) is omitted from the registry; the one
+   opt-in rung for a stubborn story is `opus-closer` on ergane's `subscription`
+   agent (operator's own Claude Code login, `fallback: null`), dispatched by hand
+   and only after the operator is asked.
+6. **Dispatch path**: all three work graphs are derived by hand
+   (`ergane spec derive`, archived under `docs/dags/`) for review, then each spec
+   is flipped `ready` and the roadmap scheduler dispatches it. 002 and 003 are
+   readied together once 001 has landed.
+7. **The Fixture floor is recorded hybrid**: live captures from a running floor
+   through ergane's real seam functions, plus on-cue states (refusal, awaiting
+   operator, Question/Notice payloads, bridge rulings) provoked by driving the
+   same seams under ergane's own test harnesses. Provenance per document in
+   `fixtures/README.md`. Rejected: purely synthetic fixtures (constitution V
+   forbids inventing them); waiting for a naturally busy floor (no second epic
+   exists until this build runs).
+
+Rejected alternatives: keeping `buildout` (the operator's branch convention is
+`dev`); routing the whole build through one model (the judge must not share the
+builder's blind spots — D-008's reasoning, now applied to model choice); a
+`closer` on the metered alias "just in case" (a default that can bill is not
+opt-in; constitution VII's registry rule means the only safe absence is omission).
+
+## D-012 · A design system the factory's nodes inherit (decided)
+
+Decided 2026-08-22, between wiring and fixture capture, when the operator asked
+that the pane inherit a visual system rather than leave appearance to each
+implementer. No system existed in ergane to inherit (its `.impeccable/` is a hook
+cache), so one was set for this repository through a design interview and two
+rolled direction rounds with operator steers.
+
+1. **The world**: a launch-telemetry *mission timeline* — T-minus clocks for
+   attention items (anchored on the factory's `expires_at`), one milestone bar every
+   epic shares (PASSED → PR_OPEN → ENQUEUED → MERGED), large tabular numerals — fused
+   on the Showfloor with a *visible transit* staging: the work graph as a route map,
+   the landing run as a line with stations a node's token travels through.
+2. **The palette**: mid-century modern on a light **sage** ground — the operator
+   ruled out cream/beige ("anything but Claude beige") and red, and asked for a tame,
+   calm primary. Teal is the one accent; mustard, olive, clay carry verifying,
+   landing, and waiting-on-you; aqua carries upstream states. Every state is a glyph
+   plus a caption, never colour alone.
+3. **Where it lives**: `PRODUCT.md` (product truth), `DESIGN.md` (the visual
+   authority, recorded from the built comps), `.impeccable/mocks/` (the two comps and
+   `tokens.css`), `.impeccable/surfaces/` (the Desk and Showfloor briefs). All
+   committed so dispatched nodes, which cannot see the operator's home, read them
+   from the worktree.
+4. **Constitution amended**: Principle VIII binds every rendering diff to
+   `DESIGN.md`; the environment constraints name the pre-existing `web/public/fonts/`
+   (Red Hat Display/Text/Mono, OFL, vendored as variable woff2) that the scaffold
+   must keep. No roster change: the faces are files, not packages.
+5. **Specs**: 001 (US4), 002, and 003 reference DESIGN.md in their Assumptions; their
+   functional requirements and work graphs are unchanged — appearance is governed by
+   the constitution, not re-specified per story.
+
+Rejected: inheriting another repository's system (kalshi-trader's, tokenomics'):
+neither was made for an operator pane, and a borrowed identity is a borrowed
+argument. Rejected: leaving appearance to the implementer — eleven states, two edge
+kinds, and a paged-while-verifying case are exactly what an agent guesses wrong.
+
+## D-013 · The gate boundary's `HOME` is a tmpfs, and the specs say so (decided)
+
+Decided 2026-08-22 during the first dispatch of spec 001, under the Governance rule that the
+constitution changes by superseding entry and never by silent edit.
+
+001/US1's first two attempts each brought three of the four gates green — `uv run pytest -q`,
+`npm --prefix web run typecheck`, `npm --prefix web run test:unit` — and each failed the smoke
+gate with Playwright's *"Looks like Playwright was just installed or updated. Please run …
+`npx playwright install`"*. The attempt had already added a `postinstall` hook that runs exactly
+that. The hook works: it warms `$HOME/.cache/ms-playwright` **in the attempt**. The gate then runs
+in the factory's sandbox with a fresh tmpfs `HOME` (ergane, `factory/verify/gates.py:785`), so the
+cache is not there. The boundary does have egress (`gates.py:810`), so the download would have
+succeeded — it simply never ran.
+
+The agent cannot observe this: from inside the attempt the browser is installed and the gate's
+advice is to install it. Two attempts were spent on it, and a third was in flight when this was
+recorded. **Nothing in the repository stated the fact**, so the constitution's Environment
+Constraints and `CLAUDE.md` now do: only the worktree crosses from the attempt into the gate, so a
+gate's dependencies live in the worktree (`PLAYWRIGHT_BROWSERS_PATH=0` → `web/node_modules`) or are
+fetched by the gate command itself.
+
+This changes no requirement and relaxes no gate. It is documentation of the environment the specs
+were always written against — spec 001's Assumptions already contemplated the sandbox's network
+posture, but not the boundary between an attempt's filesystem and its gate's. Reported to the
+Ergane agent as finding N20 with the suggestion that the attempt prompt, or the gate's own
+failure detail, carry this sentence so no target repository has to learn it by burning attempts.
+
+
+## D-014 · The judge sees the diff, not the tree, and never the gate results (decided)
+
+Decided 2026-08-22 during the third dispatch of spec 001, under the Governance rule that the
+constitution changes by superseding entry and never by silent edit.
+
+001/US1 failed nine consecutive attempts — six implementer, then all three debugger cycles —
+across two dispatches. Every one of those nine records is identical in the two places that
+matter: `gate_results` is `test PASS · typecheck PASS · unit PASS · smoke PASS`, and
+`output_check` is `{"passed": true, "hygiene_violations": [], "size_refusal": null}`. The pytest
+gate's own tail reads `12 passed in 0.14s`. The judge nevertheless failed US1-S1 every time, with
+the same reasoning: that `uv run pytest -q` *would* fail, because `tests/test_scaffold.py` asserts
+the five vendored faces exist under `web/public/fonts/` and no font file appears in the
+changed-file list.
+
+The fonts are in the base tree — this repository's own D-012 commit put them there — so they are
+correctly absent from a diff that does not touch them. The claim is a counterfactual the same
+record disproves one field earlier.
+
+**Why it happened, in ergane.** `factory/verify/judge.py:240` assembles the judge's prompt from
+four things: the requirement, its acceptance scenarios, the previous attempt's feedback, and the
+diff. The gate results are not among them, although the loop order is `[gates, diff_check, judge]`
+and the gates have therefore already run and been recorded. The system prompt
+(`judge.py:133`) then instructs: *"if the evidence is not in the diff, the scenario does not
+pass."* A scenario whose Then-clause is a runtime outcome consequently asks the judge to simulate
+a run it is forbidden to observe, against a tree it was never shown.
+
+**Why it happened, in this repository.** US1-S1 was written *"Given a fresh checkout containing
+this diff … Then [the four gate commands] all exit 0."* That is a runtime outcome, and the phrase
+"containing this diff" positively invites the reading that a file absent from the changed-file
+list is absent from the checkout. It was the only scenario across all three specs phrased that
+way, and it is the only scenario that deadlocked. The spec's own frontmatter already required
+every criterion to be decidable from the diff; this one was not, and the rule failed to catch its
+own violation.
+
+**The rule.** An acceptance scenario asserts what the diff *commits*, never what a command would
+*do*. The gate rung measures the run; the judge scores the wiring. Where a scenario's subject
+depends on a file the diff does not touch, the scenario says so explicitly, because the judge
+cannot see the base tree and will otherwise assume the file does not exist.
+
+US1-S1 was rewritten to that rule and the epic re-dispatched. No requirement is relaxed: FR
+coverage is unchanged, and the four gates still have to exit 0 — they are simply proved by the
+rung that actually runs them. Reported to the Ergane agent as finding N26 with the suggestion
+that `build_prompt` include the gate outcomes it already holds, so a judge asked about a gate can
+read the answer instead of predicting it.

@@ -50,6 +50,17 @@ pytest, `tsc --noEmit`, vitest, Playwright against the fixture floor — never t
 "looks right" or a screenshot a human must read. A criterion only an eye can score
 is a defect in the spec, not in the agent that failed it.
 
+**And the diff is not the tree** (D-014). The judge receives the requirement, its
+scenarios, the previous attempt's feedback and the diff — not the gate results, and
+not the base tree the diff applies to. Two consequences bind every scenario written
+here. A scenario asserts what the diff **commits**, never what a command would **do**:
+the gate rung measures the run, the judge scores the wiring, and a Then-clause of the
+form "the command exits 0" asks the judge to simulate what it is forbidden to observe.
+And where a scenario's subject depends on a file the diff does not touch, the scenario
+says so in words — absent from the changed-file list reads to the judge as absent from
+the repository. A criterion only a full checkout can score is the same defect as one
+only an eye can score.
+
 ### V. Fixtures Are Recorded, Never Invented
 
 The fixture floor is captured from real factory documents whose shapes come from
@@ -85,6 +96,19 @@ without them). TypeScript runs
 `strict`; a looser compiler option is a new dependency in spirit and needs the same
 approval.
 
+### VIII. The Pane Is Built to DESIGN.md
+
+`DESIGN.md` at the repository root is the pane's visual authority (D-012): tokens,
+type, the eleven-state glyph grammar, the two edge strokes, the milestone bar, the
+attention ranking, the motion rules. A diff that renders anything the operator sees
+obeys it the way a diff that touches a seam obeys Principle II. What DESIGN.md
+states is not a suggestion: a colour, face, or radius it does not name is a defect,
+not a choice. State is never carried by colour alone. No cream or beige ground, no
+red, no remote stylesheet or script — the three faces are vendored under
+`web/public/fonts/` and loaded from there. Where a spec's scenario and DESIGN.md
+disagree on an *appearance*, DESIGN.md wins; where they disagree on *what is
+shown*, the spec wins.
+
 ## Environment Constraints
 
 - The backend runs on the factory host as a systemd user unit: it needs the factory
@@ -95,7 +119,25 @@ approval.
 - The factory's `ERGANE_WEBHOOK_URL` points at the backend; the factory has no
   inbound listener of its own, and the pane must never expect one.
 - Two package worlds live in one repository: `uv` owns the backend, `npm` owns
-  `web/`. Gates are declared in `factory.yaml` and nowhere else.
+  `web/`. Gates are declared in `ergane.yaml` and nowhere else.
+- **A gate does not inherit the attempt's `HOME`.** Gates run inside the factory's
+  sandbox with a fresh tmpfs `HOME`, distinct from the one the attempt worked in.
+  The worktree persists into the gate; a cache warmed in `HOME` during the attempt
+  does not. Anything a gate command needs must therefore live **inside the
+  worktree** or be fetched by the gate command itself — the boundary does have
+  network egress. Concretely, `playwright install` run during an attempt (or from a
+  `postinstall` hook) puts the browser in `$HOME/.cache/ms-playwright`, which the
+  smoke gate cannot see. `PLAYWRIGHT_BROWSERS_PATH=0` moves the download into
+  `web/node_modules`, which does persist — **but the variable is read from the
+  environment on every Playwright invocation, so it must be set on the test run as
+  well as on the install.** Setting it only in `postinstall` puts the browser in the
+  worktree and then fails to look for it there. Set it inline in both scripts, e.g.
+  `"test:smoke": "PLAYWRIGHT_BROWSERS_PATH=0 vite build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test"`,
+  or have the smoke script install the browser as its own first step. A gate that
+  passes locally and fails in the factory with "just installed — please run
+  `npx playwright install`" is this, and reinstalling harder will not fix it.
+- `web/public/fonts/` (four OFL woff2 files and `fonts.css`) and `PRODUCT.md`,
+  `DESIGN.md`, `.impeccable/` pre-exist the scaffold; the scaffold story keeps them.
 
 ## Governance
 

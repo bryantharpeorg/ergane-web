@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-08-22T17:41:10Z",
+  "scene": "landing",
+  "seam": "WorkflowHandle.query(\"epic_status\") after COMPLETED",
+  "workflow_id": "epic-fx-landing-f0a0d6",
+  "notes": "the last status document; the states seen on the way are the numbered snapshots",
+  "document": "epic-status/landing/final.json",
+  "run_id": "run-20260822T174042Z-a692e2",
+  "recorder": "scripts/record-fixtures-harness.py",
+  "ergane_checkout_revision": "6443221",
+  "webhook_url": "http://127.0.0.1:35117/<redacted>"
+}

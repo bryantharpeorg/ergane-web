@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-08-22T17:41:18Z",
+  "scene": "refusal",
+  "seam": "factory.cli.nouns.build._query_status(epic_id, as_json=True) — stdout JSON, exit code 0",
+  "workflow_id": "epic-fx-landing-f0a0d6",
+  "notes": "provocation: the COMPLETED landing epic queried through a Client whose default_workflow_query_reject_condition is NOT_OPEN, so handle.query('epic_status') raised WorkflowQueryRejectedError and the CLI degraded: document → {'nodes': {}} plus a 'refusal' key, execution_status from describe(), exit 0. The client was injected via the factory.cli.nouns._open_client seam; nothing in the rendering was hand-built.",
+  "document": "epic-status/refusal.json",
+  "run_id": "run-20260822T174042Z-a692e2",
+  "recorder": "scripts/record-fixtures-harness.py",
+  "ergane_checkout_revision": "6443221",
+  "webhook_url": "http://127.0.0.1:35117/<redacted>"
+}

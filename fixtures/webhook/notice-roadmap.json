@@ -1,0 +1,5 @@
+{
+  "correlation_id": "roadmap-fx-945757",
+  "text": "⚠️ Roadmap failure\nroadmap: roadmap-fx-945757\n\nRoadmap roadmap-fx-945757 failed (3 consecutive runs): RoadmapWorkflow: specs root has no ready spec (3 consecutive passes)",
+  "actions": []
+}

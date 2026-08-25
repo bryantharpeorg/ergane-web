@@ -1,0 +1,52 @@
+{
+  "by": "persona",
+  "filters": {
+    "epic": null,
+    "since": null
+  },
+  "groups": [
+    {
+      "key": "debugger",
+      "prompt_tokens": 3446831,
+      "completion_tokens": 21330,
+      "cache_read_tokens": null,
+      "cache_write_tokens": null,
+      "requests": 63,
+      "spend_usd": 0.0,
+      "rows": 1,
+      "unconfirmed_rows": 0
+    },
+    {
+      "key": "implementer",
+      "prompt_tokens": 5367097,
+      "completion_tokens": 34948,
+      "cache_read_tokens": null,
+      "cache_write_tokens": null,
+      "requests": 137,
+      "spend_usd": 0.0,
+      "rows": 4,
+      "unconfirmed_rows": 0
+    },
+    {
+      "key": "judge",
+      "prompt_tokens": null,
+      "completion_tokens": null,
+      "cache_read_tokens": null,
+      "cache_write_tokens": null,
+      "requests": null,
+      "spend_usd": 0.0,
+      "rows": 5,
+      "unconfirmed_rows": 0
+    }
+  ],
+  "totals": {
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "cache_read_tokens": null,
+    "cache_write_tokens": null,
+    "requests": null,
+    "spend_usd": 0.0,
+    "rows": 10,
+    "unconfirmed_rows": 0
+  }
+}
