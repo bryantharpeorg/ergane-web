@@ -56,6 +56,15 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // 006 US1: the Desk's clothing, measured — the frame it fills at three
+      // widths and the tokens, chips and tables it wears in both themes. Its
+      // own file so that `desk.spec.ts`, a suite FR-003 requires to pass
+      // unchanged, stays untouched; the same fixture-backed backend on 8787.
+      name: "desk-world",
+      testMatch: /desk-world\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "desk-degraded",
       testMatch: /desk-degraded\.spec\.ts/,
       use: {

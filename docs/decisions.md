@@ -445,3 +445,53 @@ with the wire case in it, not a clause here.
 
 **Why an entry at all.** Constitution VIII: appearance changes are the operator's to take, and the
 authority is amended before the spec that builds to it, never after. Spec 008 cites these clauses.
+
+---
+
+## D-017 · FR-001's measured width pair is corrected to 1280 → 1600 (decided 2026-08-25)
+
+**Raised by** the `006-the-desk-matches-the-stage` US1 node, which could not satisfy the
+requirement as drafted and would not quietly weaken the test to look as though it had.
+
+**The conflict.** Spec 006 FR-001 asks that the Desk fill the app frame "fluidly to its
+`96rem`, with measured width growth between 1600 and 2560", and US1-S1 restates it as "its
+width at 2560 exceeds its width at 1600". No implementation can satisfy that clause while
+obeying `DESIGN.md`:
+
+- § Typography fixes the root at `15.5px`; § Layout caps the app frame at `max-width: 96rem`.
+  96 × 15.5 = **1488px**, so the cap already binds at 1600 and there is no growth left above it.
+- § The Desk in this world asks for "**Fluid width** — the Desk fills the frame **like the
+  Showfloor**". The Showfloor is landed doing exactly that, and `showfloor.spec.ts` ("the frame
+  is fluid to 96rem", FR-007) measures growth on **1280 → 1600**, then asserts the cap binds and
+  the frame centres at 2560. FR-001 reads as that clause carried over with its viewports
+  mis-transcribed.
+- **D-016 already ruled on the cap itself**, yesterday, in as many words: "The 96rem frame cap
+  stays as `DESIGN.md` § Layout and 004's FR-007 have it." Raising the cap was not on the table
+  for a node to take, and D-016 says why: "appearance changes are the operator's to take".
+
+**What was measured** on the Desk in this diff, fixture floor, root 15.5px:
+
+| viewport | frame | content | margin per side |
+|---|---|---|---|
+| 1280 | 1280px | 1278px | 0 |
+| 1600 | 1488px | 1486px | 56px |
+| 2560 | 1488px | 1486px | 536px |
+
+Growth below the cap is real (+208px, 1280 → 1600); above it the content is identical to the
+pixel, because the frame centres instead of stretching.
+
+**Decided.** Constitution VIII settles it — "where a spec's scenario and DESIGN.md disagree on an
+*appearance*, DESIGN.md wins", and a width cap is appearance. FR-001 and US1-S1 are corrected to
+name the pair that exists, **1280 → 1600**, and `desk-world.spec.ts` asserts the 1600/2560 pair as
+**exact equality at the cap** — a stronger and more falsifiable claim than the growth the scenario
+asked for, and deliberately not the `>=` an earlier attempt hedged with.
+
+**What this does not change.** No token, no cap, no `DESIGN.md` clause, and no rendered pixel: the
+Desk's geometry is what D-016 and § Layout already required. The defect FR-001 exists to retire —
+the first world's hard 1216px content cap, and the 672px of dead margin per side it left at 2560 —
+is retired at every width, and `desk-world.spec.ts` proves it at all three the scenario names.
+
+**What this leaves open.** At 2560 a 1488px frame still strands 536px per side. That is the cap
+working as designed, not a defect in this spec; if the operator wants the Desk to use that room,
+it is a `DESIGN.md` amendment to § Layout and a new entry here — with the Showfloor's "centred at
+the cap" assertion moving with it — and it is the operator's to take, not a node's.

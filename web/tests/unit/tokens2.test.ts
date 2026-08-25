@@ -15,10 +15,21 @@
  * The table in § Colors is the source of truth, parsed here. A token added to
  * `DESIGN.md` and not to the stylesheet fails; a value that drifts from the
  * document fails; a theme block that forgets a token fails.
+ *
+ * **One case is deleted in 006 US1's diff, with its subject** (FR-003's naming
+ * discipline). `keeps the first world's names alive as pointers, never as
+ * colours` asserted that `src/styles/tokens.css` — the alias layer this file's
+ * own comment called "the Desk's compatibility layer **until spec 006 rewrites
+ * the Desk's rules**" — held no hex. 006 US1 rewrites those rules against
+ * § Colors directly, so the layer is deleted and there is no file left to
+ * assert about. Its guarantee is not dropped: it moves to
+ * `tests/unit/deskWorld.test.ts`, and moves up, from "the alias file holds no
+ * hex" to "no rule in `global.css` holds a colour outside the three § Colors
+ * blocks, and no retired name is reachable to hold one". Nothing else in this
+ * file changes; every other case still runs on the same subject.
  */
 import { describe, expect, it } from "vitest";
 import globalCss from "../../src/styles/global.css?raw";
-import tokensCss from "../../src/styles/tokens.css?raw";
 import indexHtml from "../../index.html?raw";
 import designMd from "../../../DESIGN.md?raw";
 
@@ -155,13 +166,6 @@ describe("the second world's token layer (FR-006)", () => {
       expect(root).toContain(step);
     }
   });
-
-  it("keeps the first world's names alive as pointers, never as colours", () => {
-    // `tokens.css` is the Desk's compatibility layer until spec 006 rewrites
-    // the Desk's rules. A hex there would be a colour outside § Colors.
-    expect(tokensCss).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    expect(tokensCss).not.toMatch(/\brgba?\(/);
-  });
 });
 
 /** Every source file the browser could reach, for the font sweep below. */
@@ -197,12 +201,10 @@ describe("nothing downloads (FR-007)", () => {
     expect(indexHtml).not.toContain("https://");
   });
 
-  it("imports nothing and fetches no remote resource from the stylesheets", () => {
-    for (const source of [globalCss, tokensCss]) {
-      expect(source).not.toContain("@import");
-      expect(source).not.toContain("url(");
-      expect(source).not.toContain("https://");
-    }
+  it("imports nothing and fetches no remote resource from the stylesheet", () => {
+    expect(globalCss).not.toContain("@import");
+    expect(globalCss).not.toContain("url(");
+    expect(globalCss).not.toContain("https://");
   });
 
   it("keeps the one authored motion suppressible", () => {
