@@ -14,6 +14,14 @@ import factory.workgraph.cli
 from factory.notify.adapter import UNKNOWN_SENDER
 
 
+#: The branch a landing lands on.  D-011 makes it `dev` today and `main` is
+#: promoted from it at milestones, so the pane reads landing facts from `dev` —
+#: but it reads them from *this* name, resolved once, rather than from a string
+#: spelt into the reader (009 plan D3).  A deployment whose landing branch is
+#: `main` sets `PANE_LANDING_BRANCH` and changes no code.
+DEFAULT_LANDING_BRANCH = "dev"
+
+
 @dataclass(frozen=True)
 class Settings:
     demo: bool
@@ -34,6 +42,10 @@ class Settings:
     # not permissive: `create_app` refuses to build an app without a token, in
     # every mode, so the backend never serves open (T054).
     token: str = ""
+    # Last, and with a default, for the same reason `demo_ruling` and `token`
+    # have one: a `Settings` built by hand before 009 still constructs.  The
+    # value is a setting and never a literal in a reader (plan D3).
+    landing_branch: str = DEFAULT_LANDING_BRANCH
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> "Settings":
@@ -83,6 +95,11 @@ class Settings:
         # answers count and is the factory's to judge, never the pane's (FR-016).
         token = environ.get("PANE_TOKEN", "")
 
+        # Which branch a landing lands on (D-011: `dev`).  Empty or unset takes
+        # the default rather than reading an empty branch name, which git would
+        # refuse and which would degrade every spec on the floor at once.
+        landing_branch = environ.get("PANE_LANDING_BRANCH") or DEFAULT_LANDING_BRANCH
+
         raw_attention_db = environ.get("PANE_ATTENTION_DB")
         if raw_attention_db:
             attention_db = Path(raw_attention_db)
@@ -105,4 +122,5 @@ class Settings:
             attention_db=attention_db,
             demo_ruling=demo_ruling,
             token=token,
+            landing_branch=landing_branch,
         )
