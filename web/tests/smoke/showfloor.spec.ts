@@ -173,8 +173,17 @@ test.describe("the second world is on the screen (FR-006)", () => {
           wash: style.backgroundColor,
           borderColour: style.borderTopColor,
           radius: style.borderTopLeftRadius,
+          italic: style.fontStyle,
+          transform: style.textTransform,
         };
       }),
+    );
+
+    /** § Colors' `--muted`, which is the ink the Unknown Rule is written in. */
+    const muted = hexToRgb(
+      await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue("--muted").trim(),
+      ),
     );
 
     // This floor really carries both kinds; an assertion over one would prove
@@ -193,12 +202,29 @@ test.describe("the second world is on the screen (FR-006)", () => {
       expect(chip.borderStyle).toBe("solid");
     }
 
-    // "chips are `border: 1px solid currentColor` over the wash", squared, and
-    // each tone's ink differs from the next one's.
+    // "chips are `border: 1px solid currentColor` over the wash", squared —
+    // over the six tones § Chips names. `unknown` is not a seventh row of that
+    // table and never wore its border: it is the Unknown Rule wearing a chip's
+    // slot, muted and italic with the factory's own spelling kept, drawn
+    // borderless in `showfloor.css` since 005 and told apart from the six by
+    // the Desk's own sweep already (`desk-world.spec.ts` § Chips). This test
+    // could not tell them apart because no `unknown` node chip had ever reached
+    // the Showfloor for it to measure — until 009 gave the room a read that can
+    // fail to place a story (FR-004), which is exactly what a checkout with no
+    // landing branch makes it do.
     for (const chip of chips) {
-      expect(chip.borderColour).toBe(chip.colour);
       expect(chip.radius).toBe("0px");
+      if (chip.tone === "unknown") {
+        expect(chip.italic, "the Unknown Rule is written in italic").toBe("italic");
+        expect(chip.transform, "and in the factory's own spelling").toBe("none");
+        expect(chip.colour, "in muted").toBe(muted);
+        expect(chip.borderColour, "with no border to make it a state").toBe("rgba(0, 0, 0, 0)");
+        expect(chip.wash, "and no wash either").toBe("rgba(0, 0, 0, 0)");
+      } else {
+        expect(chip.borderColour).toBe(chip.colour);
+      }
     }
+    // Each tone's ink still differs from the next one's.
     const inks = new Set(chips.map((chip) => `${chip.tone}:${chip.colour}`));
     const tones = new Set(chips.map((chip) => chip.tone));
     expect(inks.size).toBe(tones.size);
