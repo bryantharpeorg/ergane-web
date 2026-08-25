@@ -39,7 +39,7 @@ import type { RailEntry, ShowfloorDocument, ShowfloorStory } from "../api/showfl
 import { subscribeFloor } from "../api/events";
 import Masthead from "../Masthead";
 import AttentionBadge from "./AttentionBadge";
-import DetailPane from "./DetailPane";
+import DetailPane, { RoomExplanation } from "./DetailPane";
 import Legend from "./Legend";
 import Rail from "./Rail";
 import Stage from "./Stage";
@@ -210,7 +210,7 @@ export default function Showfloor(): JSX.Element {
   if (isLoading) {
     return (
       <Frame badge={null}>
-        <main id="room" className="cols">
+        <main id="room" className="cols" data-selection="none">
           <p className="quiet">Reading the floor…</p>
         </main>
       </Frame>
@@ -220,7 +220,7 @@ export default function Showfloor(): JSX.Element {
   if (errorStatus !== null || doc === null) {
     return (
       <Frame badge={badge}>
-        <main id="room" className="cols">
+        <main id="room" className="cols" data-selection="none">
           <div className="degraded" data-mode="transport" role="status">
             <p className="lead">The floor could not be read.</p>
             <p>
@@ -239,9 +239,29 @@ export default function Showfloor(): JSX.Element {
   const rail = Array.isArray(doc.rail) ? doc.rail : [];
   const { entry, miss } = selectFromPath(rail, window.location.pathname);
 
+  // The one story the pane is telling, resolved once. Everything the selection
+  // decides is decided from this: what the pane renders, whether the room is
+  // explained beneath the stage, and which shape the grid takes. A second
+  // reading of `selectedStory` could disagree with the first and collapse a
+  // track over a pane that has something in it (008 US2).
+  const story =
+    entry === null
+      ? null
+      : (entry.stories.find((candidate) => (candidate.id ?? candidate.story_key) === selectedStory) ??
+        null);
+
+  // D-016 clause (a): "the detail track is a story's track, not a permanent
+  // one". The selection is carried into the grid as a *state hook* rather than
+  // an inline style, so the track shape stays a CSS concern the two media rules
+  // can go on overriding — and so a pick changes one attribute on an element
+  // React never remounts, which is what lets the browser relay the stage
+  // without the wires losing the boxes they were measured against (plan D2,
+  // FR-004).
+  const selection = story === null ? "none" : "story";
+
   return (
     <Frame badge={badge}>
-      <main id="room" className="cols" data-showfloor-cols>
+      <main id="room" className="cols" data-showfloor-cols data-selection={selection}>
         <Rail entries={rail} selected={entry === null ? null : entry.spec_dir} />
         <section
           className="stage"
@@ -275,6 +295,12 @@ export default function Showfloor(): JSX.Element {
               }
             />
           )}
+          {/* § Detail pane, amended by D-016: "the explanation moves beneath
+              the stage, above the legend row, and the pane's track is gone
+              until a story is picked". Here, not in the pane — the words are
+              the same and they are never withheld; what changes is that they
+              stop costing the graph 403px of width (FR-005). */}
+          {story === null ? <RoomExplanation /> : null}
           {/* § Stage: "One legend row under the stage, rendered once per page,
               never per epic." Here is the once — the room has exactly one
               Showfloor, so a legend mounted from it cannot repeat however many
@@ -282,13 +308,7 @@ export default function Showfloor(): JSX.Element {
           <Legend />
         </section>
         <DetailPane
-          story={
-            entry === null
-              ? null
-              : (entry.stories.find(
-                  (story) => (story.id ?? story.story_key) === selectedStory,
-                ) ?? null)
-          }
+          story={story}
           epicId={entry === null ? null : entry.epic_id}
           floor={floor}
         />

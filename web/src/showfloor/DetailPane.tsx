@@ -264,7 +264,7 @@ export default function DetailPane({
 }: DetailPaneProps): JSX.Element {
   return (
     <aside className="detail" data-detail aria-live="polite">
-      {story === null ? <EmptyPane /> : <StoryDetail story={story} epicId={epicId} floor={floor} />}
+      {story === null ? null : <StoryDetail story={story} epicId={epicId} floor={floor} />}
     </aside>
   );
 }
@@ -272,8 +272,21 @@ export default function DetailPane({
 /**
  * "When nothing is selected it explains the room in two sentences" — two, and
  * they explain the room rather than apologising for the pane.
+ *
+ * **The words did not change; where they mount did** (D-016 clause b, 008 US2).
+ * They used to be the only thing in a `26rem` track, and D-016 measured what
+ * that cost on a real monitor: 403px of stage held open for two sentences, a
+ * graph that needed 797px given 770, and every spec on the floor clipped at
+ * every width this repository tests. So `Showfloor.tsx` mounts this beneath the
+ * stage, above the legend row, and the track collapses behind it.
+ *
+ * It is *relocated*, never hidden. A `display: none` on the old element would
+ * have satisfied every assertion 005 committed about it and would have been the
+ * pane withholding what the room says — which constitution III forbids, and
+ * which is why FR-005 asserts computed visibility and a box rather than
+ * presence.
  */
-function EmptyPane(): JSX.Element {
+export function RoomExplanation(): JSX.Element {
   return (
     <p className="detail-empty" data-detail-empty>
       The rail picks a spec and the stage draws its work graph, one epic at a

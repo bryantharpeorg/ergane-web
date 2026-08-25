@@ -28,6 +28,7 @@
  * "live" nowhere near spend (§ The Unknown Rule; constitution III).
  */
 
+import { useMemo } from "react";
 import type { FloorDocument } from "../api/floorDocument";
 import type { RailEntry, ShowfloorStory } from "../api/showfloorDocument";
 import { chipText, railChip, specId } from "./ladder";
@@ -268,6 +269,14 @@ export default function Stage({
   const stories = entry.stories;
   const chip = railChip(entry);
 
+  // Memoised so that a selection change does not hand `Wires` a fresh array it
+  // would re-measure against by accident. The wires *must* re-measure when the
+  // detail track collapses or returns, and that has to be a thing this file
+  // says out loud (`relayout` below) rather than a side effect of an identity
+  // that could be memoised away by the next person reading for a re-render
+  // (008 US2, plan Risks).
+  const edges = useMemo(() => edgesOf(stories), [stories]);
+
   // "an epic whose stage document has no nodes renders as its degraded notice
   // with **no stage canvas at all**" (§ Stage; FR-013). The branch is taken
   // before the canvas exists, not by hiding one — 004's FR-001, restated so the
@@ -329,7 +338,7 @@ export default function Stage({
             {/* The wires measure their own box and walk their parent for the
                 cards, so the canvas needs no ref: a parent's ref is not
                 attached yet when a child's layout effect runs. */}
-            <Wires edges={edgesOf(stories)} />
+            <Wires edges={edges} relayout={selectedStory} />
             <div className="ranks" data-ranks>
               {ranksOf(stories).map((column, depth) => (
                 <div className="rank" data-rank={depth} key={depth}>
