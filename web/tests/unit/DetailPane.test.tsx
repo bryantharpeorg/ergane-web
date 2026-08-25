@@ -22,6 +22,7 @@
  * leaves the room explained rather than blank.
  */
 
+/// <reference types="vite/client" />
 import { afterEach, describe, expect, it } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
@@ -45,6 +46,7 @@ import buildingRaw from "../../../fixtures/epic-status/002-expense-notes/002-exp
 import killedRaw from "../../../fixtures/epic-status/killed/killed.json?raw";
 import floorLiveRaw from "../../../fixtures/floor/floor-live.json?raw";
 import workgraphRaw from "../../../fixtures/workgraphs/001-trip-expenses.json?raw";
+import showfloorCss from "../../src/showfloor/showfloor.css?raw";
 
 /* ── the recorded halves ───────────────────────────────────────────────── */
 
@@ -477,5 +479,77 @@ describe("the readings themselves", () => {
         subject.ladder.stops.map((stop) => stop.status),
       );
     }
+  });
+});
+
+/**
+ * The clothing, from the stylesheet the room ships (constitution VIII).
+ *
+ * The DOM tests above prove which class each step wears; jsdom computes no
+ * cascade, so what a class *means* is asserted here against the committed CSS.
+ * A rule that stopped naming its token — a step tinted by a hex, or a chip that
+ * lost its well — fails, which is what makes "done olive, active accent,
+ * waiting gold, pending faint" a fact about the diff and not about a screenshot.
+ */
+describe("the pane wears DESIGN.md's own tokens (§ The status ladder, § Detail pane)", () => {
+  /** The declarations of the first rule whose selector list matches. */
+  function rule(selector: string): string {
+    const at = showfloorCss.indexOf(selector + " {");
+    expect(at, `${selector} is a rule in showfloor.css`).toBeGreaterThan(-1);
+    return showfloorCss.slice(at, showfloorCss.indexOf("}", at));
+  }
+
+  it("stamps each step's dot with the token its status names", () => {
+    expect(rule(".showfloor .detail .steps li.done .dot")).toContain("var(--olive)");
+    expect(rule(".showfloor .detail .steps li.now .dot")).toContain("var(--accent)");
+    // "a `waiting` step in gold" — and gold is only ever waiting-on-you.
+    expect(rule(".showfloor .detail .steps li.hold .dot")).toContain("var(--gold)");
+    // An unreached stop rests in the sunken the ladder's own bars rest in.
+    expect(rule(".showfloor .detail .steps .dot")).toContain("var(--sunken)");
+  });
+
+  it("keeps pending steps faint, and a frozen ladder's with them", () => {
+    const faint = rule(".showfloor .detail .steps li.pending,\n.showfloor .detail .steps li.froze");
+    expect(faint).toContain("var(--faint)");
+  });
+
+  it("sets the requirement keys as sunken mono chips", () => {
+    const chip = rule(".showfloor .detail .fr");
+    expect(chip).toContain("var(--mono)");
+    expect(chip).toContain("var(--sunken)");
+    expect(chip).toContain("var(--hairline)");
+    // § Shapes: chips are squared. A radius here would be a chip that is not
+    // one — and there is none in this rule.
+    expect(chip).not.toContain("border-radius");
+  });
+
+  it("gives the step name its mono face and the title its serif", () => {
+    expect(rule(".showfloor .detail .steps .sname")).toContain("var(--mono)");
+    expect(rule(".showfloor .detail .steps .swhen")).toContain("var(--mono)");
+    expect(rule(".showfloor .detail .dtitle")).toContain("var(--serif)");
+    expect(rule(".showfloor .detail .kv dd")).toContain("var(--mono)");
+  });
+
+  it("marks the selected card the way § Shapes marks it, and shows the keyboard", () => {
+    const selected = rule(".showfloor .node.sel");
+    expect(selected).toContain("var(--accent)");
+    expect(selected).toContain("outline: 2px solid");
+
+    const focus = rule(".showfloor .node:focus-visible");
+    expect(focus).toContain("outline: 2px solid");
+    expect(focus).toContain("var(--accent)");
+  });
+
+  it("authors the one motion inside the reduced-motion gate and nowhere else", () => {
+    // § Motion: the pulse is the pane's only animation, and it is written
+    // *inside* `prefers-reduced-motion: no-preference` so there is no override
+    // to forget. Two facts, both from the stylesheet: one `animation:` in the
+    // room, and it is inside the gate.
+    const animations = [...showfloorCss.matchAll(/\n\s*animation:/g)];
+    expect(animations).toHaveLength(1);
+
+    const gate = showfloorCss.indexOf("@media (prefers-reduced-motion: no-preference)");
+    expect(gate).toBeGreaterThan(-1);
+    expect(animations[0].index).toBeGreaterThan(gate);
   });
 });
