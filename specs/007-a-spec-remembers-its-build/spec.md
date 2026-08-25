@@ -47,8 +47,8 @@ verb, behind the same token as everything else.
   outcome with scenario score, duration), landing history (PR, SHA, queue
   time), rework count.
 - Spec-level: total attempts vs stories (the rework ratio), wall clock from
-  first dispatch to last landing, tokens and spend by persona for this epic,
-  gate pass/fail counts.
+  first dispatch to last landing, **token counts by persona for this epic —
+  never dollars** (operator decision, 2026-08-25), gate pass/fail counts.
 - Provenance: which dispatch(es), `KILL`/re-dispatch events if any.
 
 ## Data sources — known and open
@@ -68,22 +68,43 @@ Known seams that already carry part of this:
 - Landing facts derive from the forge (squash subjects attribute stories) —
   durable, already the corpus's source of truth for `landed`.
 
-## Open questions (answer before refining)
+## Open questions — with the operator's answers (2026-08-25)
 
-1. **Retention.** `verification_results` upserts on
-   `(epic_id, node_id, attempt, form)` — a re-dispatch **overwrites** the
-   previous dispatch's evidence (ergane finding N28). A history page renders
-   what survives; does it say so, or does ergane grow dispatch-scoped
-   history first?
-2. **Subscription-route usage is invisible** (no gateway, no ledger rows) —
-   the cost panel for an Opus-built spec would read `unknown` across the
-   board. Render honestly-unknown, or wait for an ergane seam?
-3. **Seam legality.** Does reading `verification_results` for display need a
-   constitution II list amendment (D-entry) or an ergane-side exported
-   reader? Decide before any code.
-4. **Where does it live?** Third room vs a mode of the Showfloor (the rail
-   already lists every spec; a landed spec's stage could *be* this page).
-5. Route naming: `/spec/<dir>` vs `/showfloor/<dir>/history`.
+1. **Retention — ANSWERED IN DIRECTION: long-term storage is required; where
+   it lives is the open half.** The operator: "we'll need to figure out where
+   to start storing that data long term so it's retained." A history page
+   cannot ride `verification_results` (re-dispatch overwrites it, N28) or
+   Temporal retention (72h). The durable store is a **prerequisite** of this
+   spec, and it is most naturally ergane's: dispatch-scoped, append-only build
+   history. Filed to the ergane agent as **N47** together with question 3;
+   this spec stays draft until that lands or a pane-side archive is chosen
+   instead.
+2. **Cost display — ANSWERED: token counts only, never dollars.** Panels show
+   prompt/completion tokens by persona; no `spend_usd` anywhere on this page.
+   A subscription-built epic will honestly read `unknown` until usage for that
+   route is recorded at all (N31/N46 territory) — rendered under the Unknown
+   Rule, never as zero.
+3. **Seam legality — ANSWERED: the recommendation stands.** The pane never
+   opens `verification.db` raw. The durable history store from question 1
+   ships with its **own ergane-exported read-only reader**, and that reader
+   joins the constitution II list by a D-entry when it exists. No interim raw
+   read, no pane-side SQL over ergane's private schema — the whole point of
+   constitution II is that ergane's internals may change shape without
+   breaking the pane (they already did once: N28).
+4. **Placement — OPEN: the operator wants more information.** The decision
+   brief, for when 005's rebuilt room is real to look at:
+
+   | | A — a mode of the Showfloor | B — a third room `/spec/<dir>` |
+   |---|---|---|
+   | navigation | none new; the rail already lists every spec; deep link `/showfloor/<dir>/history` | new top-level room beside Desk/Showfloor |
+   | fit | a landed spec's stage naturally *is* its history (frozen ladders already render) | a reading room can be dense: attempt tables, token grids |
+   | against | mixes "now" and "then" on the projector surface; the detail pane is small for attempt tables | third room in a two-room product; duplicates rail + graph |
+
+   **Two facts would settle it:** (a) the primary scene — glanced on the
+   projector (→ A) or researched at a desk (→ B); (b) how dense the durable
+   store's per-story history actually is once it exists — a handful of rows
+   fits A's detail pane, dozens want B's tables. Decide after using the
+   second-world Showfloor for a while.
 
 ## Out of scope (already known)
 
