@@ -591,3 +591,56 @@ that is the moment to write it, with the real measurement in hand.** D-016's def
 authority is amended before the spec that builds to it, never after. Clause 3 adds a law to
 `DESIGN.md` § Layout; clauses 1 and 2 are behavioural and bind spec 009's stories. Spec 009 cites
 these clauses.
+
+---
+
+## D-019 · The stage says what its spec is for (decided 2026-08-25)
+
+**Raised by** the operator, from the pane, at 4:15 PM CT: *"that explains the selected story but what
+about the goal of the overarching spec? a story is under a spec right?"*
+
+### The gap
+
+`pane/showfloor.py:161` carries `_intent_after()`, which lifts the one-sentence intent that follows
+each `### User Story` heading. It is the reason the detail pane can say what US1 is for. There is no
+equivalent for the spec itself: the showfloor document carries `name` — a title — and no prose. The
+room can explain a story and cannot explain the epic that contains it.
+
+The text already exists and is already consistent. Every refined spec in the corpus opens its body
+with `## Context`, a paragraph stating why the spec exists; the three unrefined sketches open with
+`## Sketch`, which serves the same role. Ten of ten. The parser walks past it.
+
+### The second defect this closes
+
+`DESIGN.md` § Detail pane, amended yesterday under D-016, moved the room's two-sentence explainer out
+of the collapsed `26rem` track and beneath the stage. That was right, and it left a smaller problem
+behind: the explainer is shown **only while nothing is selected**, so picking a story empties the
+band under the graph. Content vanishing on click reads as a glitch, and the operator reported it as
+one in the same message.
+
+Both are one fix. The band under the stage should hold the thing that is *always* true of what is on
+screen — the spec's own goal — rather than a generic description of the room that stops being
+interesting after the first visit.
+
+### What is decided
+
+1. **The showfloor document carries a spec-level intent**, read from `## Context` and falling back to
+   `## Sketch`, through the same text parse that already lifts story intents. A spec with neither
+   renders no band rather than an empty one.
+
+2. **It renders beneath the stage, above the legend row, and it does not depend on selection.** This
+   is the band D-016 gave to the room explainer; the spec's goal takes it. The two do not stack — two
+   explanations under one graph is noise.
+
+3. **The room's own explainer retires to the empty case**: no spec selected at all. It has done its
+   job once the operator has picked something, and it is the less specific of the two.
+
+### What this is not
+
+It is not the spec's whole body. One paragraph, the first under the heading, treated as prose and
+truncated by the same rules as any other read — not a rendered Markdown document, and not a link to
+one. The reading room for a spec's full history is 007, and it is still a sketch.
+
+**Why an entry at all.** Constitution VIII: composition is appearance, and the authority is amended
+before the spec that builds to it. This entry amends `DESIGN.md` § Stage and § Detail pane. Spec 009
+US4 cites these clauses.

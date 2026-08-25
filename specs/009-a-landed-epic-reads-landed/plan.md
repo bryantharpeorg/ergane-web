@@ -33,6 +33,14 @@ conflicts; 008 ran this exact shape in 64 minutes.
   stay green. The second half is the point: it is the committed evidence for
   why a fourth law exists at all.
 
+- **D6 — the spec-level intent rides the parse that already exists.** `_intent_after()`
+  in `pane/showfloor.py` already lifts the paragraph following a `### User Story`
+  heading. US4 is the same operation against `## Context` / `## Sketch`, not a
+  Markdown renderer and not a second parser. One paragraph, treated as prose.
+- **D7 — the band is not conditional on selection, and the two explainers do not
+  stack.** D-019: the spec's goal takes the band; the room's own explainer moves
+  to the no-spec-selected case. A build that shows both has misread the entry.
+
 ## Named traps
 
 - **The ladder's first stop is not a null value.** The whole defect is that
@@ -61,6 +69,14 @@ conflicts; 008 ran this exact shape in 64 minutes.
   the absence of the operator's machine. This is the same sandbox/runner
   divergence class that has produced escalation loops before: the gate is green
   and the operator is red, and retrying changes neither.
+- **A spec with no `## Context` must render no band, not an empty one.** Three
+  specs in the corpus today (007, 010, 011) carry `## Sketch` instead, and a
+  future one may carry neither. An empty bordered band under the graph is the
+  same class of defect as a ladder defaulting to its first stop: furniture
+  standing in for an answer.
+- **US4 edits the same file US1 edits.** `pane/showfloor.py` carries both the
+  ladder fill and the text parse. That is why US4 is last on `depends_on_merged`
+  rather than parallel — the merge edges are what keep them from colliding.
 - **`PLAYWRIGHT_BROWSERS_PATH=0` is read from the environment on every
   invocation** (D-013, CLAUDE.md). It is already set on both the install and
   the test run; do not remove it from either half.

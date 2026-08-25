@@ -25,8 +25,16 @@ Three phases, one per story, serial on `depends_on_merged`.
       US1-S1). Construct it; never pin the repository's live corpus.
 - [ ] T008 [US1] Test that a live answer and the corpus disagreeing resolves to
       the live answer for every story the live answer names (spec US1-S2).
+- [ ] T009a [US1] Carry the landing commit's timestamp on the `merged` stop, and
+      the landing SHA and the PR number parsed from the squash subject in the
+      facts — the three the branch already holds (spec US1-S2).
+- [ ] T009b [US1] Leave every fact the branch cannot supply under the Unknown
+      Rule; add no store and read no history the branch does not hold (spec
+      US1-S2).
+- [ ] T009c [US1] Test that a landed story's detail names when it merged, its SHA
+      and its PR, and that the rest stay unknown (spec US1-S2, SC-004).
 - [ ] T009 [US1] Test the unplaceable-story path: Unknown Rule, degraded note,
-      not `ready` (spec US1-S3).
+      not `ready` (spec US1-S4).
 - [ ] T010 [US1] Test that frontmatter attesting `landed` does not override a
       branch that lacks the stories, and that the disagreement is named (spec
       Edge Cases).
@@ -59,3 +67,24 @@ Three phases, one per story, serial on `depends_on_merged`.
 - [ ] T019 [US3] Verify `uv run pytest -q` passes with `ERGANE_ROOT` set to a
       populated runtime root and with it unset, and that the two agree (spec
       US3-S2, SC-003).
+
+## Phase 4: User Story 4 - The stage says what its spec is for
+
+- [ ] T020 [US4] Extend the spec-text parse in `pane/showfloor.py` to lift the
+      first paragraph of `## Context` as a spec-level intent, reusing the parse
+      that already reads story intents (spec US4-S1).
+- [ ] T021 [US4] Fall back to `## Sketch` when `## Context` is absent; a spec
+      with neither carries no intent (spec US4-S2).
+- [ ] T022 [US4] Carry the intent on the rail entry in the showfloor document
+      (spec US4-S1).
+- [ ] T023 [US4] Render the band beneath the stage, above the legend row,
+      independent of selection; render nothing when there is no intent (spec
+      US4-S2, US4-S3).
+- [ ] T024 [US4] Move the room's own two-sentence explainer to the
+      no-spec-selected case only (spec US4-S4).
+- [ ] T025 [US4] Playwright: the band reads identically with and without a story
+      selected, across both themes (spec US4-S3, SC-005).
+- [ ] T026 [US4] Playwright: with no spec selected the room explainer occupies
+      the band; with a spec selected the spec's goal does (spec US4-S4).
+- [ ] T027 [US4] Test a spec with neither heading: no band, not an empty one
+      (spec US4-S2).
