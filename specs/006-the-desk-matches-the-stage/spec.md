@@ -1,9 +1,36 @@
 ---
-state: ready
-# Flipped ready 2026-08-25, 9:45 AM CT, by the operator. The hold that kept this
-# draft was "pause at the Showfloor before continuing" - the Showfloor is now
-# correct, live and measured (008 landed, clip 235/27/27px -> 0/0/0 across 18
-# render combinations), so the hold's release condition is met.
+state: landed
+# Attested landed 2026-08-25. US1 55920c910bb8 (#47), US2 987285087d0e (#48),
+# US3 5cb5441ea4bf (#49) - all three observed on dev by content.
+# Dispatched 10:00 AM CT, complete 3:19 PM CT. Wall clock 5h19m, but only
+# ~1h15m of it was work: US1 took two attempts (the second authored D-017,
+# below), US2 landed first attempt, and US3 burned attempts 1-4 in THIRTEEN
+# SECONDS without ever starting an agent.
+#
+# THE US3 STALL IS THE LESSON, AND IT IS NOT A CODE DEFECT. Every one of those
+# four attempts died on "Failed to authenticate: OAuth session expired and could
+# not be refreshed" - the `implementer` persona is `agent: subscription`, so it
+# runs on the operator's own Claude Code login, and that session had expired.
+# No agent ran, so nothing installed `web/node_modules`, so all four gate runs
+# reported `tsc: not found` / `vitest: not found` / `vite: not found` (exit 127)
+# and looked exactly like a broken build. The gate output named the symptom and
+# never the cause. A `/login` at 2:50 PM CT refreshed the token; attempt 5
+# passed 28 minutes later, first try, no code change. Filed as N52.
+#
+# D-017 WAS AUTHORED BY A NODE, NOT BY THE OPERATOR, AND IT STANDS. US1's
+# scenario asked for measured width growth between 1600 and 2560. That is
+# unsatisfiable: DESIGN.md fixes the root at 15.5px and caps the frame at 96rem
+# = 1488px, so the cap already binds at 1600. The drafting error was the
+# operator's - 005's FR-007 clause carried across with its viewport pair
+# mis-transcribed. The node refused to weaken the test to `>=`, measured the
+# geometry (1280 -> 1278px, 1600 -> 1486px, 2560 -> 1486px), amended FR-001 and
+# US1-S1 to name the pair that exists, wrote D-017 to justify it, and asserted
+# exact equality at the cap - a stronger claim than the growth it was asked for,
+# verified by mutation. The operator ratifies it here. The mechanism that
+# allowed it is filed as N51: the judge offered the rewrite as a remediation
+# path, and `criteria_drift` stayed 0 because the hash is taken from the
+# dispatch-time spec and never from the spec as the diff leaves it.
+#
 depends_on_landed: [005-one-epic-on-stage]
 # Drafted 2026-08-24 under D-015. Spec 005 establishes the second world's tokens
 # and the shared ladder; this spec brings the Desk into the same world and pays
