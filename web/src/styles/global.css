@@ -1,33 +1,109 @@
-@font-face {
-  font-family: "Red Hat Display";
-  font-style: normal;
-  font-weight: 300 900;
-  font-display: swap;
-  src: url("/fonts/RedHatDisplay.woff2") format("woff2");
+/* The pane's stylesheet: the second world's token layer, then the Desk's
+   component rules on top of it.
+
+   `DESIGN.md` is the authority (constitution VIII); D-015 replaced its content
+   on 2026-08-24, and this file is where that replacement lands. Two things left
+   with the first world and are named here so they are not quietly restored:
+
+   * **Every face declaration is deleted.** The four vendored Red Hat files stay
+     under `web/public/` as history, but nothing loads them — § Typography is
+     system stacks only, and FR-007 makes "no font file, no remote asset" a
+     measured assertion rather than a preference. The sweep named below is
+     literal, so this paragraph may not spell the at-rule it forbids.
+   * **The first world's palette is gone.** Its names survive one layer down in
+     `tokens.css`, aliased onto the tokens below, so the Desk renders in the new
+     world's colours without a restyle this spec is not allowed to make (spec
+     006 owns the Desk's world change; plan § Risks).
+
+   § Colors' three-block pattern is binding and is swept by
+   `tests/unit/tokens2.test.ts`: the full set on bare `:root`, redefined under
+   `prefers-color-scheme: dark` guarded `:root:not([data-theme="light"])` — so
+   an explicit light choice beats a dark OS — and again under
+   `:root[data-theme="dark"]`, so an explicit dark choice beats a light one. No
+   colour is defined only inside a theme block. */
+
+:root {
+  color-scheme: light dark;
+  /* § Typography › The ramp: "Base 15.5px". Every rem below is this. */
+  font-size: 15.5px;
+
+  /* § Colors, light */
+  --ground: #EDF0F2; /* page ground */
+  --surface: #FFFFFF; /* cards, rail, panes */
+  --sunken: #E3E8EB; /* wells, code, empty ladder stops */
+  --ink: #14202A; /* text */
+  --muted: #566873; /* secondary text */
+  --faint: #7D8F9A; /* tertiary, provenance */
+  --rule: #C7D1D7; /* borders */
+  --hairline: #D8E0E4; /* inner grids */
+  --accent: #0E6F79; /* the one accent: selection, links, "now" */
+  --accent-w: #DCEDEF; /* accent wash */
+  --olive: #5A6B2F; /* done / merged / landed */
+  --olive-w: #EBEFD9; /* done wash */
+  --gold: #7E5D12; /* waiting on the operator */
+  --gold-w: #F4EBD4; /* waiting wash */
+  --alarm: #9E3319; /* killed, failed, regressed */
+  --alarm-w: #F6E3DD; /* alarm wash */
+  --shadow: 0 1px 2px rgba(20,32,42,.05), 0 8px 24px -12px rgba(20,32,42,.14); /* the one shadow, on cards */
+
+  /* § Typography: system stacks only — nothing downloads. */
+  --serif: ui-serif, "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* § Typography › The ramp. A size off this ramp is a defect. */
+  --t-micro: 0.66rem;
+  --t-chip: 0.62rem;
+  --t-tag: 0.74rem;
+  --t-small: 0.82rem;
+  --t-body: 0.9rem;
+  --t-title: 1.15rem;
+  --t-name: 1.2rem;
+  --t-display: 1.6rem;
 }
 
-@font-face {
-  font-family: "Red Hat Text";
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("/fonts/RedHatText.woff2") format("woff2");
+/* The OS's preference, unless the operator said light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0D1418;
+    --surface: #131E24;
+    --sunken: #0A1013;
+    --ink: #D8E3E8;
+    --muted: #8A9EA9;
+    --faint: #6B7F8A;
+    --rule: #27373F;
+    --hairline: #1E2C33;
+    --accent: #46B7C1;
+    --accent-w: #102D31;
+    --olive: #A9BC62;
+    --olive-w: #20260F;
+    --gold: #D3A845;
+    --gold-w: #2B2210;
+    --alarm: #E2795A;
+    --alarm-w: #2E1710;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
 }
 
-@font-face {
-  font-family: "Red Hat Text";
-  font-style: italic;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("/fonts/RedHatText-italic.woff2") format("woff2");
-}
-
-@font-face {
-  font-family: "Red Hat Mono";
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("/fonts/RedHatMono.woff2") format("woff2");
+/* The operator's own choice, in the other direction. */
+:root[data-theme="dark"] {
+  --ground: #0D1418;
+  --surface: #131E24;
+  --sunken: #0A1013;
+  --ink: #D8E3E8;
+  --muted: #8A9EA9;
+  --faint: #6B7F8A;
+  --rule: #27373F;
+  --hairline: #1E2C33;
+  --accent: #46B7C1;
+  --accent-w: #102D31;
+  --olive: #A9BC62;
+  --olive-w: #20260F;
+  --gold: #D3A845;
+  --gold-w: #2B2210;
+  --alarm: #E2795A;
+  --alarm-w: #2E1710;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
 }
 
 * {
@@ -39,10 +115,13 @@ html {
   color: var(--ink);
 }
 
+/* § Colors: "`body` takes `background: var(--ground)` explicitly." */
 body {
   margin: 0;
-  font-family: var(--text);
-  font-size: var(--fs-body);
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--t-body);
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }

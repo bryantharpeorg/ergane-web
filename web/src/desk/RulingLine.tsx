@@ -8,7 +8,7 @@
  * The No-Red Rule), and not as a field error (§ Inputs / Fields › Error: none):
  * a refusal is the factory speaking, not the operator mistyping.
  *
- * The ruling word itself is set in Red Hat Mono, uppercase as the factory wrote
+ * The ruling word itself is set in the mono stack, uppercase as the factory wrote
  * it, because it is text the factory wrote verbatim (§ Typography › The Factory
  * Speaks in Mono Rule). Nothing on this line rewords it; `describeRuling` hands
  * over the string it was given (FR-010).
