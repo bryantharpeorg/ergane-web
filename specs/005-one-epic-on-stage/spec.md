@@ -1,33 +1,39 @@
 ---
-state: ready
-depends_on_landed: [001-the-desk-sees-the-floor, 002-the-showfloor-stages-an-epic, 003-an-answer-reaches-the-factory, 004-the-pane-fits-the-screen]
+state: landed
+# Attested landed 2026-08-25. US1 ee9c0863b08d (#33), US2 bd74ce6e7344 (#34),
+# US3 485b77503e3d (#35), US4 bc7818ff7db6 (#36) - all four observed on dev.
+# Dispatched 10:10 PM CT 2026-08-24, complete 12:26 AM CT 2026-08-25: 2h16m for
+# four stories on claude-opus-5, every attempt judged PASS (5 of 5).
+#
+# US1 took two attempts and the second was not a code defect. It branched from a
+# dev that did not yet carry spec 007, whose deliberately story-less TBD sketch
+# landed underneath it mid-build; the boundary gate ran green on the branch and
+# GitHub ran the checks on the merge, where two of US1's own assertions failed.
+# The recovery did not weaken them - it replaced "every entry renders stories"
+# with "an entry renders exactly the stories its spec declares, and one that
+# declares none names `stories` in `unknown` rather than going quiet." A
+# story-less spec is now a supported shape of the corpus, which 007 needs.
+# Filed against ergane as N48: the gate certifies a tree CI never tests.
+#
+# FR-014 landed stronger than it was written. The three laws are asserted at
+# 1280 and 1600 in both themes over every rail entry, and US3 added two guards
+# this spec did not ask for: a floor on the sweep itself (>20 elements, >10 text
+# leaves) so a sweep over an empty page cannot pass for the wrong reason, and a
+# mutation control that plants an escape, a runaway and a collision into the
+# live room and asserts each law goes red for its own violation. 004's defect -
+# nine of nine stations outside the canvas under a green gate - cannot recur
+# silently.
+#
+# Subtraction, as D1 promised: EpicStage, LandingLine, RouteEdge, StationNode,
+# layout, motion, transitions and states are deleted, @xyflow/react and
+# @dagrejs/dagre are out of package.json, and tokens.css is now a pure alias
+# layer over the second world's tokens with no colour literal of its own - so
+# the Desk keeps working unrestyled until 006 changes its world.
+#
 # Drafted 2026-08-24 under D-015, the operator-approved second world. The comp is
 # committed at `.impeccable/mocks/showfloor-redrawn.html`; DESIGN.md was replaced
 # FIRST, so every appearance requirement below is scored against a document that
-# already agrees with it — the order constitution VIII demands.
-#
-# WHY THIS SPEC. The first Showfloor's unit was wrong, and 004 proved it with
-# measurements rather than taste: one full stage per epic, stacked, produced
-# three screens of guaranteed-empty canvas, populated stages 5–23% full, a
-# legend per epic, and graphs laid out beside their own boxes (9 of 9 stations
-# outside their maps — the fitView-vs-computed-height regression). This spec
-# replaces the room's unit with the selection: an epic rail picks the spec, one
-# stage draws its graph, one pane tells the whole story of one story, and every
-# story wears the same six-stop status ladder — spec state, node state and
-# landing state fused into one glance.
-#
-# THE REGRESSION DIES BY CONSTRUCTION. The new stage is plain DOM and SVG —
-# ranks in flex, wires drawn from measured boxes. React Flow leaves the room
-# with the component that misused it, and the whole fitView class of defect
-# becomes unreachable. Removing a dependency needs no approval; constitution
-# VII gates additions.
-#
-# THE LESSON 004 PAID FOR IS A REQUIREMENT HERE. 004's scenarios asserted stage
-# height and never asserted containment, so a green gate shipped invisible
-# graphs. This spec's FR-014 makes the three layout laws committed assertions:
-# every stage child inside its stage's box, no text past the viewport outside a
-# scrolling ancestor, no two text leaves overlapping — at two widths, in both
-# themes. The invariants are the durable half; the pretty room is the bonus.
+# already agrees with it - the order constitution VIII demands.
 ---
 
 # Feature Specification: One epic on stage
