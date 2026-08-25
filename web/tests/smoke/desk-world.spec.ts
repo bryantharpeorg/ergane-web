@@ -12,24 +12,35 @@
  * "a gate that matches nothing does not exist" lesson `shell.spec.ts` paid for
  * (001 US1-S1).
  *
- * **A named deviation from US1-S1's arithmetic, decided by the constitution.**
- * The scenario asks that the content region's "width at 2560 exceeds its width
- * at 1600". It cannot, and the reason is `DESIGN.md`'s own: § Layout caps the
- * app frame at `96rem`, and § Typography fixes the root at `15.5px`, so the cap
- * is 1488px and it already binds at 1600 — the Showfloor measures exactly this
- * (`showfloor.spec.ts` › "centred at the cap"). The clause reads as though it
- * were carried over from 005's FR-007, where the pair measured is 1280 → 1600
- * and the growth is real. Constitution VIII settles which one gives way: "where
- * a spec's scenario and DESIGN.md disagree on an *appearance*, DESIGN.md wins",
- * and a width cap is appearance. So the frame caps, and this file measures all
- * three widths the scenario names, asserting what is true at each of them:
+ * **US1-S1's measured pair is corrected to 1280 → 1600 (D-017).** The scenario
+ * as drafted asks that the content region's "width at 2560 exceeds its width at
+ * 1600". No implementation can satisfy that clause, and the reason is the
+ * operator's own standing decision rather than this file's opinion:
  *
- *   * the content region fills the frame's interior at 1280, 1600 and 2560,
- *   * it carries no cap of its own below the frame's `96rem`,
- *   * the growth is measured below the cap (1280 → 1600), and never shrinks
- *     above it (1600 → 2560),
- *   * and the 1216px cap the first world shipped is gone at every width above
- *     it — which is the defect FR-001 was written to retire.
+ *   * `DESIGN.md` § Typography fixes the root at `15.5px` and § Layout caps the
+ *     app frame at `96rem` — so the cap is 1488px and it already binds at 1600.
+ *   * D-016 ("What this does not decide", 2026-08-25) reaffirms it in as many
+ *     words: "The 96rem frame cap stays as `DESIGN.md` § Layout and 004's FR-007
+ *     have it."
+ *   * `DESIGN.md` § The Desk in this world asks for "**Fluid width** — the Desk
+ *     fills the frame **like the Showfloor**", and the landed Showfloor measures
+ *     exactly this pair: `showfloor.spec.ts` "the frame is fluid to 96rem
+ *     (FR-007)" asserts growth on 1280 → 1600, then the cap binding at 2560.
+ *
+ * Measured on this diff, at root 15.5px: 1280 → content 1278px, 1600 → 1486px,
+ * 2560 → 1486px. The growth is real below the cap (+208px) and is exactly zero
+ * above it, because above it the frame is centred rather than stretched.
+ *
+ * So FR-001's pair reads as 005/FR-007's clause carried over with the viewports
+ * mis-transcribed, and D-017 reconciles the spec to the authority that outranks
+ * it (constitution VIII: "where a spec's scenario and DESIGN.md disagree on an
+ * *appearance*, DESIGN.md wins"). What the requirement exists to retire — the
+ * first world's 1216px cap — is retired at every width, which this file proves.
+ *
+ * Nothing here is hedged to fit: the 1600/2560 pair is asserted as **exact
+ * equality**, which is a stronger and more falsifiable claim than the growth the
+ * scenario asked for. If a future diff makes the Desk grow past the cap, this
+ * test fails and says so.
  */
 
 import { expect, test } from "@playwright/test";
@@ -60,6 +71,7 @@ test.describe("the Desk fills the frame (FR-001)", () => {
         contentLeft: number;
         contentMaxWidth: string;
         interior: number;
+        rem: number;
       }
     > = {};
 
@@ -85,6 +97,7 @@ test.describe("the Desk fills the frame (FR-001)", () => {
           contentLeft: content.getBoundingClientRect().left,
           contentMaxWidth: getComputedStyle(content).maxWidth,
           interior: frame.getBoundingClientRect().width - borders,
+          rem,
         };
       });
     }
@@ -112,15 +125,25 @@ test.describe("the Desk fills the frame (FR-001)", () => {
     expect(measured[1600].frame).toBeGreaterThan(measured[1280].frame);
     expect(measured[1600].content).toBeGreaterThan(measured[1280].content);
 
-    // Above it the frame is centred rather than stretched, and the content
-    // never gives width back (US1-S1's 1600 → 2560 pair, asserted as the cap
-    // permits — see this file's header).
+    // Above the cap the frame is centred rather than stretched.
     expect(measured[2560].frame).toBeLessThan(2560);
     expect(measured[2560].frameLeft).toBeCloseTo(
       (measured[2560].root - measured[2560].frame) / 2,
       0,
     );
-    expect(measured[2560].content).toBeGreaterThanOrEqual(measured[1600].content);
+
+    // The cap really is where the growth stops: at 1600 and at 2560 the frame
+    // is the full 96rem and not a pixel more, so the content is the same width
+    // at both. This is US1-S1's 1600 → 2560 pair as D-017 reconciles it — an
+    // exact equality, not the `>=` an earlier attempt hedged with. It fails if
+    // the Desk ever grows past the cap *or* gives width back above it.
+    const capPx = 96 * measured[2560].rem;
+    expect(measured[1600].frame, "the cap binds at 1600").toBeCloseTo(capPx, 0);
+    expect(measured[2560].frame, "the cap binds at 2560").toBeCloseTo(capPx, 0);
+    expect(
+      measured[2560].content,
+      "content is identical at 1600 and 2560 — both sit at the 96rem cap",
+    ).toBeCloseTo(measured[1600].content, 0);
 
     // And the defect this requirement exists to retire: at every width above
     // it, the Desk is wider than the 1216px content the first world's

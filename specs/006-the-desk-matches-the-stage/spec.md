@@ -61,9 +61,13 @@ still passes.
 
 1. **Given** the Desk route at viewports 1280, 1600 and 2560, **When** it
    renders, **Then** its content region fills the app frame's interior — its
-   width at 2560 exceeds its width at 1600 — with no hard cap below the
-   frame's `96rem`, proven by committed Playwright measurements at all three
-   widths (FR-001).
+   width at 1600 exceeds its width at 1280, and at 2560 it equals its width at
+   1600 because the frame's `96rem` cap binds there — with no hard cap below
+   that `96rem`, proven by committed Playwright measurements at all three
+   widths (FR-001). *(Measured pair corrected from 1600 → 2560 by **D-017**:
+   at `DESIGN.md`'s 15.5px root the cap is 1488px and already binds at 1600,
+   so growth above it cannot exist; D-016 reaffirmed that the cap stays. The
+   defect this retires — the first world's 1216px cap — is unchanged.)*
 2. **Given** both `colorScheme` emulations, **When** the Desk renders,
    **Then** every surface takes its colour from the § Colors tokens — grounds
    differ between themes, chips read from the § Chips vocabulary, tables wear
@@ -160,7 +164,9 @@ untouched live cards.
 ### Functional Requirements
 
 - **FR-001**: The Desk MUST fill the app frame fluidly to its `96rem`, with
-  measured width growth between 1600 and 2560.
+  measured width growth between 1280 and 1600 and measured equality between
+  1600 and 2560, where the cap binds (pair corrected by **D-017**; the Desk
+  fills the frame "like the Showfloor", `DESIGN.md` § The Desk in this world).
 - **FR-002**: Every Desk surface MUST take its colours, chips and table
   treatment from `DESIGN.md`'s second world, in both themes.
 - **FR-003**: Every carried-over Desk guarantee suite MUST pass unchanged,
