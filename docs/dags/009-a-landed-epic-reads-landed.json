@@ -1,8 +1,8 @@
 {
   "epic_id": "009-a-landed-epic-reads-landed",
   "feature": "009-a-landed-epic-reads-landed",
-  "specs_root": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-009/specs",
-  "target_repo": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-009",
+  "specs_root": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-009b/specs",
+  "target_repo": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-009b",
   "nodes": [
     {
       "id": "us1",
@@ -50,6 +50,24 @@
       "depends_on": [],
       "depends_on_merged": [
         "us2"
+      ],
+      "timeout_override_s": 3600
+    },
+    {
+      "id": "us4",
+      "story_key": "US4",
+      "persona": "implementer",
+      "spec_ref": "009-a-landed-epic-reads-landed:US4",
+      "requirement_keys": [
+        "US4",
+        "FR-010",
+        "FR-011",
+        "FR-012",
+        "FR-013"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us3"
       ],
       "timeout_override_s": 3600
     }

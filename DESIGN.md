@@ -198,8 +198,12 @@ clock, spend to date — spend obeys the Unknown Rule below. The graph: ranks
 left→right in declaration order, node cards `11.5rem` wide (id block, title
 small, chip, ladder, mono sub-line), wires drawn rank-to-rank — **merge edges
 solid 2px olive, pass edges dashed 2px `--rule`** — behind the cards,
-`pointer-events: none`. One legend row under the stage, rendered once per
-page, never per epic. The stage scrolls horizontally when a graph outgrows it;
+`pointer-events: none`. **Under the stage, above the legend, the spec's own goal**
+(2026-08-25, D-019): one paragraph lifted from the spec's `## Context` — or
+`## Sketch` for a spec still unrefined — saying what this epic is *for*. It does
+not depend on selection, because it is true of the graph either way, and a spec
+carrying neither heading renders no band at all rather than an empty one. One
+legend row under the stage, rendered once per page, never per epic. The stage scrolls horizontally when a graph outgrows it;
 an epic whose stage document has no nodes renders as its degraded notice with
 **no stage canvas at all**.
 
@@ -219,11 +223,12 @@ six named steps with timestamps, a facts grid (attempt `n of cap`, judge
 verdict with scenario count, PR number, landing SHA, wall clock), and the
 `requirement_keys` as sunken mono chips. `aria-live="polite"`.
 
-When nothing is selected it still explains the room in two sentences — but not
-from a `26rem` column (2026-08-25). The explanation moves beneath the stage,
-above the legend row, and the pane's track is gone until a story is picked.
-The words do not change and they are never withheld; what changes is that they
-stop costing the graph its width.
+When nothing is selected the pane's track is gone until a story is picked, so
+the explanation never costs the graph its width (2026-08-25). **The band beneath
+the stage belongs to the spec's own goal** (D-019), not to a description of the
+room: the goal is true whether or not a story is selected, so nothing vanishes on
+a click. The room's own two-sentence explainer retires to the genuinely empty
+case — no spec picked at all — where it is the only thing there is to say.
 
 ### Attention badge
 

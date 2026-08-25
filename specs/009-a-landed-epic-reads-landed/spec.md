@@ -1,8 +1,27 @@
 ---
-state: draft
+state: ready
 depends_on_landed: [006-the-desk-matches-the-stage]
-# Drafted 2026-08-25 under D-018, which amended DESIGN.md FIRST -- the order
-# constitution VIII demands. Held `draft` pending the operator's go.
+# Drafted 2026-08-25 under D-018, and widened the same afternoon under D-019.
+# Both amended DESIGN.md FIRST -- the order constitution VIII demands.
+# Flipped `ready` 2026-08-25 by the operator.
+#
+# US4 AND THE US1 WIDENING CAME FROM THE OPERATOR LOOKING AT THE ROOM. Reading
+# a landed story's detail pane: "all of the `-` on the right should be
+# checkboxes or something right? with a timestamp or some sort of data on when
+# that happened?" The dots were already lit -- every stop read `done`. The `-`
+# is the Unknown Rule filling the slot where a timestamp belongs, and the stop
+# schema carries no time field at all. Half of what is missing is on the branch
+# already (when it merged, its SHA, its PR) and US1 now delivers it; the other
+# half needs the durable build-history store that does not exist (N47, and
+# spec 007's blocking Open Question).
+#
+# Then: "that explains the selected story but what about the goal of the
+# overarching spec? a story is under a spec right?" It is, and the pane could
+# not say what a spec was for. `_intent_after()` lifts a story's intent and
+# nothing lifts the spec's `## Context` -- which all ten specs in the corpus
+# carry, under that heading or `## Sketch`. US4 closes it, and closes the
+# layout jump D-016 left behind in the same change: the band under the stage
+# stops emptying itself when a story is picked.
 #
 # WHY THIS SPEC. At 3:22 PM CT the operator looked at the Showfloor and asked
 # "006 seems out of date?". It was not out of date. Spec 006 had merged all
@@ -73,12 +92,17 @@ unattended is an hour it can be wrong about the floor.
    and the entry's `stories_landed` equals its story count — proven by a
    committed test that constructs exactly this condition through the reader
    seams (FR-001, FR-002).
-2. **Given** a spec with a live `epic_status` answer, **When** the document is
+2. **Given** that same landed story, **When** its detail is assembled, **Then**
+   the `merged` stop carries the landing commit's timestamp, and the facts grid
+   carries the landing SHA and the pull request number parsed from the squash
+   subject — the three facts the branch already holds — while every fact the
+   branch cannot supply stays under the Unknown Rule (FR-002a).
+3. **Given** a spec with a live `epic_status` answer, **When** the document is
    assembled, **Then** the live answer governs every story it names — attempt,
    persona and the stops before `merged` come from it unchanged — and the
    corpus supplies only stories the live answer does not carry, proven by a
    test in which the two sources disagree (FR-003).
-3. **Given** a story that neither the live answer nor the corpus can place,
+4. **Given** a story that neither the live answer nor the corpus can place,
    **When** the document is assembled, **Then** its ladder renders under the
    Unknown Rule rather than defaulting to the first stop, and the read is named
    in the entry's degraded notes (FR-004).
@@ -129,6 +153,35 @@ rather than the factory.
 
 ---
 
+### User Story 4 - The stage says what its spec is for (Priority: P2)
+
+As an operator, the band under the graph tells me what this epic is *for*,
+whether or not a story is selected.
+
+**Why this priority**: it closes a missing concept and a layout jump with one
+change. The pane can explain a story and cannot explain the spec that contains
+it; and the band under the stage currently empties the moment a story is picked,
+which reads as a glitch.
+
+**Acceptance Scenarios**:
+
+1. **Given** a spec whose body carries a `## Context` heading, **When** the
+   showfloor document is assembled, **Then** the entry carries that section's
+   first paragraph as a spec-level intent, lifted by the same text parse that
+   already reads story intents (FR-010).
+2. **Given** a spec whose body carries `## Sketch` and no `## Context`, **When**
+   the document is assembled, **Then** the `## Sketch` paragraph is used; and
+   given a spec with neither, **Then** the entry carries no intent and the band
+   is not rendered at all rather than rendered empty (FR-011).
+3. **Given** a spec with an intent, **When** the room renders with no story
+   selected **and** again with a story selected, **Then** the band appears
+   beneath the stage above the legend row in both, with identical text — proven
+   by a committed Playwright assertion across both selection states (FR-012).
+4. **Given** the room with no spec selected at all, **When** it renders, **Then**
+   the room's own two-sentence explainer appears there instead (FR-013).
+
+---
+
 ### Edge Cases
 
 - A spec landed on the branch whose frontmatter still reads `ready`: the room
@@ -148,6 +201,10 @@ rather than the factory.
   solely from a live `epic_status` answer.
 - **FR-002**: `stories_landed` MUST count stories landed by content, so an
   unattested finished epic reports its true count.
+- **FR-002a**: A landed story's `merged` stop MUST carry the landing commit's
+  timestamp, and its facts MUST carry the landing SHA and the PR number parsed
+  from the squash subject. Facts the branch cannot supply MUST stay unknown; this
+  requirement adds no new store and reads no history the branch does not hold.
 - **FR-003**: A live `epic_status` answer MUST govern every story it names; the
   corpus read MUST NOT overwrite a live stop.
 - **FR-004**: A story neither source can place MUST render under the Unknown
@@ -165,6 +222,16 @@ rather than the factory.
 - **FR-009**: A committed test MUST assert that the suite reads no path outside
   the repository's own tree.
 
+- **FR-010**: The showfloor document MUST carry a spec-level intent read from the
+  spec body's `## Context` section, through the same parse that reads story
+  intents.
+- **FR-011**: `## Sketch` MUST be used when `## Context` is absent; a spec with
+  neither MUST carry no intent, and the band MUST NOT render empty.
+- **FR-012**: The band MUST render beneath the stage above the legend row, with
+  identical text, in both the selected and unselected states.
+- **FR-013**: With no spec selected, the room's own explainer MUST occupy that
+  band instead.
+
 ### Key Entities
 
 - **Landing facts** — per-story landing SHAs on the landing branch, read by
@@ -178,6 +245,10 @@ rather than the factory.
   `LANDED n/n`, with no frontmatter edit.
 - **SC-002**: The four layout laws report zero violations across the existing
   sweep, and each is proven falsifiable by its own mutation control.
+- **SC-004**: A landed story's detail pane names when it merged, its SHA and its
+  PR, instead of three dashes.
+- **SC-005**: The band beneath the stage reads the same before and after a story
+  is picked, and no spec's goal is missing from the room.
 - **SC-003**: `uv run pytest -q` passes with `ERGANE_ROOT` set to a populated
   runtime root and with it unset, and the two runs agree.
 
@@ -205,5 +276,10 @@ US3:
   depends_on: []
   depends_on_merged: [US2]
   implements: [FR-008, FR-009]
+  timeout: 3600
+US4:
+  depends_on: []
+  depends_on_merged: [US3]
+  implements: [FR-010, FR-011, FR-012, FR-013]
   timeout: 3600
 ```
