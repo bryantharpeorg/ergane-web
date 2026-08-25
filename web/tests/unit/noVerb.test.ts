@@ -13,6 +13,14 @@
  * the whole reason it is written this way rather than as "no more than a few
  * writes". A pane with two verbs has broken the constitution, not helped the
  * operator.
+ *
+ * **One named change, 006 US2 (FR-003's discipline).** The bare-GET half of the
+ * sweep read one route by name; it now reads a closed list of two, because the
+ * Desk's epic rows take their ladders from `GET /api/showfloor` — the document
+ * 005 already serves, read the same way, with no init and no method (T005,
+ * FR-005). The subject is untouched: every fetch outside the one writer is
+ * still a bare GET of a *read* route named here, so a convenience write added
+ * anywhere still turns this red, and so does a read of a route nobody declared.
  */
 
 import { describe, expect, it } from "vitest";
@@ -20,6 +28,9 @@ import { describe, expect, it } from "vitest";
 /** The one file permitted to write, and the one route it may write to. */
 const WRITER = "src/api/answer.ts";
 const WRITE_ROUTE = "/api/attention/";
+
+/** The read routes any other file may GET, and no others. */
+const READ_ROUTES = ['"/api/floor"', '"/api/showfloor"'];
 
 const deskFiles = import.meta.glob("../../src/desk/**/*.tsx", {
   query: "?raw",
@@ -74,10 +85,14 @@ describe("the Desk has exactly one verb", () => {
         expect(source, `${path} must not contain ${pattern}`).not.toContain(pattern);
       }
 
-      // Every fetch outside the writer is a bare GET of the floor document.
+      // Every fetch outside the writer is a bare GET of one of the two read
+      // documents — no init, no method, no route that is not named above.
       for (const context of source.split("fetch").slice(1)) {
         const call = context.split(")")[0];
-        expect(call, `${path} fetches something other than the floor`).toContain('"/api/floor"');
+        expect(
+          READ_ROUTES.some((route) => call.includes(route)),
+          `${path} fetches ${call.trim()}, which is not one of the read routes`,
+        ).toBe(true);
         expect(call, `${path} passes a fetch init`).not.toContain(",");
       }
     }
