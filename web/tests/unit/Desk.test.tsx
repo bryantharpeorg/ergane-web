@@ -1,3 +1,15 @@
+/**
+ * The Desk's assembly: what it renders for a floor, a failed read, a refused
+ * token, and the section order 001 fixed (001, 003).
+ *
+ * **One named change, 006 US2 (FR-003's discipline).** "renders an undeclared
+ * node card" reads the story's cell as `[data-story][data-undeclared]` instead
+ * of `.chev[data-undeclared]`: `NodeChevron` is deleted in that story's diff —
+ * the first world's chevron glyph is one of the three pictures FR-004 removes
+ * from the DOM — so the selector moved onto the element that replaced it. The
+ * subject is untouched: the same undeclared, paged, VERIFYING story, asserted
+ * to say all three of those things on the element that carries it.
+ */
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
@@ -115,7 +127,7 @@ describe("Desk", () => {
         ],
       }),
     );
-    const undeclared = c.querySelector(".chev[data-undeclared]");
+    const undeclared = c.querySelector("[data-story][data-undeclared]");
     expect(undeclared).not.toBeNull();
     expect(undeclared?.getAttribute("data-state")).toBe("VERIFYING");
     expect(undeclared?.hasAttribute("data-paged")).toBe(true);

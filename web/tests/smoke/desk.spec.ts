@@ -1,3 +1,26 @@
+/**
+ * The Desk's own smoke: 001's floor, 003's verb, 004's spend strip — and, from
+ * 006 US2, the no-overlap law that governs the whole page (FR-006).
+ *
+ * **Two changes to landed assertions in this file, both named here rather than
+ * made quietly** (006 FR-003's discipline, applied to the story that forced
+ * them):
+ *
+ * 1. The paged story's cell is read as `[data-story][data-paged]` instead of
+ *    `.chev[data-paged]`. `NodeChevron` is deleted in this story's diff — the
+ *    first world's chevron glyph is one of the three pictures FR-004 removes
+ *    from the DOM — so the *selector* moved onto the element that replaced it.
+ *    The subject did not move an inch: the paged story is still asserted to be
+ *    the undeclared one, still `VERIFYING`, still marked paged, and still on
+ *    the `paged-while-verifying` epic's row.
+ * 2. Nothing else. Every other assertion in this file is 001's, 003's and
+ *    004's, unedited.
+ *
+ * The law added at the foot is new work, not a moved assertion: it is the
+ * committed answer to the collision class the 2026-08-24 review measured on
+ * every epic row (`"COMPLETED · epic-002" × "dispatch"`), and it runs over the
+ * whole Desk rather than over the row that happened to show it.
+ */
 import { expect, test } from "@playwright/test";
 
 function timeLeftText(expiresAt: string, reference: string): string {
@@ -125,10 +148,12 @@ test("the Desk renders the fixture floor and issues one verb and no other", asyn
 
   const pagedRow = page.locator('article.epic[data-scene="paged-while-verifying"]');
   await expect(pagedRow).toBeVisible();
-  const pagedChev = pagedRow.locator(".chev[data-paged]");
-  await expect(pagedChev).toBeVisible();
-  await expect(pagedChev).toHaveAttribute("data-undeclared", "true");
-  await expect(pagedChev).toHaveAttribute("data-state", "VERIFYING");
+  // The selector moved with the markup and the subject did not (see the header):
+  // the paged story is still the undeclared one, still VERIFYING, still marked.
+  const pagedStory = pagedRow.locator("[data-story][data-paged]");
+  await expect(pagedStory).toBeVisible();
+  await expect(pagedStory).toHaveAttribute("data-undeclared", "true");
+  await expect(pagedStory).toHaveAttribute("data-state", "VERIFYING");
 
   // Spec 003 US2 gives the Desk its one verb, so 001's zero-write sweep becomes
   // the one-write sweep the pane keeps forever (plan D-P13): the full run may
@@ -161,4 +186,173 @@ test("the Desk renders the fixture floor and issues one verb and no other", asyn
   // A Question offers the reply field and one Answer button, and nothing else.
   await expect(question.locator("textarea.reply")).toBeVisible();
   await expect(question.locator(".answer-col button")).toHaveCount(1);
+});
+
+/* ── The no-overlap law (006 US2, FR-006) ───────────────────────────────────
+ *
+ * DESIGN.md § Layout: "No two text leaves may overlap. These are committed
+ * test assertions, not aspirations." 005 landed that law over the Showfloor
+ * (`showfloor.spec.ts`, law (c)); this is the same law, over the Desk, where
+ * the 2026-08-24 review actually measured the collisions — the milestone
+ * bar's absolutely-positioned track labels crossing the row's own text on
+ * every epic ("COMPLETED · epic-002" × "dispatch", "implementer" × "us1 ·
+ * paged").
+ *
+ * US2 makes those collisions impossible by construction: the row is a grid of
+ * flowed cells and nothing on it is absolutely positioned (plan D2). The law
+ * is here anyway, and it is what stops the class coming back — a layout can be
+ * rewritten again, a law has to be deleted on purpose.
+ *
+ * The measurement is `showfloor.spec.ts`'s, deliberately: the *text's* boxes
+ * through a `Range` (an inline element that wraps reports fragment rects
+ * carrying the whole inline box's height, which reads as a collision that is
+ * not on the screen), each box clipped by every ancestor that clips it (text
+ * a scroller hides has not collided with what is drawn over it), and a 4px
+ * slack in both axes, which is the number FR-006 states.
+ */
+
+interface OverlapReport {
+  swept: number;
+  leaves: number;
+  overlapping: string[];
+}
+
+async function measureOverlaps(page: import("@playwright/test").Page): Promise<OverlapReport> {
+  return page.evaluate(() => {
+    /** FR-006: "overlapping by more than 4px in both axes". */
+    const OVERLAP = 4;
+
+    const describe = (element: Element): string => {
+      const classes =
+        typeof element.className === "string" && element.className.trim()
+          ? `.${element.className.trim().split(/\s+/).join(".")}`
+          : "";
+      const text = (element.textContent ?? "").trim().slice(0, 32);
+      return `${element.tagName.toLowerCase()}${classes}["${text}"]`;
+    };
+
+    const SKIP = ["script", "style", "head", "title", "meta", "link"];
+    const hasText = (element: Element) =>
+      !SKIP.includes(element.tagName.toLowerCase()) && (element.textContent ?? "").trim() !== "";
+    const painted = (element: Element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 || rect.height > 0;
+    };
+
+    const texts = Array.from(document.querySelectorAll("*")).filter(
+      (element) => hasText(element) && painted(element),
+    );
+    // A leaf is an element with text and no element child that has text: the
+    // ancestors of a text run contain it, and containment is not collision.
+    const leaves = texts.filter(
+      (element) => !Array.from(element.children).some((child) => hasText(child)),
+    );
+
+    const clipped = (element: Element, rect: DOMRect): DOMRect | null => {
+      let box = rect;
+      let parent = element.parentElement;
+      while (parent !== null && parent !== document.documentElement) {
+        const style = getComputedStyle(parent);
+        const clips =
+          style.overflowX !== "visible" ||
+          style.overflowY !== "visible" ||
+          style.overflow !== "visible";
+        if (clips) {
+          const bounds = parent.getBoundingClientRect();
+          const left = Math.max(box.left, bounds.left);
+          const right = Math.min(box.right, bounds.right);
+          const top = Math.max(box.top, bounds.top);
+          const bottom = Math.min(box.bottom, bounds.bottom);
+          if (right - left <= 0 || bottom - top <= 0) return null;
+          box = new DOMRect(left, top, right - left, bottom - top);
+        }
+        parent = parent.parentElement;
+      }
+      return box;
+    };
+
+    const boxes = leaves.flatMap((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return Array.from(range.getClientRects())
+        .filter((rect) => rect.width > 0 && rect.height > 0)
+        .map((rect) => ({ label: describe(element), rect: clipped(element, rect) }))
+        .filter((box): box is { label: string; rect: DOMRect } => box.rect !== null);
+    });
+
+    const overlapping: string[] = [];
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        if (boxes[i].label === boxes[j].label) continue;
+        const a = boxes[i].rect;
+        const b = boxes[j].rect;
+        const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (x > OVERLAP && y > OVERLAP) overlapping.push(`${boxes[i].label} × ${boxes[j].label}`);
+      }
+    }
+
+    return { swept: texts.length, leaves: leaves.length, overlapping };
+  });
+}
+
+test.describe("the no-overlap law (FR-006)", () => {
+  test("holds over the whole Desk at 1280 and 1600, in both themes", async ({ page }) => {
+    for (const scheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of [1280, 1600]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.goto("/desk");
+        // The whole page, not the part that loads first: the floor's rows and
+        // the attention strip's cards are where the review measured the class.
+        await page.waitForSelector("section.floor article.epic");
+        await page.waitForSelector("section.attention article.item");
+        await page.waitForSelector("section.spend table");
+
+        const where = `${width} in ${scheme}`;
+        const report = await measureOverlaps(page);
+
+        // A sweep over nothing passes for the wrong reason.
+        expect(report.swept, `${where}: the Desk rendered text`).toBeGreaterThan(40);
+        expect(report.leaves, `${where}: the Desk has text leaves`).toBeGreaterThan(20);
+        expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+      }
+    }
+  });
+
+  test("would catch the measured collision class if it were planted again", async ({ page }) => {
+    // A green law is worth its green only if it goes red on the thing it
+    // forbids. This plants the shape the milestone bar had — a label placed
+    // absolutely over the row's own text, which is exactly how
+    // `"COMPLETED · epic-002" × "dispatch"` was measured — and then removes it.
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.goto("/desk");
+    await page.waitForSelector("section.floor article.epic");
+
+    expect((await measureOverlaps(page)).overlapping).toEqual([]);
+
+    await page.evaluate(() => {
+      const row = document.querySelector("section.floor article.epic") as HTMLElement;
+      const target = row.querySelector("[data-epic-id-text], .epic-name") as HTMLElement;
+      const bounds = target.getBoundingClientRect();
+      const planted = document.createElement("span");
+      planted.className = "planted";
+      planted.textContent = "dispatch";
+      planted.style.position = "fixed";
+      planted.style.left = `${bounds.left}px`;
+      planted.style.top = `${bounds.top}px`;
+      planted.style.width = `${Math.max(bounds.width, 40)}px`;
+      planted.style.height = `${Math.max(bounds.height, 20)}px`;
+      document.body.appendChild(planted);
+    });
+
+    const planted = await measureOverlaps(page);
+    expect(planted.overlapping.length, "the law catches a planted collision").toBeGreaterThan(0);
+    expect(planted.overlapping.join(" ")).toContain("dispatch");
+
+    await page.evaluate(() => {
+      for (const element of Array.from(document.querySelectorAll(".planted"))) element.remove();
+    });
+    expect((await measureOverlaps(page)).overlapping).toEqual([]);
+  });
 });

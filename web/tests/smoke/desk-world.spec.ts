@@ -270,7 +270,14 @@ test.describe("the Desk wears the second world's tokens (FR-002)", () => {
       await page.goto("/desk");
       await page.waitForSelector("section.floor .chip[data-chip-tone]");
 
-      const chips = await page.locator(".desk [data-chip-tone]").evaluateAll((nodes) =>
+      // 006 US2 named change: the sweep reads the *story* chips. The epic row
+      // grew a chip of its own — § Epic rail's word with its story count, from
+      // the showfloor document (FR-004) — so `.desk [data-chip-tone]` is no
+      // longer one element per story. The subject is untouched: one chip per
+      // served story, in the document's order, each word from the eleven-state
+      // table below. The epic chips are swept for the same vocabulary
+      // immediately after, so nothing on the Desk goes unchecked.
+      const chips = await page.locator(".desk [data-story] [data-chip-tone]").evaluateAll((nodes) =>
         nodes.map((node) => {
           const style = getComputedStyle(node);
           return {
@@ -362,6 +369,37 @@ test.describe("the Desk wears the second world's tokens (FR-002)", () => {
       // guards the rest.
       expect(tones, `${scheme}: the floor's merged stories`).toContain("landed");
       expect(tones, `${scheme}: the floor's undeclared stories`).toContain("unknown");
+
+      // And the epic chips, which are the showfloor document's own word and
+      // story count (006 FR-004). The recorded Fixture floor is another
+      // repository's floor, so no rail entry answers for its epics and every
+      // one of these is the Unknown Rule's `unknown` — which is the assertion:
+      // a row with no document behind it says so in the vocabulary's own terms
+      // rather than borrowing a word it was never given.
+      const epicChips = await page.locator(".desk [data-epic-chip]").evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const style = getComputedStyle(node);
+          return {
+            tone: node.getAttribute("data-chip-tone") ?? "",
+            word: (node.textContent ?? "").trim(),
+            color: style.color,
+            style: style.fontStyle,
+            family: style.fontFamily,
+          };
+        }),
+      );
+      expect(epicChips.length, `${scheme}: a chip per epic row`).toBe(floorDoc.epics.length);
+      for (const chip of epicChips) {
+        expect(CHIP_TOKENS[chip.tone], `${scheme}: ${chip.tone} is a § Chips tone`).toBeDefined();
+        expect(chip.word.length, `${scheme}: the epic chip carries its word`).toBeGreaterThan(0);
+        expect(chip.color, `${scheme}: epic chip ink`).toBe(
+          hexToRgb(tokens[CHIP_TOKENS[chip.tone].ink]),
+        );
+        expect(chip.family.toLowerCase(), `${scheme}: epic chip face`).toContain("mono");
+        if (chip.tone === "unknown") {
+          expect(chip.style, `${scheme}: the unknown chip is italic`).toBe("italic");
+        }
+      }
     }
   });
 

@@ -27,21 +27,7 @@
  */
 
 import type { ShowfloorStory } from "../api/showfloorDocument";
-import { chipText, storyChip } from "./ladder";
-
-/**
- * § The status ladder's four fills, as class names. `frozen` is the fifth
- * status the document can carry and it is not a fill: a terminal ladder is
- * neither done nor ahead, so its bars rest at `--sunken` and the card says
- * `killed`/`failed` in the chip and the reason on the sub-line.
- */
-const STOP_CLASS: Record<string, string> = {
-  done: "done",
-  active: "now",
-  waiting: "hold",
-  ahead: "",
-  frozen: "froze",
-};
+import { chipText, stopClass, storyChip } from "./ladder";
 
 /** The card's mono sub-line: the live facts this story really has, in order. */
 export function subLine(story: ShowfloorStory): string {
@@ -118,7 +104,7 @@ export default function NodeCard({
         {story.ladder.stops.map((stop) => (
           <i
             key={stop.key}
-            className={STOP_CLASS[stop.status] ?? ""}
+            className={stopClass(stop.status)}
             data-stop={stop.key}
             data-stop-status={stop.status}
           />

@@ -55,6 +55,32 @@ const CHIP_TONES: Record<string, ChipTone> = {
   failed: "dead",
 };
 
+/**
+ * § The status ladder's four fills, as class names, plus the fifth status a
+ * document can carry.
+ *
+ * `frozen` is not a fill: a terminal ladder is neither done nor ahead, so its
+ * bars rest at `--sunken` and the card — or the Desk's epic row — says
+ * `killed`/`failed` in the chip and the reason in words beside it.
+ *
+ * It lives here with `chipTone` because it is the same half of the vocabulary:
+ * the *stop* is the backend's (plan D2) and nothing in the browser derives one,
+ * but what a stop's status *wears* is the browser's, and two rooms drawing the
+ * same six stops must not dress them two ways (006 US2, FR-005).
+ */
+const STOP_CLASS: Record<string, string> = {
+  done: "done",
+  active: "now",
+  waiting: "hold",
+  ahead: "",
+  frozen: "froze",
+};
+
+/** The class one stop's status wears, or none for a stop still ahead. */
+export function stopClass(status: string): string {
+  return STOP_CLASS[status] ?? "";
+}
+
 export interface Chip {
   /** The word the element carries — state is never colour alone. */
   word: string;
