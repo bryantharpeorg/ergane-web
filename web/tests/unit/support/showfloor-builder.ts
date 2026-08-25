@@ -45,6 +45,11 @@ interface LadderOptions {
   terminalReason?: string | null;
   /** All six done: MERGED, or a spec the operator attested `landed`. */
   done?: boolean;
+  /**
+   * The landing commit's instant on the `merged` stop, as 009's assembler
+   * stamps it (FR-002a). Only a `done` stop is ever stamped, here as there.
+   */
+  landedAt?: string | null;
 }
 
 export function ladderOf(options: LadderOptions = {}): Ladder {
@@ -57,6 +62,7 @@ export function ladderOf(options: LadderOptions = {}): Ladder {
     frozen = false,
     terminalReason = null,
     done = false,
+    landedAt = null,
   } = options;
 
   const index = stopKey === null ? -1 : STOP_KEYS.indexOf(stopKey);
@@ -67,7 +73,8 @@ export function ladderOf(options: LadderOptions = {}): Ladder {
     else if (index === -1 || position > index) status = "ahead";
     else if (position < index) status = "done";
     else status = awaiting ? "waiting" : "active";
-    return { key, label: STOP_LABELS[key], status };
+    const at = key === "merged" && status === "done" ? landedAt : null;
+    return { key, label: STOP_LABELS[key], status, at };
   });
 
   return {
