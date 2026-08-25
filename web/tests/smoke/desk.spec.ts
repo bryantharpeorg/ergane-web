@@ -20,8 +20,15 @@
  * committed answer to the collision class the 2026-08-24 review measured on
  * every epic row (`"COMPLETED · epic-002" × "dispatch"`), and it runs over the
  * whole Desk rather than over the row that happened to show it.
+ *
+ * 009 US2 touches that foot and nothing above it: the law's *measurement* now
+ * comes from `support/laws.ts` instead of a transcription of
+ * `showfloor.spec.ts`'s, and D-018's fourth law rides in with it. Both changes
+ * are named where they are made, in the block comment above that section.
  */
 import { expect, test } from "@playwright/test";
+
+import { measureLaws } from "./support/laws";
 
 function timeLeftText(expiresAt: string, reference: string): string {
   const diffMs = new Date(expiresAt).getTime() - new Date(reference).getTime();
@@ -188,115 +195,46 @@ test("the Desk renders the fixture floor and issues one verb and no other", asyn
   await expect(question.locator(".answer-col button")).toHaveCount(1);
 });
 
-/* ── The no-overlap law (006 US2, FR-006) ───────────────────────────────────
+/* ── The layout laws over the Desk (006 US2, FR-006; 009 US2, FR-005) ───────
  *
- * DESIGN.md § Layout: "No two text leaves may overlap. These are committed
- * test assertions, not aspirations." 005 landed that law over the Showfloor
- * (`showfloor.spec.ts`, law (c)); this is the same law, over the Desk, where
- * the 2026-08-24 review actually measured the collisions — the milestone
- * bar's absolutely-positioned track labels crossing the row's own text on
- * every epic ("COMPLETED · epic-002" × "dispatch", "implementer" × "us1 ·
- * paged").
+ * DESIGN.md § Layout: "No two text leaves may overlap. **And no element with
+ * an opaque background may paint over a text leaf that is not its own.**
+ * These are committed test assertions, not aspirations." 005 landed the first
+ * of those over the Showfloor (`showfloor.spec.ts`, law (c)); this is the same
+ * law, over the Desk, where the 2026-08-24 review actually measured the
+ * collisions — the milestone bar's absolutely-positioned track labels crossing
+ * the row's own text on every epic ("COMPLETED · epic-002" × "dispatch",
+ * "implementer" × "us1 · paged").
  *
- * US2 makes those collisions impossible by construction: the row is a grid of
- * flowed cells and nothing on it is absolutely positioned (plan D2). The law
- * is here anyway, and it is what stops the class coming back — a layout can be
- * rewritten again, a law has to be deleted on purpose.
+ * 006 US2 makes those collisions impossible by construction: the row is a grid
+ * of flowed cells and nothing on it is absolutely positioned (plan D2). The
+ * law is here anyway, and it is what stops the class coming back — a layout
+ * can be rewritten again, a law has to be deleted on purpose.
  *
- * The measurement is `showfloor.spec.ts`'s, deliberately: the *text's* boxes
- * through a `Range` (an inline element that wraps reports fragment rects
- * carrying the whole inline box's height, which reads as a collision that is
- * not on the screen), each box clipped by every ancestor that clips it (text
- * a scroller hides has not collided with what is drawn over it), and a 4px
- * slack in both axes, which is the number FR-006 states.
+ * **Two changes here, both 009 US2's and both named rather than made quietly:**
+ *
+ * 1. The measurement is no longer a copy. It was `showfloor.spec.ts`'s,
+ *    transcribed; it is now `support/laws.ts`'s, imported. Law (c) is
+ *    unchanged in substance — the *text's* boxes through a `Range` (an inline
+ *    element that wraps reports fragment rects carrying the whole inline box's
+ *    height, which reads as a collision that is not on the screen), each box
+ *    clipped by every ancestor that clips it (text a scroller hides has not
+ *    collided with what is drawn over it), and a 4px slack in both axes, which
+ *    is the number FR-006 states. Only its home moved.
+ * 2. Law (d) comes with it, and is asserted over this room at both widths and
+ *    in both themes (009 FR-005). D-018 wrote it because a degraded note
+ *    rendered unreadable while law (c) and its two siblings passed: they
+ *    measure glyphs, and an opaque box painted on top of a word moves no
+ *    glyph. The Desk is a route this suite already sweeps, so the law holds
+ *    here or it does not hold.
+ *
+ * Laws (a) and (b) come along in the same pass and are not asserted here: (a)
+ * measures `[data-stage]` descendants and this room has no stage, and (b) is
+ * the Showfloor's sweep, unchanged by this story. The report carries them; the
+ * Desk reads the two that are its own.
  */
 
-interface OverlapReport {
-  swept: number;
-  leaves: number;
-  overlapping: string[];
-}
-
-async function measureOverlaps(page: import("@playwright/test").Page): Promise<OverlapReport> {
-  return page.evaluate(() => {
-    /** FR-006: "overlapping by more than 4px in both axes". */
-    const OVERLAP = 4;
-
-    const describe = (element: Element): string => {
-      const classes =
-        typeof element.className === "string" && element.className.trim()
-          ? `.${element.className.trim().split(/\s+/).join(".")}`
-          : "";
-      const text = (element.textContent ?? "").trim().slice(0, 32);
-      return `${element.tagName.toLowerCase()}${classes}["${text}"]`;
-    };
-
-    const SKIP = ["script", "style", "head", "title", "meta", "link"];
-    const hasText = (element: Element) =>
-      !SKIP.includes(element.tagName.toLowerCase()) && (element.textContent ?? "").trim() !== "";
-    const painted = (element: Element) => {
-      const rect = element.getBoundingClientRect();
-      return rect.width > 0 || rect.height > 0;
-    };
-
-    const texts = Array.from(document.querySelectorAll("*")).filter(
-      (element) => hasText(element) && painted(element),
-    );
-    // A leaf is an element with text and no element child that has text: the
-    // ancestors of a text run contain it, and containment is not collision.
-    const leaves = texts.filter(
-      (element) => !Array.from(element.children).some((child) => hasText(child)),
-    );
-
-    const clipped = (element: Element, rect: DOMRect): DOMRect | null => {
-      let box = rect;
-      let parent = element.parentElement;
-      while (parent !== null && parent !== document.documentElement) {
-        const style = getComputedStyle(parent);
-        const clips =
-          style.overflowX !== "visible" ||
-          style.overflowY !== "visible" ||
-          style.overflow !== "visible";
-        if (clips) {
-          const bounds = parent.getBoundingClientRect();
-          const left = Math.max(box.left, bounds.left);
-          const right = Math.min(box.right, bounds.right);
-          const top = Math.max(box.top, bounds.top);
-          const bottom = Math.min(box.bottom, bounds.bottom);
-          if (right - left <= 0 || bottom - top <= 0) return null;
-          box = new DOMRect(left, top, right - left, bottom - top);
-        }
-        parent = parent.parentElement;
-      }
-      return box;
-    };
-
-    const boxes = leaves.flatMap((element) => {
-      const range = document.createRange();
-      range.selectNodeContents(element);
-      return Array.from(range.getClientRects())
-        .filter((rect) => rect.width > 0 && rect.height > 0)
-        .map((rect) => ({ label: describe(element), rect: clipped(element, rect) }))
-        .filter((box): box is { label: string; rect: DOMRect } => box.rect !== null);
-    });
-
-    const overlapping: string[] = [];
-    for (let i = 0; i < boxes.length; i++) {
-      for (let j = i + 1; j < boxes.length; j++) {
-        if (boxes[i].label === boxes[j].label) continue;
-        const a = boxes[i].rect;
-        const b = boxes[j].rect;
-        const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
-        const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-        if (x > OVERLAP && y > OVERLAP) overlapping.push(`${boxes[i].label} × ${boxes[j].label}`);
-      }
-    }
-
-    return { swept: texts.length, leaves: leaves.length, overlapping };
-  });
-}
-
-test.describe("the no-overlap law (FR-006)", () => {
+test.describe("the layout laws over the Desk (FR-006, 009 FR-005)", () => {
   test("holds over the whole Desk at 1280 and 1600, in both themes", async ({ page }) => {
     for (const scheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: scheme });
@@ -310,12 +248,16 @@ test.describe("the no-overlap law (FR-006)", () => {
         await page.waitForSelector("section.spend table");
 
         const where = `${width} in ${scheme}`;
-        const report = await measureOverlaps(page);
+        const report = await measureLaws(page);
 
-        // A sweep over nothing passes for the wrong reason.
+        // A sweep over nothing passes for the wrong reason — and law (d) over
+        // a page that paints nothing is that same empty pass, so the painters
+        // it considered carry a floor too (009 FR-005).
         expect(report.swept, `${where}: the Desk rendered text`).toBeGreaterThan(40);
         expect(report.leaves, `${where}: the Desk has text leaves`).toBeGreaterThan(20);
+        expect(report.painters, `${where}: the Desk paints backgrounds`).toBeGreaterThan(5);
         expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+        expect(report.occluded, `${where}: a box paints over text it does not own`).toEqual([]);
       }
     }
   });
@@ -329,7 +271,7 @@ test.describe("the no-overlap law (FR-006)", () => {
     await page.goto("/desk");
     await page.waitForSelector("section.floor article.epic");
 
-    expect((await measureOverlaps(page)).overlapping).toEqual([]);
+    expect((await measureLaws(page)).overlapping).toEqual([]);
 
     await page.evaluate(() => {
       const row = document.querySelector("section.floor article.epic") as HTMLElement;
@@ -346,14 +288,14 @@ test.describe("the no-overlap law (FR-006)", () => {
       document.body.appendChild(planted);
     });
 
-    const planted = await measureOverlaps(page);
+    const planted = await measureLaws(page);
     expect(planted.overlapping.length, "the law catches a planted collision").toBeGreaterThan(0);
     expect(planted.overlapping.join(" ")).toContain("dispatch");
 
     await page.evaluate(() => {
       for (const element of Array.from(document.querySelectorAll(".planted"))) element.remove();
     });
-    expect((await measureOverlaps(page)).overlapping).toEqual([]);
+    expect((await measureLaws(page)).overlapping).toEqual([]);
   });
 });
 

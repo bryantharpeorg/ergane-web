@@ -1,6 +1,22 @@
 ---
-state: draft
+state: ready
 depends_on_landed: [009-a-landed-epic-reads-landed]
+# Flipped ready 2026-08-25 by the operator, on the refined spec below.
+#
+# NO EDGE ON 012, AND THE SCHEDULER MAKES THE QUESTION MOOT ANYWAY.
+# `ergane.yaml` sets `max_concurrent_epics: 1`, so 012 and 013 queue behind one
+# another whatever their edges say. The module check below was done before that
+# was read, and it is kept because it is the answer if the cap is ever raised.
+# The floor-status skill warns that `depends_on_merged`
+# models what a story needs to EXIST, not what it will TOUCH, and that two
+# correctly-independent stories extending one file present as tests dying after
+# a clean rebase rather than as a conflict. So the modules were compared rather
+# than assumed: 012 D3 puts its fallback in `pane/floor_document.py` and says
+# in as many words that it must NOT go inside `LiveReader`, because the seam
+# should keep meaning "read the path the factory would write". 013 T001 adds a
+# new reader to `pane/readers.py` and renders from `pane/showfloor.py`.
+# Disjoint. If that ever stops being true, add 012 to the edge above.
+#
 # Refined 2026-08-25, 7:00 PM CT, under D-020 -- which amended constitution II
 # FIRST, the order the constitution demands for a seam. Held `draft` pending the
 # operator's go; 009 is mid-build and 012 is queued behind it.
