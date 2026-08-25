@@ -9,12 +9,10 @@ same handling as the storage that admitted it.  One ``GET /api/events``
 subscription carries both types, and a consumer that ignores unknown types is
 unaffected by the addition (001 FR-016).
 
-Spec 005 adds the third and last: ``showfloor``, one event per spec whose rail
-entry changed since the previous poll, carrying that entry re-assembled.  It is
-additive in exactly the way ``attention`` was — a consumer written against 001
-or 003 sees a type it does not know and ignores it (005 FR-005) — and a browser
-holding the room open applies the entry in place rather than refetching the
-whole document.
+Spec 005 adds the third: ``showfloor``, one event per spec whose rail entry
+changed since the previous poll, carrying that entry re-assembled.  Additive the
+way ``attention`` was — a consumer written against 001 or 003 sees a type it does
+not know and ignores it (005 FR-005).
 """
 
 import asyncio
@@ -73,15 +71,14 @@ async def floor_events(
     queue with the remaining poll interval as the timeout, yielding every
     ``attention`` envelope it receives as it arrives.
 
-    ``specs_root`` opts the stream into ``showfloor`` events.  Each poll
-    re-assembles the showfloor document and yields one event per rail entry that
-    differs from the entry the previous poll produced — so a node state changing
-    between two assemblies reaches the browser as the changed spec's entry and
-    nothing else.  The first poll differs from nothing, so it yields every entry:
-    a fresh subscription starts with the whole room, the same way 001's first
-    ``floor`` event does (001 FR-018).  Nothing is cached across subscriptions —
-    ``previous`` is this generator's own, so two subscribers never share a
-    baseline (001 R-007).
+    ``specs_root`` opts the stream into ``showfloor`` events: each poll
+    re-assembles the document and yields one event per rail entry that differs
+    from the previous poll's, so a node state changing between two assemblies
+    reaches the browser as the changed spec's entry and nothing else.  The first
+    poll differs from nothing and so yields every entry — a fresh subscription
+    starts with the whole room, the way 001's first ``floor`` event does
+    (FR-018).  ``previous`` is this generator's own: no baseline is shared
+    between subscribers and nothing is cached across them (001 R-007).
     """
     from pane.floor_document import assemble_floor_document
     from pane.showfloor import ShowfloorReaders, assemble_showfloor

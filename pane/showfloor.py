@@ -1,40 +1,28 @@
 """Assemble the pane's showfloor document — one join, everything the room renders.
 
-The second world's Showfloor is a master–detail: a rail of every spec, one
-stage holding one epic's work graph, one pane explaining one story.  All three
-regions render from the single document `assemble_showfloor` returns, so the
-browser still never dials Temporal and never reads the factory's disk (001's
-doctrine, unchanged).
+Rail, stage and detail pane all render from the one document
+`assemble_showfloor` returns, so the browser still never dials Temporal and
+never reads the factory's disk (001's doctrine, unchanged).  Four sources, each
+through a seam that already exists:
 
-Four sources are joined, and each is read through a seam that already exists:
+* **spec order and state** — `factory.roadmap.models.read_roadmap`, ergane's own
+  frontmatter reader: sorted spec-dir order, no frontmatter reads `draft`.
+  Re-implementing that grammar here is the re-derivation constitution II forbids.
+* **story identity, `requirement_keys`** — `specs/<dir>/workgraph.json`, through
+  001's `Reader.workgraph` seam.
+* **titles, priorities** — the spec's `### User Story <n> - <title> (Priority:
+  P<n>)` headings.  Titles exist nowhere else.
+* **live node state** — the `epic_status` answer, through 001's reader, for the
+  epic whose id is the spec dir.
 
-======================  ===========================================================
-datum                   source
-======================  ===========================================================
-spec order and state    ``factory.roadmap.models.read_roadmap`` — ergane's own
-                        frontmatter reader, which walks ``specs/<dir>/spec.md`` in
-                        sorted order and reads a spec with no frontmatter as
-                        ``draft``.  Re-implementing that grammar here would be the
-                        re-derivation constitution II forbids.
-story identity, FR keys ``specs/<dir>/workgraph.json`` — the compiled graph, read
-                        through 001's ``Reader.workgraph`` seam.
-titles, priorities      the spec's own ``### User Story <n> - <title> (Priority:
-                        P<n>)`` headings.  Titles exist nowhere else: the compiled
-                        graph carries ``story_key`` and ``requirement_keys`` only.
-live node state         the ``epic_status`` answer, through 001's reader, for the
-                        epic whose id is the spec dir.
-======================  ===========================================================
+Any of those may fail and none may take the room down with it (constitution
+III): a failed read appends one `{read, mode, detail}` note to *that spec's*
+entry — transport and refusal told apart in `mode`, never only in prose — and
+every other spec is untouched.  A spec whose compiled graph cannot be read still
+renders, from its own headings, with the miss named.
 
-Every one of those reads may fail, and none of them may take the room down with
-it (constitution III).  A failed read appends one ``{read, mode, detail}`` note
-to *that spec's* entry — transport and refusal distinguished in ``mode``, never
-only in prose — and every other spec is untouched.  A spec whose compiled graph
-cannot be read still renders: its stories come from its own headings, which is
-less than the graph knows and more than nothing, and the miss is named.
-
-The ladder is derived **here** and not in the browser (plan D2), so card, rail
-and detail pane cannot disagree about a stop, and the whole mapping is one
-table unit-tested against all eleven of ergane's ``NodeState`` members.
+The ladder is derived here and not in the browser (plan D2), so card, rail and
+pane cannot disagree about a stop.
 """
 
 from __future__ import annotations
@@ -51,29 +39,21 @@ if TYPE_CHECKING:
 
 from pane.readers import QueryRefused, TransportFailed
 
-# --------------------------------------------------------------------------
-# The ladder: DESIGN.md § The status ladder, as a table
-# --------------------------------------------------------------------------
+# --- the ladder: DESIGN.md § The status ladder, as a table ----------------
 
-#: The six stops, always six, in order (DESIGN.md).  `key` is what code joins
-#: on; `label` is the word DESIGN.md prints and the word a chip wears.  There is
-#: no seventh stop: `tasks.md` boxes are never ticked, so "task x of y" has no
-#: seam and this system does not render elements that can never fill.
+#: The six stops, always six, in order (DESIGN.md).  No seventh: `tasks.md` boxes
+#: are never ticked, so "task x of y" has no seam, and this system does not
+#: render elements that can never fill.
 LADDER_STOPS: tuple[tuple[str, str], ...] = (
-    ("ready", "ready"),
-    ("building", "building"),
-    ("verifying", "verifying"),
-    ("pr_open", "pr open"),
-    ("queue", "queue"),
-    ("merged", "merged"),
+    ("ready", "ready"), ("building", "building"), ("verifying", "verifying"),
+    ("pr_open", "pr open"), ("queue", "queue"), ("merged", "merged"),
 )
 
 STOP_KEYS: tuple[str, ...] = tuple(key for key, _label in LADDER_STOPS)
 STOP_LABELS: dict[str, str] = dict(LADDER_STOPS)
 
-#: DESIGN.md's state→ladder table, verbatim and complete for the nine states
-#: that name a stop.  `FAILED` and `KILLED` freeze the ladder instead of
-#: occupying a stop, and `WAITING_OPERATOR` is handled just below.
+#: DESIGN.md's state→ladder table for the states that name a stop; FAILED and
+#: KILLED freeze the ladder instead of occupying one.
 STATE_TO_STOP: dict[str, str] = {
     "PENDING": "ready",
     "KEY_ISSUED": "building",
@@ -85,41 +65,32 @@ STATE_TO_STOP: dict[str, str] = {
     "MERGED": "merged",
 }
 
-#: `WAITING_OPERATOR` is a park taken *inside* an attempt — ergane's workflow
-#: sets it in `_run_node` and the next attempt overwrites it at `KEY_ISSUED` —
-#: so the stop it rests on is `building`.  Its tone is never anything but gold:
-#: ergane derives `awaiting_operator` true for this state at the answer's seam
-#: (`pending_escalation_id is not None or state == WAITING_OPERATOR`), so the
-#: override below fires whether or not the answer carried the flag.
+#: `WAITING_OPERATOR` is a park taken *inside* an attempt — ergane sets it in
+#: `_run_node` and the next attempt overwrites it at `KEY_ISSUED` — so its stop
+#: is `building`, always gold (ergane derives `awaiting_operator` true for it).
 STATE_TO_STOP["WAITING_OPERATOR"] = "building"
 
-#: The two states that freeze the ladder and carry `terminal_reason` verbatim.
 TERMINAL_STATES: frozenset[str] = frozenset({"FAILED", "KILLED"})
 
-#: A stop's status on a rendered ladder.  `frozen` is the fourth because a
-#: terminal ladder is neither done nor ahead — DESIGN.md says it freezes, and a
-#: word for that is the difference between showing a fact and implying one.
+#: A stop's status.  `frozen` is its own word: a terminal ladder is neither done
+#: nor ahead, DESIGN.md says it freezes.
 STOP_DONE = "done"
 STOP_ACTIVE = "active"
 STOP_WAITING = "waiting"
 STOP_AHEAD = "ahead"
 STOP_FROZEN = "frozen"
 
-#: The chip a story wears, from DESIGN.md § Chips.  `pr open` is the one word
-#: the chip table does not spell out while the ladder table does: PASSED and
-#: PR_OPEN map to the `pr open` stop, and the chip is that stop's label wearing
-#: the accent-on-accent-w colours the table gives all live work.
+#: DESIGN.md § Chips.  A live story's chip is its active stop's label — which is
+#: how PASSED/PR_OPEN wear `pr open`, the one live word the chip table leaves to
+#: the ladder table.
 CHIP_WAITING = "waiting on you"
 CHIP_LANDED = "landed"
 CHIP_MERGED = "merged"
 CHIP_DRAFT = "draft"
 CHIP_READY = "ready"
 
-#: The declared spec states ergane's roadmap grammar allows, mapped to the chip
-#: vocabulary DESIGN.md fixes.  `deferred` has no chip of its own — it is a spec
-#: parked out of the build order by operator choice, which is what `draft`'s
-#: faint dashed chip already says — so it wears `draft` rather than minting a
-#: seventh chip outside the table.
+#: ergane's spec states → DESIGN.md's chips.  `deferred` (parked out of the build
+#: order) wears `draft` rather than minting a chip outside the table.
 SPEC_STATE_CHIPS: dict[str, str] = {
     "draft": CHIP_DRAFT,
     "ready": CHIP_READY,
@@ -135,35 +106,29 @@ class StoryHeading:
     story_key: str
     title: str
     priority: str
-    #: The paragraph directly under the heading — the story's one-sentence
-    #: intent, whitespace-collapsed.  Empty when the heading has no prose under
-    #: it; never invented.
+    #: The paragraph under the heading, whitespace-collapsed.  Empty when there
+    #: is none; never invented.
     intent: str = ""
 
 
-#: The grammar, anchored per line.  `(.+?)` is non-greedy so a title containing
-#: a parenthesis does not swallow the priority; the whole line must match, so a
-#: heading of any other shape contributes nothing and the caller falls back.
+#: The grammar, anchored per line.  `(.+?)` is non-greedy so a title with a
+#: parenthesis does not swallow the priority; the whole line must match.
 _HEADING_RE = re.compile(
     r"^### User Story (\d+) - (.+?) \(Priority: (P\d)\)\s*$"
 )
 
-#: `# Feature Specification: <name>` — the spec's name, for the rail row and the
-#: stage header.  A spec without one falls back to its directory name.
+#: The spec's name, for the rail row and the stage header.  A spec without one
+#: falls back to its directory name.
 _SPEC_NAME_RE = re.compile(r"^# Feature Specification: (.+?)\s*$", re.MULTILINE)
 
 
 def parse_story_headings(spec_md_text: str) -> dict[str, StoryHeading]:
     """Return `{story_key: StoryHeading}` for every heading of the grammar.
 
-    A line that does not match the grammar contributes nothing — the caller
-    falls back to the `story_key` and names the miss (FR-002).  A heading whose
-    title is present but blank is treated the same way, because a blank title
-    renders as nothing and a rail row with nothing in it is worse than one
-    wearing its own id.
-
-    The function never raises on arbitrary text: anything that is not a
-    matching line is simply not a heading.
+    A line off the grammar contributes nothing — the caller falls back to the
+    `story_key` and names the miss (FR-002).  A blank title is treated the same
+    way: it renders as nothing, and a row wearing its own id is better.  The
+    function never raises: a non-matching line is simply not a heading.
     """
     headings: dict[str, StoryHeading] = {}
     lines = spec_md_text.splitlines()
@@ -201,10 +166,8 @@ def parse_spec_name(spec_md_text: str) -> str | None:
 def _intent_after(lines: list[str], heading_index: int) -> str:
     """The first paragraph under a story heading, whitespace-collapsed.
 
-    Stops at the next blank line after the paragraph starts, and refuses to
-    cross another heading or one of the spec template's bold labels
-    (`**Why this priority**`, `**Independent Test**`, …) — those are structure,
-    not the story's intent.
+    Never crosses a heading or one of the template's bold labels
+    (`**Why this priority**`, …): those are structure, not intent.
     """
     collected: list[str] = []
     for line in lines[heading_index + 1 :]:
@@ -229,32 +192,24 @@ def derive_ladder(
 ) -> dict:
     """Derive one story's ladder object from DESIGN.md's table (FR-003).
 
-    `state` is the `epic_status` node state verbatim, or None when no epic has
-    ever been dispatched for this spec — undispatched work is not a degraded
-    read, it is work that has not started.
+    `state` is the `epic_status` node state verbatim, or None when no epic ever
+    ran for this spec — undispatched work is not a degraded read, it is work
+    that has not started.  `STATE_TO_STOP` above is the stop half of DESIGN.md's
+    table (PENDING→ready … MERGED→all six done); the rest of the rules:
 
-    The rules, all from DESIGN.md § The status ladder:
+    * `awaiting_operator is True` turns the active stop's tone `waiting` and the
+      chip `waiting on you`.  It never moves the stop: the operator is waited on
+      *at* the stop the work reached.
+    * FAILED and KILLED freeze the ladder and carry `terminal_reason` verbatim.
+    * A story of an undispatched spec rests at `ready` wearing its spec's own
+      state as its chip (`draft` → `draft`).  A spec attested `landed` has every
+      story done and no live answer to read, so its ladder is the six-done one.
+    * `dispatched` says an epic *did* answer and did not name this node — 002's
+      skew.  It rests at `ready` with no chip whatever the spec declares: a
+      running epic is newer news than an attestation.
 
-    * PENDING→ready, KEY_ISSUED/RUNNING→building, VERIFYING→verifying,
-      PASSED/PR_OPEN→pr open, ENQUEUED→queue, MERGED→all six done.
-    * `awaiting_operator is True` overrides the active stop's tone to
-      ``waiting`` and the chip to ``waiting on you``.  It never moves the stop:
-      the operator is being waited on *at* the stop the work reached.
-    * FAILED and KILLED freeze the ladder — no stop is done, none is active —
-      and carry `terminal_reason` verbatim, untouched and unsummarized.
-    * A story of an undispatched spec rests at `ready`, wearing its spec's own
-      declared state as its chip (`draft` → `draft`).  A spec attested `landed`
-      has no live answer to read and every story done, so its ladder is the
-      six-done one and its chip is `merged`.
-
-    `dispatched` says an epic *did* answer for this spec and simply did not name
-    this node — 002's skew shape.  It rests at `ready` with no chip whatever the
-    spec declares, because a running epic is newer news than an attestation and
-    a stop nobody observed is not one to claim.
-
-    A state ergane grows later and this table has not learned lands with no
-    stop and no chip rather than being guessed at, and carries the word verbatim
-    in `state` so the miss is visible (constitution III).
+    A state this table has not learned lands with no stop and no chip rather
+    than guessed at, carrying the word verbatim (constitution III).
     """
     awaiting = awaiting_operator is True
     normalized = state if isinstance(state, str) and state else None
@@ -263,44 +218,21 @@ def derive_ladder(
         return _undispatched_ladder(spec_state, awaiting, terminal_reason, dispatched)
 
     if normalized in TERMINAL_STATES:
-        return {
-            "state": normalized,
-            "spec_state": spec_state,
-            "stops": [
-                {"key": key, "label": label, "status": STOP_FROZEN}
-                for key, label in LADDER_STOPS
-            ],
-            "stop": None,
-            "stop_key": None,
-            "tone": "terminal",
-            "chip": normalized.lower(),
-            "frozen": True,
-            # Verbatim.  The pane never rewrites the factory's own sentence.
-            "terminal_reason": terminal_reason,
-            "awaiting_operator": awaiting,
-        }
+        # `terminal_reason` travels verbatim: the pane never rewrites the
+        # factory's own sentence.
+        return _ladder(
+            normalized, spec_state, [STOP_FROZEN] * 6, None, "terminal",
+            normalized.lower(), True, terminal_reason, awaiting,
+        )
 
     stop_key = STATE_TO_STOP.get(normalized)
     if stop_key is None:
         # A twelfth state.  Named, not guessed at.
-        return {
-            "state": normalized,
-            "spec_state": spec_state,
-            "stops": [
-                {"key": key, "label": label, "status": STOP_AHEAD}
-                for key, label in LADDER_STOPS
-            ],
-            "stop": None,
-            "stop_key": None,
-            "tone": "unknown",
-            "chip": None,
-            "frozen": False,
-            "terminal_reason": terminal_reason,
-            "awaiting_operator": awaiting,
-        }
+        return _ladder(
+            normalized, spec_state, [STOP_AHEAD] * 6, None, "unknown",
+            None, False, terminal_reason, awaiting,
+        )
 
-    # `WAITING_OPERATOR` is the operator being waited on whether or not the
-    # answer carried the flag; ergane derives the flag from the state itself.
     if normalized == "WAITING_OPERATOR":
         awaiting = True
 
@@ -308,25 +240,44 @@ def derive_ladder(
         return _all_done_ladder(normalized, spec_state, awaiting, terminal_reason)
 
     index = STOP_KEYS.index(stop_key)
-    stops = []
-    for position, (key, label) in enumerate(LADDER_STOPS):
-        if position < index:
-            status = STOP_DONE
-        elif position == index:
-            status = STOP_WAITING if awaiting else STOP_ACTIVE
-        else:
-            status = STOP_AHEAD
-        stops.append({"key": key, "label": label, "status": status})
+    statuses = [
+        STOP_DONE if position < index
+        else (STOP_WAITING if awaiting else STOP_ACTIVE) if position == index
+        else STOP_AHEAD
+        for position in range(6)
+    ]
+    return _ladder(
+        normalized, spec_state, statuses, stop_key,
+        "waiting" if awaiting else "normal",
+        CHIP_WAITING if awaiting else STOP_LABELS[stop_key],
+        False, terminal_reason, awaiting,
+    )
 
+
+def _ladder(
+    state: str | None,
+    spec_state: str | None,
+    statuses: list[str],
+    stop_key: str | None,
+    tone: str,
+    chip: str | None,
+    frozen: bool,
+    terminal_reason: str | None,
+    awaiting: bool,
+) -> dict:
+    """The one shape every ladder has: six stops, a stop, a tone and a chip."""
     return {
-        "state": normalized,
+        "state": state,
         "spec_state": spec_state,
-        "stops": stops,
-        "stop": STOP_LABELS[stop_key],
+        "stops": [
+            {"key": key, "label": label, "status": status}
+            for (key, label), status in zip(LADDER_STOPS, statuses, strict=True)
+        ],
+        "stop": STOP_LABELS[stop_key] if stop_key is not None else None,
         "stop_key": stop_key,
-        "tone": "waiting" if awaiting else "normal",
-        "chip": CHIP_WAITING if awaiting else STOP_LABELS[stop_key],
-        "frozen": False,
+        "tone": tone,
+        "chip": chip,
+        "frozen": frozen,
         "terminal_reason": terminal_reason,
         "awaiting_operator": awaiting,
     }
@@ -336,26 +287,13 @@ def _all_done_ladder(
     state: str | None, spec_state: str | None, awaiting: bool, terminal_reason: str | None
 ) -> dict:
     """All six stops done — MERGED, or a spec the operator attested `landed`."""
-    stops = [
-        {
-            "key": key,
-            "label": label,
-            "status": STOP_WAITING if (awaiting and key == "merged") else STOP_DONE,
-        }
-        for key, label in LADDER_STOPS
-    ]
-    return {
-        "state": state,
-        "spec_state": spec_state,
-        "stops": stops,
-        "stop": STOP_LABELS["merged"],
-        "stop_key": "merged",
-        "tone": "waiting" if awaiting else "done",
-        "chip": CHIP_WAITING if awaiting else CHIP_MERGED,
-        "frozen": False,
-        "terminal_reason": terminal_reason,
-        "awaiting_operator": awaiting,
-    }
+    statuses = [STOP_DONE] * 5 + [STOP_WAITING if awaiting else STOP_DONE]
+    return _ladder(
+        state, spec_state, statuses, "merged",
+        "waiting" if awaiting else "done",
+        CHIP_WAITING if awaiting else CHIP_MERGED,
+        False, terminal_reason, awaiting,
+    )
 
 
 def _undispatched_ladder(
@@ -363,56 +301,31 @@ def _undispatched_ladder(
 ) -> dict:
     """The ladder of a story no epic answered for: it rests at `ready`.
 
-    `landed` is the exception, and it is the operator's own word: an attested
-    spec's stories are all merged and nothing live will ever say so again.  The
-    exception lapses the moment an epic *is* answering for the spec, because
-    then the attestation is the older of two sources.
+    `landed` is the exception, and the operator's own word: an attested spec's
+    stories are all merged and nothing live will say so again.  The exception
+    lapses once an epic *is* answering, the newer of the two sources.
     """
     if spec_state == "landed" and not dispatched:
         return _all_done_ladder(None, spec_state, awaiting, terminal_reason)
 
-    stops = [
-        {
-            "key": key,
-            "label": label,
-            "status": (STOP_WAITING if awaiting else STOP_ACTIVE) if key == "ready" else STOP_AHEAD,
-        }
-        for key, label in LADDER_STOPS
-    ]
+    statuses = [STOP_WAITING if awaiting else STOP_ACTIVE] + [STOP_AHEAD] * 5
     chip = None if dispatched else SPEC_STATE_CHIPS.get(spec_state or "")
-    return {
-        "state": None,
-        "spec_state": spec_state,
-        "stops": stops,
-        "stop": STOP_LABELS["ready"],
-        "stop_key": "ready",
-        "tone": "waiting" if awaiting else "normal",
-        "chip": CHIP_WAITING if awaiting else chip,
-        "frozen": False,
-        "terminal_reason": terminal_reason,
-        "awaiting_operator": awaiting,
-    }
+    return _ladder(
+        None, spec_state, statuses, "ready",
+        "waiting" if awaiting else "normal",
+        CHIP_WAITING if awaiting else chip,
+        False, terminal_reason, awaiting,
+    )
 
 
-# --------------------------------------------------------------------------
-# The reads
-# --------------------------------------------------------------------------
+# --- the reads ------------------------------------------------------------
 
-#: The live fields a story takes from the `epic_status` answer.  Every one is
-#: optional: an answer may be partial, and a field it did not carry is named in
-#: the story's `unknown` list rather than defaulted to a lie (001's discipline).
+#: The live fields a story takes from the `epic_status` answer.  All optional: an
+#: answer may be partial, and a field it did not carry is named in the story's
+#: `unknown` rather than defaulted to a lie (001's discipline).
 LIVE_FACTS = (
-    "state",
-    "attempt",
-    "awaiting_operator",
-    "terminal_reason",
-    "landing_state",
-    "pr_number",
-    "verified",
-    "branch",
-    "persona",
-    "history",
-    "landing_history",
+    "state", "attempt", "awaiting_operator", "terminal_reason", "landing_state",
+    "pr_number", "verified", "branch", "persona", "history", "landing_history",
 )
 
 
@@ -420,25 +333,16 @@ LIVE_FACTS = (
 class ShowfloorReaders:
     """The two per-spec reads the document needs, injected rather than imported.
 
-    Keeping them as callables is what lets every 052 fault shape be driven from
-    a committed test with no live floor and no live filesystem: a test hands in
-    a function that raises `TransportFailed`, and the assembly cannot tell it
-    from a factory that is down.
-
-    `workgraph(spec_dir)` returns the parsed compiled graph, or raises
-    `TransportFailed` / `QueryRefused` / `json.JSONDecodeError`.
+    Callables, so every 052 fault shape is drivable from a committed test with
+    no live floor.  `workgraph(spec_dir)` returns the parsed compiled graph or
+    raises `TransportFailed` / `QueryRefused` / `json.JSONDecodeError`;
     `epic_status(spec_dir)` returns the answer for the epic whose id is that
-    spec dir, `None` when no epic has been dispatched for it, or raises the
-    same two failures.
+    spec dir, `None` when none was dispatched, or raises the same two.
     """
 
     workgraph: Callable[[str], dict]
     epic_status: Callable[[str], Awaitable[dict | None]]
     reference_instant: str | None = None
-    #: Where the compiled graph for a spec dir was actually read from, for the
-    #: entry's provenance.  Optional: a bundle that does not track it leaves the
-    #: entry naming the conventional path, which is where the graph belongs.
-    seam_for: Callable[[str], str] | None = None
 
     @classmethod
     def from_reader(
@@ -451,62 +355,46 @@ class ShowfloorReaders:
         """Bind the two reads to 001's reader seam.
 
         The compiled graph lives beside its spec — `specs/<dir>/workgraph.json`,
-        ergane's own `ARTIFACT_NAME`, which is what `Reader.workgraph` resolves.
-        This repository additionally commits an archive copy of the same
-        artifact from the same `ergane spec derive` run under `docs/dags/<dir>.json`
-        (CLAUDE.md, "the derived work graphs, archived for review before
-        dispatch"), because a target repo's specs are compiled on the operator's
-        checkout and the compiled file is not committed beside the spec.  When
-        the seam has nothing, the archive is consulted and the path that
-        answered is recorded on the entry, so the document never claims a graph
-        it did not read.
+        ergane's `ARTIFACT_NAME`, what `Reader.workgraph` resolves.  A target
+        repo's specs are compiled on the operator's checkout, though, and that
+        artifact is not committed beside the spec; this repository archives the
+        same file from the same `ergane spec derive` run under
+        `docs/dags/<dir>.json` (CLAUDE.md).  So: seam first, archive second.
 
         The live half is bound to the epics `read_floor` reports, matched by
-        `epic_id == spec_dir` — the identity `ergane spec derive` gives an epic.
+        `epic_id == spec_dir`, the identity `ergane spec derive` gives an epic.
         A spec with no epic on the floor gets `None`: undispatched, not degraded.
         """
         root = Path(specs_root)
         archive = archive_root if archive_root is not None else root.parent / "docs" / "dags"
-        bound = _BoundReads(reader, root, archive)
+        bound = _BoundReads(reader, archive)
         return cls(
             workgraph=bound.workgraph,
             epic_status=bound.epic_status,
             reference_instant=getattr(reader, "reference_instant", None),
-            seam_for=bound.seam_for,
         )
 
 
 class _BoundReads:
     """The production binding of `ShowfloorReaders` to 001's `Reader`."""
 
-    def __init__(self, reader: "Reader", specs_root: Path, archive_root: Path) -> None:
+    def __init__(self, reader: "Reader", archive_root: Path) -> None:
         self._reader = reader
-        self._specs_root = specs_root
         self._archive_root = archive_root
         self._refs: dict[str, Any] | None = None
         self._floor_failure: Exception | None = None
-        #: Where the graph for each spec dir actually came from, for the entry.
-        self._seams: dict[str, str] = {}
-
-    def seam_for(self, spec_dir: str) -> str:
-        """The path the graph was read from, or the one it should have been at."""
-        return self._seams.get(spec_dir, str(self._specs_root / spec_dir / "workgraph.json"))
 
     def workgraph(self, spec_dir: str) -> dict:
         try:
-            graph = self._reader.workgraph(spec_dir)
+            return self._reader.workgraph(spec_dir)
         except (TransportFailed, QueryRefused) as first:
             archived = self._archive_root / f"{spec_dir}.json"
             try:
-                graph = json.loads(archived.read_text(encoding="utf-8"))
+                return json.loads(archived.read_text(encoding="utf-8"))
             except OSError:
-                # The archive has nothing either: the *seam's* failure is the
-                # one worth naming, because the seam is where the graph belongs.
+                # The archive has nothing either: the *seam's* failure is the one
+                # worth naming, because the seam is where the graph belongs.
                 raise first from None
-            self._seams[spec_dir] = str(archived)
-            return graph
-        self._seams[spec_dir] = str(self._specs_root / spec_dir / "workgraph.json")
-        return graph
 
     async def epic_status(self, spec_dir: str) -> dict | None:
         refs = await self._epic_refs()
@@ -518,9 +406,9 @@ class _BoundReads:
     async def _epic_refs(self) -> dict[str, Any]:
         """The floor's running epics, keyed by epic id, read once per assembly.
 
-        A floor read that failed is re-raised for every spec rather than
-        remembered as an empty floor: "no epic is running" and "I could not ask"
-        are different sentences, and only one of them is true.
+        A failed read is re-raised for every spec rather than remembered as an
+        empty floor: "no epic is running" and "I could not ask" are different
+        sentences, and only one of them is true.
         """
         if self._floor_failure is not None:
             raise self._floor_failure
@@ -534,9 +422,7 @@ class _BoundReads:
         return self._refs
 
 
-# --------------------------------------------------------------------------
-# The document
-# --------------------------------------------------------------------------
+# --- the document ---------------------------------------------------------
 
 
 async def assemble_showfloor(
@@ -547,8 +433,8 @@ async def assemble_showfloor(
 ) -> dict:
     """Assemble the showfloor document: one rail entry per spec, in dir order.
 
-    The rail's order is `read_roadmap`'s order, which is sorted spec-dir order —
-    the deterministic order two operators see the same way.
+    The order is `read_roadmap`'s: sorted spec-dir order, which two operators
+    read the same way.
     """
     root = Path(specs_root)
     if reference_instant is None:
@@ -575,56 +461,23 @@ async def assemble_showfloor(
 def _read_corpus(root: Path) -> tuple[list[tuple[str, str | None]], list[dict]]:
     """Every spec dir and its declared state, through ergane's roadmap reader.
 
-    `read_roadmap` is the seam that owns the frontmatter grammar: sorted order,
-    `state` defaulting to `draft` when no block is present, and a refusal
-    naming every fault when the corpus does not parse.  It emits nothing on
-    failure by design, so a corpus it refuses falls back to the one thing that
-    needs no grammar — a listing of the directories that hold a `spec.md` —
-    with every state `None`, which the Unknown Rule renders as unknown.  The
-    refusal itself is named at the document level, once.
+    `read_roadmap` owns the frontmatter grammar: sorted order, `state` defaulting
+    to `draft`, and a refusal naming every fault when the corpus does not parse.
+    It emits nothing on failure by design, and that discipline is kept rather
+    than second-guessed with a looser parser of this repository's own: a refused
+    corpus is an empty rail with the refusal named at the document level, once.
     """
-    from factory.roadmap.models import SPEC_NAME, RoadmapError, read_roadmap
+    from factory.roadmap.models import RoadmapError, read_roadmap
+
+    def note(read: str, mode: str, detail: str) -> dict:
+        return {"spec_dir": None, "read": read, "mode": mode, "detail": detail}
 
     try:
         roadmap = read_roadmap(root)
-    except RoadmapError as exc:
-        listing: list[tuple[str, str | None]] = []
-        try:
-            for path in sorted(p for p in root.iterdir() if p.is_dir()):
-                if (path / SPEC_NAME).is_file():
-                    listing.append((path.name, None))
-        except OSError as listing_exc:
-            return [], [
-                {
-                    "spec_dir": None,
-                    "read": "read_roadmap",
-                    "mode": "unparseable",
-                    "detail": str(exc),
-                },
-                {
-                    "spec_dir": None,
-                    "read": "specs_root",
-                    "mode": "transport",
-                    "detail": str(listing_exc),
-                },
-            ]
-        return listing, [
-            {
-                "spec_dir": None,
-                "read": "read_roadmap",
-                "mode": "unparseable",
-                "detail": str(exc),
-            }
-        ]
     except OSError as exc:
-        return [], [
-            {
-                "spec_dir": None,
-                "read": "specs_root",
-                "mode": "transport",
-                "detail": str(exc),
-            }
-        ]
+        return [], [note("specs_root", "transport", str(exc))]
+    except RoadmapError as exc:
+        return [], [note("read_roadmap", "unparseable", str(exc))]
 
     return [(entry.spec_dir, str(entry.state)) for entry in roadmap.entries], []
 
@@ -635,7 +488,7 @@ async def _assemble_spec(
     spec_state: str | None,
     readers: ShowfloorReaders,
 ) -> dict:
-    """One rail entry: the spec, its stories, and every read that failed."""
+    """One rail entry: the spec, its stories, every read that failed."""
     notes: list[dict] = []
     unknown: list[str] = []
 
@@ -690,7 +543,6 @@ async def _assemble_spec(
         "epic_state": epic_state,
         "stories": stories,
         "story_source": story_source,
-        "workgraph_seam": _workgraph_seam(root, spec_dir, readers),
         "notes": notes,
         "unknown": unknown,
     }
@@ -706,12 +558,11 @@ def _stories(
 ) -> tuple[list[dict], str]:
     """The spec's stories, from the compiled graph when it was readable.
 
-    When it was not, story identity falls back to the spec's own headings: a
-    rail entry with a degraded note is what the spec's Edge Cases require, and
-    an entry with no stories at all would be an omission dressed as a render.
-    The fallback carries no `requirement_keys` — the graph is the only place
-    they exist — and says so by leaving the list empty and naming the read in
-    `notes`.
+    When it was not, story identity falls back to the spec's own headings: the
+    Edge Cases require a rail entry with a degraded note, and an entry with no
+    stories would be an omission dressed as a render.  The fallback carries no
+    `requirement_keys` — the graph is the only place they exist — and says so
+    with an empty list and the read named in `notes`.
     """
     if graph is not None:
         nodes = graph.get("nodes") or []
@@ -793,20 +644,18 @@ def _story(
         "ladder": ladder,
         "facts": facts,
         # The live fields the answer did not carry, named rather than defaulted.
-        # An epic that was never dispatched carries none of them and is not
-        # missing anything; an answer that *was* read and did not name this node
-        # — 002's skew shape — is missing all of them, and says so.
+        # An undispatched epic is not missing them; an answer that *was* read and
+        # did not name this node — 002's skew — is missing all of them, and says so.
         "unknown": missing if dispatched else [],
     }
 
 
 def _rail_chip(spec_state: str | None, stories: list[dict]) -> str | None:
-    """The rail row's chip word: what the epic is doing, else what it declares.
+    """The rail row's chip: what the epic is doing, else what it declares.
 
-    DESIGN.md's rail pairs the chip with the story count (`landed 4/4`,
-    `building 1/4`), so the word has to be the *epic's* word, not a story's.
-    Priority is the operator's: someone is being waited on, then something died,
-    then what is live, then everything landed, then the declared intent.
+    DESIGN.md pairs it with the story count (`landed 4/4`, `building 1/4`), so
+    the word is the *epic's*, not a story's.  Priority is the operator's:
+    someone waited on, something dead, what is live, all landed, the intent.
     """
     if any(story["ladder"]["tone"] == "waiting" for story in stories):
         return CHIP_WAITING
@@ -829,13 +678,6 @@ def _rail_chip(spec_state: str | None, stories: list[dict]) -> str | None:
     if spec_state is not None:
         return SPEC_STATE_CHIPS.get(spec_state)
     return None
-
-
-def _workgraph_seam(root: Path, spec_dir: str, readers: ShowfloorReaders) -> str:
-    """The path the compiled graph was actually read from, for provenance."""
-    if readers.seam_for is not None:
-        return readers.seam_for(spec_dir)
-    return str(root / spec_dir / "workgraph.json")
 
 
 def _exc_mode(exc: TransportFailed | QueryRefused) -> str:

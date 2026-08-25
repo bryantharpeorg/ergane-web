@@ -1,11 +1,10 @@
 """Prove the showfloor document joins four sources honestly (005 US1).
 
 Every assertion is over committed material: this repository's own `specs/`
-corpus, the compiled graphs archived under `docs/dags/`, and the recorded
-Fixture floor.  Nothing here needs a live factory, and no shape is invented —
-the two 052 fault shapes are produced by asking the `FixtureReader` for reads
-the recording genuinely cannot answer, and the exceptions it raises are carried
-into the assembly verbatim (constitution V).
+corpus, the graphs archived under `docs/dags/`, and the recorded Fixture floor.
+Nothing needs a live factory and nothing is invented — the two 052 fault shapes
+come from asking the `FixtureReader` for reads the recording cannot answer, and
+its exceptions reach the assembly verbatim (constitution V).
 """
 
 import asyncio
@@ -37,24 +36,19 @@ FIXTURES = ROOT / "fixtures"
 SPECS = ROOT / "specs"
 DAGS = ROOT / "docs" / "dags"
 
-#: The spec whose compiled graph this repository committed and whose headings
-#: are the parser's well-formed case.  Both files are in the diff's tree.
+#: The spec whose compiled graph this repository committed, and whose headings
+#: are the parser's well-formed case.
 ARCHIVED_SPEC = "001-the-desk-sees-the-floor"
 
 
-# --------------------------------------------------------------------------
-# helpers: readers built from committed artifacts
-# --------------------------------------------------------------------------
+# --- readers built from committed artifacts -------------------------------
 
 
 def archive_workgraph(spec_dir: str) -> dict:
     """The compiled graph this repository archived, or a transport failure.
 
-    `docs/dags/<dir>.json` is the artifact `ergane spec derive` wrote before
-    dispatch (CLAUDE.md); a spec with no archived graph is exactly the
-    "no compiled workgraph" edge case the spec names, and it fails the way the
-    reader seam fails.
-    """
+    `docs/dags/<dir>.json` is what `ergane spec derive` wrote before dispatch
+    (CLAUDE.md); a spec with none is the "no compiled workgraph" edge case."""
     path = DAGS / f"{spec_dir}.json"
     if not path.is_file():
         raise TransportFailed("workgraph", f"{path}: no compiled graph")
@@ -64,6 +58,21 @@ def archive_workgraph(spec_dir: str) -> dict:
 async def no_epic(spec_dir: str) -> dict | None:
     """No epic is running for this spec: undispatched, not degraded."""
     return None
+
+
+def answering(spec_dir: str, outcome):
+    """One spec answers `outcome`; no other spec has an epic.  `outcome` is a
+    recorded answer or an exception to raise — which is how the two 052 fault
+    shapes reach the assembly unchanged."""
+
+    async def epic_status(asked: str) -> dict | None:
+        if asked != spec_dir:
+            return None
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    return epic_status
 
 
 def static_readers(**overrides) -> ShowfloorReaders:
@@ -82,13 +91,17 @@ def entry_for(document: dict, spec_dir: str) -> dict:
     return next(entry for entry in document["rail"] if entry["spec_dir"] == spec_dir)
 
 
-def recorded_refusal() -> QueryRefused:
-    """The refusal the Fixture floor actually raises, carried out of the reader.
+def entry_answering(spec_dir: str, outcome) -> dict:
+    """`spec_dir`'s rail entry, assembled with that spec answering `outcome`."""
+    return entry_for(
+        assemble(readers=static_readers(epic_status=answering(spec_dir, outcome))), spec_dir
+    )
 
-    `fixtures/epic-status/refusal.json` is a recorded degraded answer — the
-    CLI's rendering of a `WorkflowQueryRejectedError` — so asking the fixture
-    reader for it is how a refusal is obtained here rather than constructed.
-    """
+
+def recorded_refusal() -> QueryRefused:
+    """The refusal the Fixture floor raises: a recorded degraded answer, the
+    CLI's rendering of a `WorkflowQueryRejectedError`, obtained by asking for it
+    rather than constructed."""
     reader = FixtureReader(FIXTURES)
     workflow_id = build.workflow_id("077-a-scanner-the-operator-chooses-runs-in-the-loop")
     with pytest.raises(QueryRefused) as caught:
@@ -104,13 +117,11 @@ def recorded_transport_failure() -> TransportFailed:
     return caught.value
 
 
-# --------------------------------------------------------------------------
-# FR-002: the headings
-# --------------------------------------------------------------------------
+# --- FR-002: the headings -------------------------------------------------
 
 
 def test_well_formed_headings_parse_to_titles_and_priorities():
-    """`### User Story <n> - <title> (Priority: P<n>)` yields title and priority."""
+    """`### User Story <n> - <title> (Priority: P<n>)` yields title, priority."""
     text = (SPECS / "005-one-epic-on-stage" / "spec.md").read_text()
 
     headings = parse_story_headings(text)
@@ -123,44 +134,38 @@ def test_well_formed_headings_parse_to_titles_and_priorities():
     assert headings["US3"].title == "The stage: one graph, drawn inside its box"
     # The intent is the paragraph under the heading, verbatim words only.
     assert headings["US1"].intent.startswith("As the pane's backend, I assemble one")
-
-
-def test_parse_story_headings_never_raises_on_arbitrary_text():
-    """A parser that crashes the floor on bad input would fail constitution III."""
-    for text in ("", "### User Story", "###User Story 1 - x (Priority: P1)", "\x00\n---\n"):
-        assert parse_story_headings(text) == {}
+    assert parse_spec_name(text) == "One epic on stage"
+    assert parse_spec_name("no name here") is None
 
 
 def test_a_heading_off_the_grammar_contributes_nothing():
-    """Three near-misses and one blank title: none of them is a heading."""
-    text = "\n".join(
-        [
-            "### User Story 1 - Good one (Priority: P1)",
-            "### User Story 2 — em dash instead of hyphen (Priority: P2)",
-            "### User Story 3 - no priority at all",
-            "### User Story 4 -    (Priority: P1)",
-        ]
+    """Near-misses, a blank title, arbitrary bytes: none of them is a heading.
+
+    A parser that crashed the floor on bad input would fail constitution III.
+    """
+    for text in ("", "### User Story", "###User Story 1 - x (Priority: P1)", "\x00\n---\n"):
+        assert parse_story_headings(text) == {}
+
+    headings = parse_story_headings(
+        "\n".join(
+            [
+                "### User Story 1 - Good one (Priority: P1)",
+                "### User Story 2 — em dash instead of hyphen (Priority: P2)",
+                "### User Story 3 - no priority at all",
+                "### User Story 4 -    (Priority: P1)",
+            ]
+        )
     )
-
-    headings = parse_story_headings(text)
-
     assert sorted(headings) == ["US1"]
     assert headings["US1"].title == "Good one"
 
 
-def test_spec_name_parses_and_falls_back(tmp_path):
-    assert parse_spec_name((SPECS / "005-one-epic-on-stage" / "spec.md").read_text()) == (
-        "One epic on stage"
-    )
-    assert parse_spec_name("no name here") is None
+def test_an_unparseable_heading_falls_back_to_story_key_and_is_named(tmp_path):
+    """FR-002: `story_key` stands in, the miss lands in that spec's `unknown`.
 
-
-def test_a_story_whose_heading_cannot_be_parsed_falls_back_and_is_named(tmp_path):
-    """FR-002: `story_key` stands in, and the miss lands in that spec's `unknown`.
-
-    The malformed case is this repository's own committed spec with exactly one
-    heading damaged — the em dash a copy-paste produces — so the well-formed and
-    malformed inputs differ by one character and nothing else is invented.
+    The malformed input is this repository's own committed spec with one heading
+    damaged — the em dash a copy-paste produces — so well-formed and malformed
+    differ by one character.
     """
     original = (SPECS / ARCHIVED_SPEC / "spec.md").read_text()
     damaged = original.replace(
@@ -185,13 +190,11 @@ def test_a_story_whose_heading_cannot_be_parsed_falls_back_and_is_named(tmp_path
     assert stories["US4"]["title"] == "The Desk renders the floor, read-only"
 
 
-# --------------------------------------------------------------------------
-# FR-003: the ladder table
-# --------------------------------------------------------------------------
+# --- FR-003: the ladder table ---------------------------------------------
 
 #: DESIGN.md § The status ladder, transcribed: the stop each of ergane's eleven
 #: `NodeState` members lands on.  `None` is the frozen ladder, which occupies no
-#: stop at all.
+#: stop.
 DESIGN_TABLE = {
     "PENDING": "ready",
     "KEY_ISSUED": "building",
@@ -208,13 +211,15 @@ DESIGN_TABLE = {
 
 
 def test_the_table_covers_exactly_ergane_s_node_states():
-    """Eleven states, no more and no fewer — read off ergane's own enum.
+    """Eleven states and six stops, read off ergane's enum and DESIGN.md.
 
-    If ergane grows a twelfth state this test fails here rather than letting the
-    pane silently render it as nothing.
+    A twelfth state fails here rather than being silently rendered as nothing.
     """
     assert set(DESIGN_TABLE) == {member.name for member in NodeState}
     assert len(DESIGN_TABLE) == 11
+    assert [label for _key, label in LADDER_STOPS] == [
+        "ready", "building", "verifying", "pr open", "queue", "merged",
+    ]
 
 
 @pytest.mark.parametrize("state", sorted(DESIGN_TABLE))
@@ -225,17 +230,6 @@ def test_every_node_state_lands_on_its_design_md_stop(state):
     assert ladder["state"] == state
     assert [stop["key"] for stop in ladder["stops"]] == list(STOP_KEYS)
     assert len(ladder["stops"]) == 6
-
-
-def test_the_six_stops_are_design_md_s_six_in_order():
-    assert [label for _key, label in LADDER_STOPS] == [
-        "ready",
-        "building",
-        "verifying",
-        "pr open",
-        "queue",
-        "merged",
-    ]
 
 
 def test_stops_before_the_active_one_are_done_and_the_rest_ahead():
@@ -331,23 +325,16 @@ def test_a_state_the_table_has_not_learned_is_named_not_guessed_at():
     assert ladder["state"] == "TELEPORTING"
 
 
-# --------------------------------------------------------------------------
-# FR-001: the document over this repository's own specs
-# --------------------------------------------------------------------------
+# --- FR-001: the document over this repository's own specs ----------------
 
 
-def test_one_rail_entry_per_spec_directory_in_directory_order():
+def test_one_rail_entry_per_spec_dir_in_order_with_state_and_story_count():
+    """FR-001 and scenario 1: dir, declared state, stories landed of total."""
     document = assemble()
 
-    on_disk = sorted(
-        path.name for path in SPECS.iterdir() if (path / "spec.md").is_file()
-    )
+    on_disk = sorted(path.name for path in SPECS.iterdir() if (path / "spec.md").is_file())
     assert [entry["spec_dir"] for entry in document["rail"]] == on_disk
     assert len(on_disk) >= 5
-
-
-def test_each_rail_entry_carries_its_declared_state_and_story_count():
-    document = assemble()
 
     states = {entry["spec_dir"]: entry["state"] for entry in document["rail"]}
     assert states["001-the-desk-sees-the-floor"] == "landed"
@@ -357,6 +344,7 @@ def test_each_rail_entry_carries_its_declared_state_and_story_count():
     landed = entry_for(document, "001-the-desk-sees-the-floor")
     assert (landed["stories_landed"], landed["stories_total"]) == (4, 4)
     assert landed["chip"] == "landed"
+    assert landed["name"] == "the desk sees the floor"
 
     ready = entry_for(document, "005-one-epic-on-stage")
     assert ready["stories_landed"] == 0
@@ -422,12 +410,7 @@ def test_landing_facts_come_from_the_live_answer():
         ).read_text()
     )
 
-    async def answer(spec_dir: str) -> dict | None:
-        return recorded if spec_dir == ARCHIVED_SPEC else None
-
-    entry = entry_for(
-        assemble(readers=static_readers(epic_status=answer)), ARCHIVED_SPEC
-    )
+    entry = entry_answering(ARCHIVED_SPEC, recorded)
 
     us1 = entry["stories"][0]
     assert us1["facts"]["attempt"] == 1
@@ -446,16 +429,14 @@ def test_landing_facts_come_from_the_live_answer():
 
 
 def test_a_partial_answer_names_the_fields_it_did_not_carry():
-    """001's discipline: a field the factory did not record is unknown, not zero."""
+    """001's discipline: a field the factory did not record is unknown, not zero.
 
-    async def answer(spec_dir: str) -> dict | None:
-        if spec_dir != ARCHIVED_SPEC:
-            return None
-        return {"epic_state": "RUNNING", "nodes": {"us1": {"state": "RUNNING"}}}
-
-    entry = entry_for(
-        assemble(readers=static_readers(epic_status=answer)), ARCHIVED_SPEC
-    )
+    And 002's skew shape with it: a node the answer never mentions is missing
+    every live field, and rests at `ready` with no chip even though its spec is
+    attested `landed` — a running epic is the newer of the two sources.
+    """
+    partial = {"epic_state": "RUNNING", "nodes": {"us1": {"state": "RUNNING"}}}
+    entry = entry_answering(ARCHIVED_SPEC, partial)
 
     us1 = entry["stories"][0]
     assert us1["ladder"]["stop"] == "building"
@@ -464,18 +445,19 @@ def test_a_partial_answer_names_the_fields_it_did_not_carry():
     assert "pr_number" in us1["unknown"]
     assert "state" not in us1["unknown"]
 
+    us4 = entry["stories"][3]
+    assert us4["facts"]["state"] is None
+    assert "state" in us4["unknown"]
+    assert us4["ladder"]["stop"] == "ready"
+    assert us4["ladder"]["chip"] is None
+
 
 def test_a_waiting_story_makes_the_whole_rail_row_wait():
     recorded = json.loads(
         (FIXTURES / "epic-status" / "question" / "waiting-operator.json").read_text()
     )
 
-    async def answer(spec_dir: str) -> dict | None:
-        return recorded if spec_dir == ARCHIVED_SPEC else None
-
-    entry = entry_for(
-        assemble(readers=static_readers(epic_status=answer)), ARCHIVED_SPEC
-    )
+    entry = entry_answering(ARCHIVED_SPEC, recorded)
 
     assert entry["chip"] == "waiting on you"
     assert entry["stories"][0]["ladder"]["tone"] == "waiting"
@@ -484,91 +466,43 @@ def test_a_waiting_story_makes_the_whole_rail_row_wait():
 def test_a_killed_epic_freezes_every_one_of_its_ladders():
     recorded = json.loads((FIXTURES / "epic-status" / "killed" / "killed.json").read_text())
 
-    async def answer(spec_dir: str) -> dict | None:
-        return recorded if spec_dir == ARCHIVED_SPEC else None
-
-    entry = entry_for(
-        assemble(readers=static_readers(epic_status=answer)), ARCHIVED_SPEC
-    )
+    entry = entry_answering(ARCHIVED_SPEC, recorded)
 
     assert entry["chip"] == "killed"
     assert all(story["ladder"]["frozen"] for story in entry["stories"])
     assert all(story["ladder"]["chip"] == "killed" for story in entry["stories"])
 
 
-# --------------------------------------------------------------------------
-# FR-004: the two 052 fault shapes
-# --------------------------------------------------------------------------
+# --- FR-004: the two 052 fault shapes -------------------------------------
 
 
-def test_a_refused_epic_status_renders_the_entry_with_a_refusal_note():
-    refusal = recorded_refusal()
+@pytest.mark.parametrize("mode", ["refusal", "transport"])
+def test_a_failed_epic_status_renders_the_entry_with_a_note_naming_the_mode(mode):
+    """FR-004: in place, naming read and mode, healthy specs unaffected."""
+    failure = recorded_refusal() if mode == "refusal" else recorded_transport_failure()
 
-    async def answer(spec_dir: str) -> dict | None:
-        if spec_dir == ARCHIVED_SPEC:
-            raise refusal
-        return None
-
-    document = assemble(readers=static_readers(epic_status=answer))
+    document = assemble(
+        readers=static_readers(epic_status=answering(ARCHIVED_SPEC, failure))
+    )
     entry = entry_for(document, ARCHIVED_SPEC)
 
     assert entry["notes"] == [
-        {"read": "epic_status", "mode": "refusal", "detail": refusal.detail}
+        {"read": "epic_status", "mode": mode, "detail": failure.detail}
     ]
-    # Still rendered, and static: the graph is the structural truth even when
-    # nothing live can be learned.
+    # Still rendered, and static: the graph is the structural truth.
     assert len(entry["stories"]) == 4
     assert entry["stories"][0]["requirement_keys"][0] == "US1"
     assert all(story["ladder"]["state"] is None for story in entry["stories"])
 
-    # And every healthy spec is untouched.
     healthy = entry_for(document, "005-one-epic-on-stage")
     assert not [note for note in healthy["notes"] if note["read"] == "epic_status"]
 
 
-def test_an_unreachable_epic_status_renders_the_entry_with_a_transport_note():
-    failure = recorded_transport_failure()
-
-    async def answer(spec_dir: str) -> dict | None:
-        if spec_dir == ARCHIVED_SPEC:
-            raise failure
-        return None
-
-    entry = entry_for(
-        assemble(readers=static_readers(epic_status=answer)), ARCHIVED_SPEC
-    )
-
-    assert entry["notes"] == [
-        {"read": "epic_status", "mode": "transport", "detail": failure.detail}
-    ]
-    assert len(entry["stories"]) == 4
-
-
-def test_a_story_the_answer_did_not_name_says_so(tmp_path):
-    """002's skew shape: the graph declares a node the answer never mentions."""
-
-    async def answer(spec_dir: str) -> dict | None:
-        if spec_dir != ARCHIVED_SPEC:
-            return None
-        return {"epic_state": "RUNNING", "nodes": {"us1": {"state": "RUNNING", "attempt": 2}}}
-
-    entry = entry_for(assemble(readers=static_readers(epic_status=answer)), ARCHIVED_SPEC)
-
-    us4 = entry["stories"][3]
-    assert us4["facts"]["state"] is None
-    assert "state" in us4["unknown"]
-    assert us4["ladder"]["stop"] == "ready"
-    # No chip: the spec is attested `landed`, but a running epic is the newer
-    # source and it said nothing about this node.
-    assert us4["ladder"]["chip"] is None
-
-
 def test_stories_stay_static_when_the_live_state_cannot_be_read():
-    """FR-004: the entry renders, and its stories rest where the spec declares.
+    """FR-004: the entry renders, its stories rest where the spec declares.
 
-    A `ready` spec whose live read failed rests at `ready` — the pane shows what
-    it can still stand behind, and never a stop it did not observe.  A spec the
-    operator attested `landed` keeps its six-done ladders for the same reason:
+    A `ready` spec whose live read failed rests at `ready` — never a stop the
+    pane did not observe.  A spec attested `landed` keeps its six-done ladders:
     the attestation is a fact the failed read did not take away.
     """
     failure = recorded_transport_failure()
@@ -577,7 +511,6 @@ def test_stories_stay_static_when_the_live_state_cannot_be_read():
         raise failure
 
     document = assemble(readers=static_readers(epic_status=answer))
-
     ready = entry_for(document, "005-one-epic-on-stage")
     assert [note["mode"] for note in ready["notes"] if note["read"] == "epic_status"] == [
         "transport"
@@ -593,7 +526,7 @@ def test_stories_stay_static_when_the_live_state_cannot_be_read():
 
 
 def test_transport_and_refusal_are_distinguished_in_mode_not_only_in_prose():
-    """The 052 doctrine's whole point: two modes, told apart by a field."""
+    """The 052 doctrine's point: two modes, told apart by a field."""
     refusal = recorded_refusal()
     failure = recorded_transport_failure()
 
@@ -606,6 +539,7 @@ def test_transport_and_refusal_are_distinguished_in_mode_not_only_in_prose():
 
     document = assemble(readers=static_readers(epic_status=answer))
 
+
     modes = {
         note["spec_dir"]: note["mode"]
         for note in document["degraded"]
@@ -617,15 +551,14 @@ def test_transport_and_refusal_are_distinguished_in_mode_not_only_in_prose():
 
 
 def test_a_spec_with_no_compiled_workgraph_is_an_entry_with_a_note():
-    """The spec's Edge Cases: a degraded note, not a crash and not an omission."""
+    """The Edge Cases: a degraded note, not a crash and not an omission."""
     document = assemble()
     entry = entry_for(document, "005-one-epic-on-stage")
 
     assert [note["read"] for note in entry["notes"]] == ["workgraph"]
     assert entry["notes"][0]["mode"] == "transport"
     assert entry["story_source"] == "headings"
-    # Rendered, with the stories the spec's own headings declare, and honest
-    # about the one thing only the compiled graph knows.
+    # Rendered from the spec's own headings, honest about what only the graph knows.
     assert [story["story_key"] for story in entry["stories"]] == ["US1", "US2", "US3", "US4"]
     assert entry["stories"][0]["title"].startswith("The showfloor document")
     assert all(story["requirement_keys"] == [] for story in entry["stories"])
@@ -651,6 +584,19 @@ def test_an_unparseable_workgraph_is_told_apart_from_a_missing_one():
     assert len(entry["stories"]) == 4
 
 
+def test_a_corpus_ergane_refuses_is_named_not_half_rendered(tmp_path):
+    """FR-004 over the frontmatter read: `read_roadmap` emits nothing on failure."""
+    spec_dir = tmp_path / "901-bad-frontmatter"
+    spec_dir.mkdir()
+    (spec_dir / "spec.md").write_text("---\nstate: ready\nnot_a_key: 1\n---\n\n# x\n")
+
+    document = assemble(specs_root=tmp_path)
+
+    assert document["rail"] == []
+    assert [note["read"] for note in document["degraded"]] == ["read_roadmap"]
+    assert document["degraded"][0]["mode"] == "unparseable"
+
+
 def test_a_floor_that_cannot_be_read_names_itself_on_every_spec():
     """"No epic is running" and "I could not ask" are different sentences."""
     reader = FixtureReader(FIXTURES, transport_fail=frozenset({"floor"}))
@@ -667,14 +613,9 @@ def test_a_floor_that_cannot_be_read_names_itself_on_every_spec():
 
 
 def test_the_document_level_degraded_list_names_the_spec_each_note_came_from():
-    refusal = recorded_refusal()
-
-    async def answer(spec_dir: str) -> dict | None:
-        if spec_dir == ARCHIVED_SPEC:
-            raise refusal
-        return None
-
-    document = assemble(readers=static_readers(epic_status=answer))
+    document = assemble(
+        readers=static_readers(epic_status=answering(ARCHIVED_SPEC, recorded_refusal()))
+    )
 
     assert {"spec_dir", "read", "mode", "detail"} <= set(document["degraded"][0])
     assert any(
@@ -683,9 +624,7 @@ def test_the_document_level_degraded_list_names_the_spec_each_note_came_from():
     )
 
 
-# --------------------------------------------------------------------------
-# T005: the route
-# --------------------------------------------------------------------------
+# --- T005: the route ------------------------------------------------------
 
 
 @pytest.fixture
@@ -694,9 +633,12 @@ def demo_app(tmp_path, monkeypatch, credentials):
     for key in list(os.environ):
         if key.startswith(("ERGANE_", "FACTORY_", "TEMPORAL_")):
             monkeypatch.delenv(key, raising=False)
-    monkeypatch.setenv("PANE_DEMO", "1")
-    monkeypatch.setenv("PANE_FIXTURES_ROOT", str(FIXTURES))
-    monkeypatch.setenv("PANE_SPECS_ROOT", str(SPECS))
+    for name, value in {
+        "PANE_DEMO": "1",
+        "PANE_FIXTURES_ROOT": str(FIXTURES),
+        "PANE_SPECS_ROOT": str(SPECS),
+    }.items():
+        monkeypatch.setenv(name, value)
     return create_app(Settings.from_env())
 
 
@@ -715,7 +657,7 @@ def test_api_showfloor_serves_the_document(demo_app, auth_headers):
 
 def test_api_showfloor_is_behind_the_token_like_every_other_route(demo_app):
     """Constitution VI: the guard is the router's, so the route inherits it."""
-    unauthenticated = TestClient(demo_app)
+    client = TestClient(demo_app)
 
-    assert unauthenticated.get("/api/showfloor").status_code == 401
-    assert unauthenticated.get("/api/showfloor", headers={"Authorization": "Bearer no"}).status_code == 401
+    assert client.get("/api/showfloor").status_code == 401
+    assert client.get("/api/showfloor", headers={"Authorization": "Bearer no"}).status_code == 401

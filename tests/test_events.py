@@ -238,12 +238,10 @@ def test_a_node_state_change_reaches_the_stream_as_a_showfloor_event():
     """FR-005: one typed event carrying the changed spec's re-assembled entry.
 
     The reader answers with one recorded `epic_status` document until the second
-    poll begins, then with the next one in ergane's own landing recording — the
-    step where `us1` moves from VERIFYING to PASSED.  The flip happens while the
-    consumer holds the second `floor` event, which is yielded before that poll
-    re-assembles the showfloor, so the second assembly is the first one to see
-    the change.  The event that follows must carry the changed spec and only the
-    changed spec: a consumer applies the entry in place and never refetches.
+    poll begins, then with the next in ergane's landing recording — the step
+    where `us1` moves VERIFYING → PASSED.  The flip happens while the consumer
+    holds the second `floor` event, which is yielded before that poll
+    re-assembles the showfloor, so the second assembly is the first to see it.
     """
     specs_root = ROOT / "specs"
     subject = "001-the-desk-sees-the-floor"
@@ -271,8 +269,7 @@ def test_a_node_state_change_reaches_the_stream_as_a_showfloor_event():
                 and event["data"]["spec_dir"] == subject
             ):
                 return events
-            # A bound, so a stream that never changes fails the assertions below
-            # rather than hanging the gate.
+            # A bound: a stream that never changes fails below, never hangs.
             if len(events) > 60:
                 return events
         return events
@@ -283,8 +280,8 @@ def test_a_node_state_change_reaches_the_stream_as_a_showfloor_event():
     assert types[0] == "floor"
     assert types.count("floor") == 2, "the stream must have polled twice"
 
-    first_poll = _entries_before_second_floor(events)
     # A fresh subscription starts with the whole room (001 FR-018's discipline).
+    first_poll = _entries_before_second_floor(events)
     assert {entry["spec_dir"] for entry in first_poll} == {
         path.name for path in specs_root.iterdir() if (path / "spec.md").is_file()
     }
@@ -301,8 +298,7 @@ def test_a_node_state_change_reaches_the_stream_as_a_showfloor_event():
     after = changed[0]
     assert before["stories"][0]["ladder"]["stop"] == "verifying"
     assert after["stories"][0]["ladder"]["stop"] == "pr open"
-    # The payload is the whole entry, so the browser applies it without asking
-    # for the document again.
+    # The whole entry, so the browser applies it without refetching.
     assert set(after) == set(before)
     assert after["stories_total"] == before["stories_total"]
 
@@ -321,7 +317,7 @@ def test_showfloor_events_serialize_with_their_own_event_name():
 
     assert chunks[0]["event"] == "showfloor"
     assert json.loads(chunks[0]["data"])["type"] == "showfloor"
-    # An unknown type still travels, unnamed — a consumer that ignores what it
+    # An unknown type still travels, unnamed: a consumer that ignores what it
     # does not know is unaffected (001 FR-016, 005 FR-005).
     assert "event" not in chunks[1]
 
@@ -340,8 +336,9 @@ def _entries_before_second_floor(events: list[dict]) -> list[dict]:
 class _ChangingReader:
     """A `FixtureReader` with one extra epic whose recorded answer can be swapped.
 
-    `answer` is a plain attribute so the consumer of the stream decides when the
-    factory's answer changes; every other read is the fixture reader's own.
+    `answer` is a plain attribute, so the stream's consumer decides when the
+    factory's answer changes.  Everything unnamed delegates to the fixture
+    reader, which keeps this a stand-in for `Reader`, not a second one.
     """
 
     def __init__(self, reader: FixtureReader, epic_id: str, answer: dict) -> None:
@@ -349,9 +346,8 @@ class _ChangingReader:
         self._epic_id = epic_id
         self.answer = answer
 
-    @property
-    def reference_instant(self) -> str | None:
-        return self._reader.reference_instant
+    def __getattr__(self, name: str):
+        return getattr(self._reader, name)
 
     async def read_floor(self):
         from pane.readers import EpicRef, FloorRead
@@ -371,33 +367,3 @@ class _ChangingReader:
         if workflow_id == f"epic-{self._epic_id}":
             return self.answer
         return await self._reader.epic_status(workflow_id, scene=scene)
-
-    def workgraph(self, epic_id_or_ref: str):
-        return self._reader.workgraph(epic_id_or_ref)
-
-    async def open_escalations(self):
-        return await self._reader.open_escalations()
-
-    def stored_items(self):
-        return self._reader.stored_items()
-
-    async def settle_question(self, correlation_id: str, text: str, identity: str) -> str:
-        return await self._reader.settle_question(correlation_id, text, identity)
-
-    async def press_escalation(self, correlation_id, escalation_id, choice, identity):
-        return await self._reader.press_escalation(correlation_id, escalation_id, choice, identity)
-
-    async def read_question(self, correlation_id: str):
-        return await self._reader.read_question(correlation_id)
-
-    async def read_escalation_fate(self, correlation_id: str):
-        return await self._reader.read_escalation_fate(correlation_id)
-
-    def list_findings(self):
-        return self._reader.list_findings()
-
-    def rollup(self):
-        return self._reader.rollup()
-
-    async def aclose(self) -> None:
-        await self._reader.aclose()
