@@ -356,3 +356,126 @@ test.describe("the no-overlap law (FR-006)", () => {
     expect((await measureOverlaps(page)).overlapping).toEqual([]);
   });
 });
+
+/**
+ * The stale fold, in a real browser, over the floor `PANE_DEMO=1` really serves
+ * (006 US3-S3, FR-008).
+ *
+ * A note on SC-003, which reads "live attention above **one collapsed stale
+ * fold**": the recorded Fixture floor has no expired item to put in one. Its
+ * `reference_instant` is the `captured_at` of
+ * `fixtures/escalations/open_escalations.envelope.json` — `2026-08-22T17:41:12Z`
+ * — and every expiry the recording carries (`17:41:18Z`, `17:56:11Z`,
+ * `18:01:12Z`, `2026-08-23T01:41:13Z`) is *after* it. Manufacturing a fold here
+ * would mean writing a factory time nobody recorded, which constitution V
+ * forbids and FR-009 forbids twice over. So what this gate proves headlessly is
+ * the half of FR-008 the real corpus can prove — **an empty fold is an element
+ * that can never fill, and none renders** — and the fold's own contents are
+ * proven in `tests/unit/AttentionStrip.test.tsx`, over the same recorded
+ * deliveries read at a later instant.
+ */
+test.describe("the stale fold renders only when it has contents (FR-008, US3-S3)", () => {
+  test("shows no fold on the Fixture floor, whose every clock is still live", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/desk");
+    await page.waitForSelector("section.attention article.item");
+
+    const floorDoc = (await (await request.get("/api/floor")).json()) as {
+      reference_instant: string | null;
+      attention: { items: { id: string; expires_at: string | null }[] };
+    };
+    const reference = new Date(floorDoc.reference_instant as string).getTime();
+
+    // The premise, measured rather than assumed: this floor has items, and not
+    // one of them is past its deadline at the instant the document was read.
+    expect(floorDoc.attention.items.length).toBeGreaterThan(0);
+    for (const item of floorDoc.attention.items) {
+      if (item.expires_at === null) continue;
+      expect(
+        new Date(item.expires_at).getTime(),
+        `${item.id} is still live at the document's reference instant`,
+      ).toBeGreaterThan(reference);
+    }
+
+    // Therefore: no fold, no folded line, and every item in a full card.
+    expect(await page.locator("details.stale").count()).toBe(0);
+    expect(await page.locator("[data-stale]").count()).toBe(0);
+    expect(await page.locator("section.attention .items article.item").count()).toBe(
+      floorDoc.attention.items.length,
+    );
+  });
+
+  test("would fold, and collapse to one line, if an item's clock had passed", async ({
+    page,
+    request,
+  }) => {
+    // The same discipline the no-overlap law above keeps: an assertion that
+    // something is absent is worth its green only if the thing can be made to
+    // appear. The partition is a pure function of the document, so this serves
+    // the room the **same recorded document** with its reference instant moved
+    // a day on — the one input that decides live from stale. Every `expires_at`
+    // on the page is still the one the recording carries; nothing the factory
+    // wrote is edited, which is the only way this could be staged at all
+    // (constitution V, FR-009).
+    const recorded = (await (await request.get("/api/floor")).json()) as {
+      reference_instant: string;
+      attention: { items: { expires_at: string | null }[] };
+    };
+    const withClocks = recorded.attention.items.filter((item) => item.expires_at !== null).length;
+    const withoutClocks = recorded.attention.items.length - withClocks;
+    // A day is past every deadline the recording carries, and there is at least
+    // one item that has none and therefore cannot fold.
+    expect(withClocks).toBeGreaterThan(0);
+    expect(withoutClocks).toBeGreaterThan(0);
+
+    const later = new Date(
+      new Date(recorded.reference_instant).getTime() + 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const shifted = JSON.stringify({ ...recorded, reference_instant: later });
+
+    await page.route("**/api/floor", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: shifted }),
+    );
+    // The room's own document arrives on the SSE channel too; it carries the
+    // same later reading, so a reconnect cannot quietly undo the split.
+    await page.route("**/api/events", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/event-stream",
+        body: `event: floor\ndata: ${JSON.stringify({ type: "floor", data: JSON.parse(shifted) })}\n\n`,
+      }),
+    );
+
+    await page.goto("/desk");
+    await page.waitForSelector("section.attention");
+
+    // One fold, collapsed, naming the count.
+    const fold = page.locator("details.stale");
+    await expect(fold).toHaveCount(1);
+    expect(await fold.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+    await expect(fold.locator("> summary.stale-summary .stale-count")).toHaveText(
+      String(withClocks),
+    );
+
+    // One line each, and the item's own `expires_at` still on it.
+    const folded = fold.locator("[data-stale]");
+    await expect(folded).toHaveCount(withClocks);
+    for (const item of recorded.attention.items) {
+      if (item.expires_at === null) continue;
+      await expect(fold.locator(`[data-expires-at="${item.expires_at}"]`)).toHaveCount(1);
+    }
+
+    // The clockless item never folds: it keeps its full card, above.
+    await expect(page.locator("section.attention .items article.item")).toHaveCount(withoutClocks);
+
+    // And it opens on demand, showing the factory's time and text.
+    await fold.locator("> summary.stale-summary").click();
+    expect(await fold.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+    const first = folded.first();
+    await first.locator("summary.stale-line").click();
+    await expect(first.locator(".until")).toBeVisible();
+    await expect(first.locator(".stale-text")).toBeVisible();
+  });
+});
