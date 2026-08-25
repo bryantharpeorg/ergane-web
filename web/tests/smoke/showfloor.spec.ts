@@ -1366,46 +1366,127 @@ test.describe("the room is keyboard-operable (FR-016)", () => {
 });
 
 test.describe("the one motion obeys the reader (FR-016, § Motion)", () => {
-  /** The active stop's animation, as the browser resolved it. */
-  async function pulseOf(page: Page): Promise<{ name: string; duration: string; count: number }> {
-    await page.waitForSelector("[data-ladder] i.now");
-    return page.locator("[data-ladder] i.now").first().evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        name: style.animationName,
-        duration: style.animationDuration,
-        count: document.querySelectorAll("[data-ladder] i.now").length,
+  /**
+   * Every animation this room *authors*, read out of the stylesheets the page
+   * loaded, with the media condition each one is gated behind.
+   *
+   * 008 US1 replaced a `waitForSelector("[data-ladder] i.now")` here. That
+   * selector exists only while some story's ladder has an **active** stop,
+   * which is a fact about the floor and not about the room: attest the specs on
+   * it `landed` and every stop is `done`, the selector never appears, and a
+   * case about a CSS declaration hangs waiting on a corpus edit. What § Motion
+   * authors is a rule, and a rule is in the stylesheet whether or not anything
+   * is wearing it this morning — so that is what this reads, on an idle floor.
+   */
+  async function authoredMotion(page: Page) {
+    return page.evaluate(() => {
+      const rules: Array<{
+        condition: string | null;
+        selector: string;
+        name: string;
+        duration: string;
+        iteration: string;
+      }> = [];
+      const keyframes: string[] = [];
+
+      const walk = (list: CSSRuleList, condition: string | null) => {
+        for (const rule of Array.from(list)) {
+          if (rule instanceof CSSMediaRule) {
+            walk(rule.cssRules, rule.conditionText);
+          } else if (rule instanceof CSSKeyframesRule) {
+            keyframes.push(rule.name);
+          } else if (rule instanceof CSSStyleRule && rule.style.animationName) {
+            rules.push({
+              condition,
+              selector: rule.selectorText,
+              name: rule.style.animationName,
+              duration: rule.style.animationDuration,
+              iteration: rule.style.animationIterationCount,
+            });
+          }
+        }
       };
+
+      for (const sheet of Array.from(document.styleSheets)) {
+        // Every face and every rule is vendored (constitution VIII), so a
+        // sheet the document may not read is not one this repository shipped.
+        try {
+          walk((sheet as CSSStyleSheet).cssRules, null);
+        } catch {
+          continue;
+        }
+      }
+      return { rules, keyframes };
+    });
+  }
+
+  /**
+   * What the engine resolves for an element wearing the authored classes.
+   *
+   * A probe, deliberately: the point of the case is the rule, and the rule must
+   * be measurable when no story on the floor is mid-build. Nothing is faked —
+   * the cascade, the stylesheet and the media emulation are all the real ones.
+   */
+  async function resolvedPulse(page: Page) {
+    return page.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.className = "showfloor";
+      probe.innerHTML = '<span class="ladder" data-ladder><i class="now"></i></span>';
+      document.body.appendChild(probe);
+      const style = getComputedStyle(probe.querySelector("i") as HTMLElement);
+      const read = { name: style.animationName, duration: style.animationDuration };
+      probe.remove();
+      return read;
     });
   }
 
   test("the pulse is authored at 1.6s, and reduced motion suppresses it", async ({ page }) => {
-    // A spec with a live stop is what makes this measurable at all; the floor
-    // carries several, and the sweep below asserts one was really found.
-    await page.emulateMedia({ reducedMotion: "no-preference" });
-    await page.goto("/showfloor/005-one-epic-on-stage");
-    const moving = await pulseOf(page);
+    // An idle floor is the case: nothing is dispatched against this
+    // repository's corpus on the demo floor, and every spec on it may be
+    // attested `landed` tomorrow. Neither changes what § Motion authors.
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-rail-row]");
 
-    expect(moving.count).toBeGreaterThan(0);
+    const { rules, keyframes } = await authoredMotion(page);
+    const room = rules.filter((rule) => rule.selector.includes(".showfloor"));
+
+    // § Motion: "Exactly one authored motion" — one rule in this room declares
+    // an animation at all, and it is the active ladder stop's 1.6s pulse.
+    expect(room).toHaveLength(1);
+    expect(room[0].selector).toContain(".ladder i.now");
+    expect(room[0].name).toBe("ladder-pulse");
+    expect(room[0].duration).toBe("1.6s");
+    expect(room[0].iteration).toBe("infinite");
+    expect(keyframes).toContain("ladder-pulse");
+
+    // "`prefers-reduced-motion` suppresses it": the rule is authored *inside*
+    // the no-preference gate, so the suppression is the gate not matching and
+    // not an override someone can forget to write.
+    expect(room[0].condition).toContain("prefers-reduced-motion");
+    expect(room[0].condition).toContain("no-preference");
+
+    // And the engine agrees, under both settings.
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const moving = await resolvedPulse(page);
     expect(moving.name).toBe("ladder-pulse");
     expect(moving.duration).toBe("1.6s");
 
-    // § Motion: "`prefers-reduced-motion` suppresses it." The rule is authored
-    // inside the no-preference gate, so there is no override to forget.
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/showfloor/005-one-epic-on-stage");
-    const still = await pulseOf(page);
-
-    expect(still.count).toBe(moving.count);
+    const still = await resolvedPulse(page);
     expect(still.name).toBe("none");
   });
 
   test("nothing else in the room animates or transitions, under either setting", async ({
     page,
+    request,
   }) => {
+    // The spec is read off the rail rather than named: which directory carries
+    // a drawable graph is a fact about the corpus, and this case is not.
+    const entry = await keyedEntry(request);
+
     for (const reducedMotion of ["no-preference", "reduce"] as const) {
       await page.emulateMedia({ reducedMotion });
-      await page.goto("/showfloor/005-one-epic-on-stage");
+      await page.goto(`/showfloor/${entry.spec_dir}`);
       await page.waitForSelector("[data-node-card]");
       await page.locator("[data-node-card]").first().click();
       await page.waitForSelector("[data-detail-title]");
