@@ -1,0 +1,60 @@
+{
+  "epic_id": "008-the-stage-takes-the-room",
+  "feature": "008-the-stage-takes-the-room",
+  "specs_root": "/home/tharpeboxadmin/code/ergane-web/specs",
+  "target_repo": "/home/tharpeboxadmin/code/ergane-web",
+  "nodes": [
+    {
+      "id": "us1",
+      "story_key": "US1",
+      "persona": "implementer",
+      "spec_ref": "008-the-stage-takes-the-room:US1",
+      "requirement_keys": [
+        "US1",
+        "FR-001",
+        "FR-002",
+        "FR-003"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": null
+    },
+    {
+      "id": "us2",
+      "story_key": "US2",
+      "persona": "implementer",
+      "spec_ref": "008-the-stage-takes-the-room:US2",
+      "requirement_keys": [
+        "US2",
+        "FR-004",
+        "FR-005",
+        "FR-006",
+        "FR-007",
+        "FR-008"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us1"
+      ],
+      "timeout_override_s": null
+    },
+    {
+      "id": "us3",
+      "story_key": "US3",
+      "persona": "implementer",
+      "spec_ref": "008-the-stage-takes-the-room:US3",
+      "requirement_keys": [
+        "US3",
+        "FR-009",
+        "FR-010",
+        "FR-011"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us2"
+      ],
+      "timeout_override_s": null
+    }
+  ],
+  "inferred_edges": []
+}

@@ -409,3 +409,39 @@ appears, the stop is added to `DESIGN.md` first, then specced.
 never colour alone; degradation stays honest and in place; the Unknown Rule, the countdown anchor
 rule, and the escalation body-segmentation rule carry over word for word. Constitution unchanged —
 this is an appearance decision inside VIII's frame, taken by the operator as VIII requires.
+
+## D-016 · The stage takes the room the pane is not using, and the scroll is furniture (decided 2026-08-25)
+
+**Inside D-015's frame, not a replacement for it.** `DESIGN.md` stays the visual authority and the
+second world stands. This entry amends three clauses of it after reading the room on a real
+monitor rather than in a test viewport.
+
+**What was measured.** The Showfloor on a 3008px-wide display, dark, spec 004 selected and no
+story picked: the app frame caps at 96rem, so 1,520px of the screen is empty ground; of the
+1,486px that remain, the detail track holds a fixed `26rem` — 403px — to show two sentences of
+room explanation; the stage gets 770px; the graph needs 797px. It scrolled, and it scrolled inside
+the host operating system's own widget, a light grey trough with stepper buttons in a dark room.
+Three widths, every spec on the floor, before and after collapsing the empty track:
+
+| width | graph needs | stage today | clipped | stage with the track collapsed | clipped |
+|---|---|---|---|---|---|
+| 1280 | 797px | 562px | 235px | 965px | 0 |
+| 1600 | 797px | 770px | 27px | 1173px | 0 |
+| 3008 | 797px | 770px | 27px | 1173px | 0 |
+
+**Decided.** (a) The `26rem` detail track collapses to `0` while nothing is selected, and the
+stage takes the width. (b) The room's two-sentence explanation moves beneath the stage above the
+legend row — the same words, in a place that does not cost the graph its width; it is relocated,
+never hidden, which constitution III would forbid. (c) The stage's horizontal scroll is styled
+furniture: thin, no stepper buttons, thumb on `--rule`, transparent trough, both themes, always
+rendered rather than fading in.
+
+**What this does not decide.** The 96rem frame cap stays as `DESIGN.md` § Layout and 004's FR-007
+have it; a graph that still outgrows a full-width stage still scrolls. Wrapping an over-wide rank
+onto a second row — the fix that would retire the scroll for the chained-four shape even with a
+story selected — is deferred: rendering it proves the geometry works and the wires do not, because
+`Wires.tsx` draws rank-to-rank left→right and a row break leaves a stub. That is a spec of its own,
+with the wire case in it, not a clause here.
+
+**Why an entry at all.** Constitution VIII: appearance changes are the operator's to take, and the
+authority is amended before the spec that builds to it, never after. Spec 008 cites these clauses.
