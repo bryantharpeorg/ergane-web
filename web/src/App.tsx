@@ -12,11 +12,12 @@ export default function App() {
 
   return (
     <>
-      {/* The Showfloor carries its own appbar, inside its frame (005 US2,
-          DESIGN.md § Layout) — and the badge that hangs off its far edge with
-          it. Rendering this one too would put two on that page, which is what
-          the first world did. */}
-      {isShowfloor ? null : <Masthead />}
+      {/* Both rooms carry their own appbar, inside their own frame (005 US2 for
+          the Showfloor, 006 US1 for the Desk; DESIGN.md § Layout). Rendering
+          this one too would put two on those pages, which is what the first
+          world did. What is left here is the appbar for a path that is neither
+          room — the shell still names itself while it holds nothing. */}
+      {isDesk || isShowfloor ? null : <Masthead />}
       {isDesk ? <Desk /> : isShowfloor ? <Showfloor /> : <main id="room" />}
     </>
   );
