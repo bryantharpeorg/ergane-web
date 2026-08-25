@@ -1,32 +1,40 @@
 ---
 state: draft
 depends_on_landed: [009-a-landed-epic-reads-landed]
-# TBD — CAPTURED AND SCOPED, NOT YET REFINED. Recorded 2026-08-25, 6:35 PM CT.
-# Held `draft`: the renderable half below is real and could be written today,
-# but the corpus should not carry a fifth in-flight spec while 009 is mid-build
-# and 012 is waiting on it. Flip after 012.
+# Refined 2026-08-25, 7:00 PM CT, under D-020 -- which amended constitution II
+# FIRST, the order the constitution demands for a seam. Held `draft` pending the
+# operator's go; 009 is mid-build and 012 is queued behind it.
 #
-# THIS SPEC IS THE SMALL HALF OF A LARGER ASK, ON PURPOSE. The operator's words:
-# "we need a way to visualize all of the CI steps, SBOM is another. this is
-# something that you should show but we should provide feedback to ergane to
-# support at the platform level."
+# THE SCOPE IS THE HALF THIS REPOSITORY OWNS. The operator: "we need a way to
+# visualize all of the CI steps, SBOM is another. this is something that you
+# should show but we should provide feedback to ergane to support at the
+# platform level." The platform half is filed as PR-1..PR-6 in the feedback log
+# and is deliberately NOT waited on here.
 #
-# That splits cleanly and this spec takes only the part this repository owns.
-# Ergane records a genuinely good CI step record per attempt and nothing renders
-# it. Ergane records no SBOM, no coverage and no scan result, and this repository
-# MUST NOT invent per-repo conventions for them -- constitution II exists to stop
-# exactly that, and a per-repo coverage file is an artifact nobody can read. That
-# ask is filed to the ergane agent as N54, together with the retention half (N47).
+# WHAT CHANGED BETWEEN THE SKETCH AND THIS. The sketch assumed the record was
+# unreachable. It is not. `factory.verify.store.node_history` returns the whole
+# per-node evidence bundle and `attempt_timings` returns an epic's verification
+# timings -- both exported, both typed, both already load-bearing inside ergane
+# (node_history is what retry prompts quote). D-020 adds them to constitution
+# II's list. 007's Open Question 3 assumed no reader existed and was wrong.
 #
-# So: render what exists, shape it to accept what does not yet, and do not fake
-# the difference. A cell for a number nothing measures is the em-dash failure
-# 009 already had to correct once.
+# WHAT IS STILL UNAVAILABLE, AND IS RENDERED UNKNOWN RATHER THAN GUESSED:
+#   - the model an attempt ran on. Eighteen columns, none of them the model.
+#     Guessing from personas.yaml is WRONG, not merely imprecise: the DEBUGGER
+#     rung relabels the persona without re-resolving `model_alias`, so the two
+#     disagree exactly when it matters. PR-2.
+#   - coverage, SBOM, scan results. Nothing measures them. PR-3.
+#   - the forge's own check runs. The store holds the boundary gate only, and
+#     the two disagree -- that divergence rejected a landing in this very epic. PR-4.
+#   - story wall clock. `AttemptTiming`'s docstring warns its interval brackets
+#     one verification, not one story. PR-5.
+# Each is a cell that reads unknown. Never a zero, never a plausible guess.
 ---
 
-# Feature Specification: The gates show their work (TBD)
+# Feature Specification: The gates show their work
 
 **Feature Branch**: `013-the-gates-show-their-work`
-**Created**: 2026-08-25 · **Status**: Draft — scoped sketch
+**Created**: 2026-08-25 · **Status**: Draft — refined, awaiting the operator's go
 **Input**: operator request, verbatim above; the per-attempt record measured on
 this host 2026-08-25; N54 as the platform-side counterpart
 
@@ -73,29 +81,23 @@ declares a fifth.
 - **Add a second write path.** Constitution I. Nothing here re-runs a gate,
   re-triggers CI, or resolves an escalation.
 
-## Open questions
+## Decided (the sketch's open questions, answered)
 
-1. **Where does it live?** The same question 007's Open Question 6 reopened. A
-   gate-step strip is small enough for the Showfloor's detail pane; a full
-   per-attempt history with output tails wants 007's reading room. Likely both,
-   and likely 013 should ship the strip and 007 the room — but that is a call to
-   take once one of them is real to look at.
-2. **How much history?** Everything here is overwritten on re-dispatch (N28) and
-   expires with Temporal's 72 hours. For a *running or just-finished* epic the
-   record is live and this spec is buildable today. For anything older it is
-   gone, and that is N47. **This spec should be explicit that it renders the
-   current record, not a history, until the durable store exists** — otherwise
-   it inherits 007's blocker for no gain.
-3. **Does an `output_tail` belong on a page at all?** It is raw gate output,
-   arbitrary length, and it may carry paths from the sandbox. Constitution VI
-   says no credential reaches a page; a gate tail is not a credential but it has
-   never been swept for one. Decide whether it is shown, shown-on-demand, or
-   summarised — and sweep it either way.
-4. **Concurrency is recorded and worth drawing.** `concurrent_gates` says which
-   gates ran together. The floor-status skill notes the judge runs concurrently
-   with the gate because one is network-bound and the other CPU-bound. A
-   timeline that draws them serially would misrepresent the wall clock it is
-   trying to explain.
+1. **Where it lives: the Showfloor's detail pane, as a per-story section.** The
+   data is per-story; the pane already renders per-story facts and the ladder;
+   and 007's reading room does not exist. A separate room for a record that does
+   not survive re-dispatch would be worse than no room.
+2. **How much history: the current record, said out loud.** Everything here is
+   overwritten on re-dispatch (N28). The section renders what the reader returns
+   and names that limit on the page, rather than implying a history it cannot
+   keep. When PR-1 lands this becomes a history with no redesign.
+3. **The output tail is shown on failure only, collapsed, and swept.** It is the
+   most useful thing in the record for a failed gate, and it is raw process
+   output that has never been swept for a credential. Constitution VI is
+   absolute. A passing gate renders no tail at all.
+4. **Concurrency is drawn.** `concurrent_gates` records which gates ran
+   together. A timeline that drew them serially would misstate the wall clock it
+   exists to explain.
 
 ## Out of scope
 
@@ -103,7 +105,110 @@ declares a fifth.
   ergane's, both are filed, and this spec is deliberately useful without either.
 - Any per-repo coverage or security tooling, per the section above.
 
+## User Scenarios & Testing
+
+### User Story 1 - The evidence reaches the pane (Priority: P1)
+
+As an operator, the pane can read what the factory recorded about an attempt,
+through a seam rather than a query of my own.
+
+**Acceptance Scenarios**:
+
+1. **Given** a story with recorded verifications, **When** the showfloor
+   document is assembled, **Then** it carries each attempt's gates — name,
+   status, exit code, duration and concurrency — the ladder summary, and the
+   judge's per-scenario findings, read through `node_history` over
+   `connect_readonly` (FR-001).
+2. **Given** the store is unreadable, **When** the document is assembled,
+   **Then** the read degrades in the section's own vocabulary and names what
+   could not be learned, and no other section is affected (FR-002).
+3. **Given** any attempt, **When** the document is assembled, **Then** the
+   model and persona render as unknown, because the store does not carry them,
+   and the pane MUST NOT resolve them from the registry (FR-003).
+
+---
+
+### User Story 2 - The gate run reads as a timeline (Priority: P2)
+
+As an operator, a story's detail shows me the gates that ran, in the shape they
+ran in, with the failing one legible.
+
+**Acceptance Scenarios**:
+
+1. **Given** an attempt whose gates ran, **When** the detail renders, **Then**
+   each gate appears with its name, outcome, duration and command, and gates
+   recorded as concurrent render as concurrent (FR-004, FR-005).
+2. **Given** a failed gate, **When** the detail renders, **Then** its output
+   tail is available collapsed, and a passing gate renders no tail (FR-006).
+3. **Given** any rendered tail, **When** the document is assembled, **Then** it
+   has passed the same credential sweep every other surface passes (FR-007).
+4. **Given** the section renders, **When** it does, **Then** it names that the
+   record is the current one and does not survive re-dispatch (FR-008).
+
+---
+
+### User Story 3 - The section is honest at every width (Priority: P3)
+
+As an operator, the new section obeys the four layout laws like everything else.
+
+**Acceptance Scenarios**:
+
+1. **Given** every width and both themes the suite already sweeps, **When** the
+   section renders, **Then** the four layout laws report zero violations
+   (FR-009).
+2. **Given** a story with no recorded attempt, **When** the detail renders,
+   **Then** the section does not render at all rather than rendering empty
+   (FR-010).
+
+---
+
+## Requirements
+
+### Functional Requirements
+
+- **FR-001**: The document MUST carry per-attempt gate records, the ladder
+  summary and the judge's per-scenario findings, read through `node_history`
+  over `connect_readonly` (D-020).
+- **FR-002**: A failed read MUST degrade in-section, naming what could not be
+  learned, without affecting another section.
+- **FR-003**: Model and persona MUST render unknown; the pane MUST NOT resolve
+  them from the persona registry.
+- **FR-004**: Each gate MUST render its name, outcome, duration and command.
+- **FR-005**: Gates recorded as concurrent MUST render as concurrent.
+- **FR-006**: A failing gate's output tail MUST be available collapsed; a
+  passing gate MUST render none.
+- **FR-007**: Any rendered tail MUST pass the repository's credential sweep.
+- **FR-008**: The section MUST name that its record is current-only and does not
+  survive re-dispatch.
+- **FR-009**: The section MUST report zero violations of the four layout laws at
+  every width and in both themes the suite sweeps.
+- **FR-010**: A story with no recorded attempt MUST render no section, not an
+  empty one.
+
+## Success Criteria
+
+- **SC-001**: A story that took two attempts shows both, with each gate's
+  outcome and duration.
+- **SC-002**: No cell shows a guessed model, and none shows a zero for an
+  absence.
+- **SC-003**: The four layout laws stay green across the existing sweep.
+
 ## Work Graph
 
-Deliberately absent — this is a scoped sketch, not a refined spec. Refine with
-`/speckit-plan` and `/speckit-tasks` once Open Questions 1 and 2 are decided.
+```yaml
+US1:
+  depends_on: []
+  depends_on_merged: []
+  implements: [FR-001, FR-002, FR-003]
+  timeout: 3600
+US2:
+  depends_on: []
+  depends_on_merged: [US1]
+  implements: [FR-004, FR-005, FR-006, FR-007, FR-008]
+  timeout: 3600
+US3:
+  depends_on: []
+  depends_on_merged: [US2]
+  implements: [FR-009, FR-010]
+  timeout: 3600
+```
