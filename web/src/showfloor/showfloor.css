@@ -144,7 +144,7 @@
    This is not the empty state being hidden: the empty state is not in here any
    more. The element is an `aria-live` region with no content, kept mounted so
    that filling it announces (plan D1, D2). */
-.showfloor .cols[data-selection="none"] .detail {
+.showfloor .cols[data-selection="none"] aside.detail {
   padding: 0;
   border-left: none;
   border-top: none;
@@ -155,7 +155,7 @@
   .showfloor .cols {
     grid-template-columns: 15rem minmax(0, 1fr);
   }
-  .showfloor .detail {
+  .showfloor aside.detail {
     grid-column: 1 / -1;
     border-left: none;
     border-top: 1px solid var(--rule);
@@ -364,8 +364,23 @@
 
 /* § Detail pane: "id, serif title, the story's one-sentence intent, the six
    named steps with timestamps, a facts grid …, and the `requirement_keys` as
-   sunken mono chips." The shape is the approved comp's, class for class. */
-.showfloor .detail {
+   sunken mono chips." The shape is the approved comp's, class for class.
+
+   **`aside`, not `.detail` alone (009 US2, D-018).** The degraded note above
+   names its third part `.detail` too — `<span class="detail">` inside
+   `.degraded p`, the same word for a different thing — and this rule matched
+   it, handing an inline span the pane's opaque `--surface`, its `1.4rem`
+   padding and its rule. Inline padding paints and hit-tests but does not
+   flow, so a long `overflow-wrap: anywhere` detail that broke onto its own
+   line drew a white box back up over `landed_facts refusal` on the line
+   above: a read the operator could not read, on the one note that exists to
+   tell them a read failed. Law (d) is what found it. The element selector is
+   the fix, and the pane is the only `aside` in the room.
+
+   Only the three rules that give the pane a *box* carry it — this one and the
+   two that reshape it. The `.showfloor .detail .dhead`-style rules below reach
+   the pane's own children, and the note's `.detail` has none. */
+.showfloor aside.detail {
   border-left: 1px solid var(--rule);
   background: var(--surface);
   padding: 1.4rem 1.3rem 1.6rem;
