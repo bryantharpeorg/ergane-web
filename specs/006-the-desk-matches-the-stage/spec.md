@@ -1,5 +1,9 @@
 ---
-state: draft
+state: ready
+# Flipped ready 2026-08-25, 9:45 AM CT, by the operator. The hold that kept this
+# draft was "pause at the Showfloor before continuing" - the Showfloor is now
+# correct, live and measured (008 landed, clip 235/27/27px -> 0/0/0 across 18
+# render combinations), so the hold's release condition is met.
 depends_on_landed: [005-one-epic-on-stage]
 # Drafted 2026-08-24 under D-015. Spec 005 establishes the second world's tokens
 # and the shared ladder; this spec brings the Desk into the same world and pays
