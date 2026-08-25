@@ -426,6 +426,10 @@ class ShowfloorReaders:
     workgraph: Callable[[str], dict]
     epic_status: Callable[[str], Awaitable[dict | None]]
     reference_instant: str | None = None
+    #: Where the compiled graph for a spec dir was actually read from, for the
+    #: entry's provenance.  Optional: a bundle that does not track it leaves the
+    #: entry naming the conventional path, which is where the graph belongs.
+    seam_for: Callable[[str], str] | None = None
 
     @classmethod
     def from_reader(
@@ -459,6 +463,7 @@ class ShowfloorReaders:
             workgraph=bound.workgraph,
             epic_status=bound.epic_status,
             reference_instant=getattr(reader, "reference_instant", None),
+            seam_for=bound.seam_for,
         )
 
 
@@ -472,7 +477,11 @@ class _BoundReads:
         self._refs: dict[str, Any] | None = None
         self._floor_failure: Exception | None = None
         #: Where the graph for each spec dir actually came from, for the entry.
-        self.workgraph_seams: dict[str, str] = {}
+        self._seams: dict[str, str] = {}
+
+    def seam_for(self, spec_dir: str) -> str:
+        """The path the graph was read from, or the one it should have been at."""
+        return self._seams.get(spec_dir, str(self._specs_root / spec_dir / "workgraph.json"))
 
     def workgraph(self, spec_dir: str) -> dict:
         try:
@@ -485,9 +494,9 @@ class _BoundReads:
                 # The archive has nothing either: the *seam's* failure is the
                 # one worth naming, because the seam is where the graph belongs.
                 raise first from None
-            self.workgraph_seams[spec_dir] = str(archived)
+            self._seams[spec_dir] = str(archived)
             return graph
-        self.workgraph_seams[spec_dir] = str(self._specs_root / spec_dir / "workgraph.json")
+        self._seams[spec_dir] = str(self._specs_root / spec_dir / "workgraph.json")
         return graph
 
     async def epic_status(self, spec_dir: str) -> dict | None:
@@ -808,10 +817,8 @@ def _rail_chip(spec_state: str | None, stories: list[dict]) -> str | None:
 
 def _workgraph_seam(root: Path, spec_dir: str, readers: ShowfloorReaders) -> str:
     """The path the compiled graph was actually read from, for provenance."""
-    bound = getattr(readers.workgraph, "__self__", None)
-    seams = getattr(bound, "workgraph_seams", None)
-    if isinstance(seams, dict) and spec_dir in seams:
-        return seams[spec_dir]
+    if readers.seam_for is not None:
+        return readers.seam_for(spec_dir)
     return str(root / spec_dir / "workgraph.json")
 
 

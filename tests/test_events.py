@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pane.app import create_app
+from pane.app import _serialize_floor_events, create_app
 from pane.config import Settings
 from pane.events import EVENT_TYPES, AttentionBroadcaster, floor_events
 from pane.fixture_floor import FixtureReader
@@ -227,3 +227,177 @@ class _RecordingReader:
 
     async def aclose(self):
         return await self._reader.aclose()
+
+
+# --------------------------------------------------------------------------
+# Spec 005 US1 (T008, FR-005): the `showfloor` type
+# --------------------------------------------------------------------------
+
+
+def test_a_node_state_change_reaches_the_stream_as_a_showfloor_event():
+    """FR-005: one typed event carrying the changed spec's re-assembled entry.
+
+    The reader answers with one recorded `epic_status` document until the second
+    poll begins, then with the next one in ergane's own landing recording — the
+    step where `us1` moves from VERIFYING to PASSED.  The flip happens while the
+    consumer holds the second `floor` event, which is yielded before that poll
+    re-assembles the showfloor, so the second assembly is the first one to see
+    the change.  The event that follows must carry the changed spec and only the
+    changed spec: a consumer applies the entry in place and never refetches.
+    """
+    specs_root = ROOT / "specs"
+    subject = "001-the-desk-sees-the-floor"
+
+    def recorded(name: str) -> dict:
+        return json.loads((FIXTURES / "epic-status" / "landing" / name).read_text())
+
+    verifying = recorded("02-RUNNING_us1-VERIFYING_us2-PENDING_us3-PENDING.json")
+    passed = recorded("03-RUNNING_us1-PASSED_us2-PENDING_us3-PENDING.json")
+
+    reader = _ChangingReader(FixtureReader(FIXTURES), subject, verifying)
+
+    async def collect() -> list[dict]:
+        events: list[dict] = []
+        floors = 0
+        async for event in floor_events(reader, interval_s=0.01, specs_root=specs_root):
+            events.append(event)
+            if event["type"] == "floor":
+                floors += 1
+                if floors == 2:
+                    reader.answer = passed
+            elif (
+                floors == 2
+                and event["type"] == "showfloor"
+                and event["data"]["spec_dir"] == subject
+            ):
+                return events
+            # A bound, so a stream that never changes fails the assertions below
+            # rather than hanging the gate.
+            if len(events) > 60:
+                return events
+        return events
+
+    events = asyncio.run(collect())
+
+    types = [event["type"] for event in events]
+    assert types[0] == "floor"
+    assert types.count("floor") == 2, "the stream must have polled twice"
+
+    first_poll = _entries_before_second_floor(events)
+    # A fresh subscription starts with the whole room (001 FR-018's discipline).
+    assert {entry["spec_dir"] for entry in first_poll} == {
+        path.name for path in specs_root.iterdir() if (path / "spec.md").is_file()
+    }
+
+    second_floor = len(types) - 1 - types[::-1].index("floor")
+    changed = [
+        event["data"] for event in events[second_floor:] if event["type"] == "showfloor"
+    ]
+    assert [entry["spec_dir"] for entry in changed] == [subject], (
+        "only the spec whose state changed may be re-sent"
+    )
+
+    before = next(entry for entry in first_poll if entry["spec_dir"] == subject)
+    after = changed[0]
+    assert before["stories"][0]["ladder"]["stop"] == "verifying"
+    assert after["stories"][0]["ladder"]["stop"] == "pr open"
+    # The payload is the whole entry, so the browser applies it without asking
+    # for the document again.
+    assert set(after) == set(before)
+    assert after["stories_total"] == before["stories_total"]
+
+
+def test_showfloor_events_serialize_with_their_own_event_name():
+    """The SSE `event:` line carries the type, so a consumer can select on it."""
+
+    async def source():
+        yield {"type": "showfloor", "data": {"spec_dir": "001-the-desk-sees-the-floor"}}
+        yield {"type": "a-type-from-the-future", "data": {}}
+
+    async def collect() -> list[dict]:
+        return [chunk async for chunk in _serialize_floor_events(source())]
+
+    chunks = asyncio.run(collect())
+
+    assert chunks[0]["event"] == "showfloor"
+    assert json.loads(chunks[0]["data"])["type"] == "showfloor"
+    # An unknown type still travels, unnamed — a consumer that ignores what it
+    # does not know is unaffected (001 FR-016, 005 FR-005).
+    assert "event" not in chunks[1]
+
+
+def _entries_before_second_floor(events: list[dict]) -> list[dict]:
+    """Every `showfloor` entry emitted by the first poll."""
+    entries: list[dict] = []
+    for event in events[1:]:
+        if event["type"] == "floor":
+            break
+        if event["type"] == "showfloor":
+            entries.append(event["data"])
+    return entries
+
+
+class _ChangingReader:
+    """A `FixtureReader` with one extra epic whose recorded answer can be swapped.
+
+    `answer` is a plain attribute so the consumer of the stream decides when the
+    factory's answer changes; every other read is the fixture reader's own.
+    """
+
+    def __init__(self, reader: FixtureReader, epic_id: str, answer: dict) -> None:
+        self._reader = reader
+        self._epic_id = epic_id
+        self.answer = answer
+
+    @property
+    def reference_instant(self) -> str | None:
+        return self._reader.reference_instant
+
+    async def read_floor(self):
+        from pane.readers import EpicRef, FloorRead
+
+        floor = await self._reader.read_floor()
+        running = list(floor.running) + [
+            EpicRef(
+                epic_id=self._epic_id,
+                workflow_id=f"epic-{self._epic_id}",
+                scene=None,
+                workgraph_ref=self._epic_id,
+            )
+        ]
+        return FloorRead(status=floor.status, running=running)
+
+    async def epic_status(self, workflow_id: str, scene: str | None = None):
+        if workflow_id == f"epic-{self._epic_id}":
+            return self.answer
+        return await self._reader.epic_status(workflow_id, scene=scene)
+
+    def workgraph(self, epic_id_or_ref: str):
+        return self._reader.workgraph(epic_id_or_ref)
+
+    async def open_escalations(self):
+        return await self._reader.open_escalations()
+
+    def stored_items(self):
+        return self._reader.stored_items()
+
+    async def settle_question(self, correlation_id: str, text: str, identity: str) -> str:
+        return await self._reader.settle_question(correlation_id, text, identity)
+
+    async def press_escalation(self, correlation_id, escalation_id, choice, identity):
+        return await self._reader.press_escalation(correlation_id, escalation_id, choice, identity)
+
+    async def read_question(self, correlation_id: str):
+        return await self._reader.read_question(correlation_id)
+
+    async def read_escalation_fate(self, correlation_id: str):
+        return await self._reader.read_escalation_fate(correlation_id)
+
+    def list_findings(self):
+        return self._reader.list_findings()
+
+    def rollup(self):
+        return self._reader.rollup()
+
+    async def aclose(self) -> None:
+        await self._reader.aclose()
