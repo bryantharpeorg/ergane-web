@@ -918,7 +918,8 @@ async function measureLaws(page: Page): Promise<LawReport> {
       past.push(`${describe(element)} at ${rect.right.toFixed(0)}px`);
     }
 
-    // ── law (c): no two text-carrying *leaves* overlap in both axes.
+    // ── law (c): no two text-carrying *leaves* overlap in both axes, as they
+    // are actually painted.
     // A leaf is an element with text and no element child that has text — the
     // ancestors of a text run necessarily contain it, and containment is not
     // collision.
@@ -933,12 +934,45 @@ async function measureLaws(page: Page): Promise<LawReport> {
     const leaves = texts.filter(
       (element) => !Array.from(element.children).some((child) => hasText(child)),
     );
+    //
+    // And the box is what survives its clipping ancestors (005 US4). A stage
+    // wide enough to scroll puts its right-hand cards *under* the detail
+    // column in coordinates while the scroller clips them away on the screen:
+    // two runs of text that cannot both be seen have not collided, and calling
+    // that a collision would make the law report the defect it was written to
+    // catch in a room that does not have it. The clip is applied, not excused —
+    // an overlap that survives it is still an overlap, which is what keeps the
+    // planted collision below going red.
+    const clipped = (element: Element, rect: DOMRect): DOMRect | null => {
+      let box = rect;
+      let parent = element.parentElement;
+      while (parent !== null && parent !== document.documentElement) {
+        const style = getComputedStyle(parent);
+        const clips =
+          style.overflowX !== "visible" ||
+          style.overflowY !== "visible" ||
+          style.overflow !== "visible";
+        if (clips) {
+          const bounds = parent.getBoundingClientRect();
+          const left = Math.max(box.left, bounds.left);
+          const right = Math.min(box.right, bounds.right);
+          const top = Math.max(box.top, bounds.top);
+          const bottom = Math.min(box.bottom, bounds.bottom);
+          if (right - left <= 0 || bottom - top <= 0) return null;
+          box = new DOMRect(left, top, right - left, bottom - top);
+        }
+        parent = parent.parentElement;
+      }
+      return box;
+    };
+
     const boxes = leaves.flatMap((element) => {
       const range = document.createRange();
       range.selectNodeContents(element);
       return Array.from(range.getClientRects())
         .filter((rect) => rect.width > 0 && rect.height > 0)
-        .map((rect) => ({ label: describe(element), rect }));
+        .map((rect) => ({ label: describe(element), rect: clipped(element, rect) }))
+        .filter((box): box is { label: string; rect: DOMRect } => box.rect !== null);
     });
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
@@ -1397,6 +1431,45 @@ test.describe("the one motion obeys the reader (FR-016, § Motion)", () => {
           expect(entry.animation).toBe("ladder-pulse");
         }
         expect(["none", "all"], "nothing in this room transitions").toContain(entry.transition);
+      }
+    }
+  });
+});
+
+test.describe("the three laws hold with the pane full (FR-014, FR-015)", () => {
+  /**
+   * US3 measured the laws over a room whose detail column was a placeholder.
+   * US4 fills it with the longest text the document carries — a story's intent
+   * runs to several lines — in a `26rem` track that folds twice. That is
+   * exactly the shape 004's defects took, so the laws are re-measured here
+   * against a *selected* story rather than assumed to survive the new content.
+   */
+  test("a selected story stays inside its box at both widths, in both themes", async ({
+    page,
+    request,
+  }) => {
+    const entry = await keyedEntry(request);
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of WIDTHS) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.goto(`/showfloor/${entry.spec_dir}`);
+        await page.waitForSelector("[data-node-card]");
+
+        for (const story of entry.stories) {
+          await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+          await page.waitForSelector("[data-detail-title]");
+
+          const where = `${entry.spec_dir}/${story.id} at ${width} in ${scheme}`;
+          const report = await measureLaws(page);
+
+          expect(report.swept, `${where} rendered something`).toBeGreaterThan(20);
+          expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
+          expect(report.past, `${where}: text past the viewport`).toEqual([]);
+          expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+          expect(report.roomScrollsSideways, `${where}: the room scrolls sideways`).toBe(false);
+        }
       }
     }
   });
