@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { DESK_PATH, SHOWFLOOR_PATH } from "./routes";
+import { DESK_PATH, SHOWFLOOR_PATH, isShowfloorPath } from "./routes";
 
 interface MastheadProps {
   trailing?: ReactNode;
@@ -8,7 +8,9 @@ interface MastheadProps {
 export default function Masthead({ trailing }: MastheadProps): JSX.Element {
   const pathname = window.location.pathname;
   const deskCurrent = pathname === "/" || pathname === DESK_PATH;
-  const showfloorCurrent = pathname === SHOWFLOOR_PATH;
+  // A deep-linked selection is still the Showfloor, so the room nav keeps
+  // its accent underline there (005 US2, DESIGN.md § Layout).
+  const showfloorCurrent = isShowfloorPath(pathname);
 
   return (
     <header className="mast">

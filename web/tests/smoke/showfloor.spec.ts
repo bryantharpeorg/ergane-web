@@ -1,562 +1,399 @@
+/**
+ * The Showfloor, in a real browser (005 US2: FR-006 … FR-009).
+ *
+ * **This file replaces 002's and 004's Showfloor smoke wholesale.** Every
+ * assertion it dropped had its *subject* deleted by D-015 and by this story,
+ * and each is named here with what succeeds it (plan D4):
+ *
+ * | dropped | why | succeeded by |
+ * |---|---|---|
+ * | "the Showfloor stages the fixture floor read-only" — one `[data-epic-stage]` per running epic, its stations and edges | the room is a master–detail now: one epic on stage, chosen from a rail. There is no per-epic stage to enumerate. | "the rail is the corpus" + US3's T024, which asserts the one stage's graph |
+ * | "pure glass sweep" — no control, one badge, badge is an anchor | subject survives entirely | "the room has no verb" below, against the rebuilt DOM |
+ * | "full-bleed is measured" | subject survives | "the frame is centred at 96rem" below, which measures the root *and* the frame |
+ * | "the stage is the size of its graph" (empty vs populated stage heights) | there is one stage, not six, so there is no stack of empty ones to measure | US3's T022/T024: a stage document with no nodes renders its notice and no canvas |
+ * | "the landing line lies within its wrapper's scrollable extent" and "a map wider than its wrapper makes the wrapper scroll" | the landing line and the React Flow map are deleted from the room; DESIGN.md draws neither | US3's T024, on the rebuilt stage |
+ * | "no text is laid out past the viewport outside a scrollable wrapper" | subject survives, and it is the defect class 004 exists to prevent | "nothing is laid out into nowhere" below, kept at two widths, and US3's T024 which extends it to the stage's own box |
+ *
+ * What this file adds is US2's own: the two themes really rendering, the frame
+ * really centred and fluid, the request log really empty of fonts, and the
+ * three routing cases really selecting.
+ */
+
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-const PASS_EDGE_TEXT =
-  "An ordering-only dependency: the predecessor must reach a verdict, and nothing about its code is guaranteed to be present";
-const MERGE_EDGE_TEXT =
-  "A content dependency: the predecessor's work must be merged before the dependent's worktree is created, so the dependent's base contains that code";
+interface RailEntry {
+  spec_dir: string;
+  name: string;
+  chip: string | null;
+  stories_landed: number;
+  stories_total: number;
+}
 
-test("the Showfloor stages the fixture floor read-only", async ({ page, request }) => {
-  const requests: { method: string }[] = [];
-  page.on("request", (req) => requests.push({ method: req.method() }));
+async function railOf(request: { get: (url: string) => Promise<{ json: () => Promise<unknown> }> }) {
+  const response = await request.get("/api/showfloor");
+  const document = (await response.json()) as { rail: RailEntry[] };
+  return document.rail;
+}
 
-  await page.goto("/showfloor");
-  await page.waitForSelector("[data-epic-stage]");
+/** The chip a row must read, composed the way `ladder.ts` composes it. */
+function chipText(entry: RailEntry): string {
+  const word = entry.chip ?? "unknown";
+  return entry.stories_total > 0
+    ? `${word} ${entry.stories_landed}/${entry.stories_total}`
+    : word;
+}
 
-  const floorResponse = await request.get("/api/floor");
-  const floorDoc = (await floorResponse.json()) as {
-    epics: Array<{
-      epic_id: string;
-      stage?: {
-        nodes: Array<{ id: string }>;
-        edges: Array<{ kind: string }>;
-      };
-    }>;
-  };
-
-  let stagedEpicCount = 0;
-  let passEdgeCount = 0;
-  let mergeEdgeCount = 0;
-
-  for (const epic of floorDoc.epics) {
-    if (!epic.stage || epic.stage.nodes.length === 0) continue;
-    stagedEpicCount++;
-
-    const stages = page.locator(`[data-epic-stage][data-epic-id="${epic.epic_id}"]`);
-    const stageCount = await stages.count();
-    expect(stageCount).toBeGreaterThanOrEqual(1);
-
-    let foundStageWithNodes = false;
-    for (let i = 0; i < stageCount; i++) {
-      const stage = stages.nth(i);
-      const firstStation = stage.locator("[data-station]").first();
-      const hasNodes = await firstStation.isVisible().catch(() => false);
-      if (!hasNodes) continue;
-      foundStageWithNodes = true;
-
-      for (const node of epic.stage.nodes) {
-        const station = stage.locator(`[data-station][data-node-id="${node.id}"]`);
-        await expect(station).toHaveCount(1);
-        const state = await station.getAttribute("data-state");
-        expect(state).not.toBeNull();
-        expect(state).not.toBe("");
-      }
-    }
-    expect(foundStageWithNodes).toBe(true);
-
-    for (const edge of epic.stage.edges) {
-      if (edge.kind === "pass") passEdgeCount++;
-      if (edge.kind === "merge") mergeEdgeCount++;
-    }
-  }
-
-  expect(stagedEpicCount).toBeGreaterThan(0);
-
-  const passEdges = page.locator(".edge-pass[data-edge-kind='pass']");
-  const mergeEdges = page.locator(".edge-merge[data-edge-kind='merge']");
-  const passVisible = await passEdges.count();
-  const mergeVisible = await mergeEdges.count();
-  expect(passVisible + mergeVisible).toBeGreaterThan(0);
-  expect(passEdgeCount > 0 || passVisible > 0).toBe(true);
-  expect(mergeEdgeCount > 0 || mergeVisible > 0).toBe(true);
-
-  const legendPass = page.locator("[data-legend-kind='pass']").first();
-  const legendMerge = page.locator("[data-legend-kind='merge']").first();
-  await expect(legendPass).toContainText(PASS_EDGE_TEXT);
-  await expect(legendMerge).toContainText(MERGE_EDGE_TEXT);
-
-  expect(requests.filter((r) => r.method !== "GET")).toHaveLength(0);
-});
-
-test("full-bleed is measured", async ({ page }) => {
-  await page.goto("/showfloor");
-  await page.waitForSelector("[data-showfloor-root]");
-
-  const viewport = page.viewportSize();
-  expect(viewport).not.toBeNull();
-
-  const box = await page.locator("[data-showfloor-root]").boundingBox();
-  expect(box).not.toBeNull();
-
-  expect(box!.x).toBe(0);
-  expect(box!.y).toBe(0);
-  expect(box!.width).toBe(viewport!.width);
-  expect(box!.height).toBe(viewport!.height);
-});
-
-test("pure glass sweep", async ({ page }) => {
-  await page.goto("/showfloor");
-  await page.waitForSelector("[data-epic-stage]");
-
-  // The room is really staged before the sweep runs, so a clean sweep is a
-  // fact about the rendered Showfloor and not about an empty page.
-  expect(await page.locator("[data-epic-stage]").count()).toBeGreaterThan(0);
-
-  // FR-016 / SC-006: no verb, anywhere in the room.
-  await expect(page.locator("button, form, input, select, textarea")).toHaveCount(0);
-
-  // The Fixture floor carries open Attention items, so the one badge is there —
-  // and it is an anchor, the Showfloor's only link.
-  const badges = page.locator("[data-attention-badge]");
-  await expect(badges).toHaveCount(1);
-  const tagName = await badges.first().evaluate((element) => element.tagName.toLowerCase());
-  expect(tagName).toBe("a");
-  expect(await badges.first().textContent()).toMatch(/^\d/);
-  expect(await badges.first().getAttribute("href")).toBe("/desk");
-});
-
-/**
- * FR-001 / SC (spec US1-S2): the three zero-node epics in the Fixture floor
- * cost a line of text, not a screen of nothing.
- *
- * The comparison is taken inside one render — every height is measured from the
- * same page at the same viewport and font — so the bound cannot drift with the
- * window size or with a face that loads at a different metric. A quarter of the
- * median populated stage is the threshold the spec names.
- */
-test.describe("the stage is the size of its graph", () => {
-  test.use({ viewport: { width: 1440, height: 1000 } });
-
-  test("an epic with nothing staged is a row, not a screen", async ({ page }) => {
+test.describe("the second world is on the screen (FR-006)", () => {
+  test("the two themes render two different grounds", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/showfloor");
-    await page.waitForSelector("[data-epic-stage]");
+    await page.waitForSelector("[data-rail-row]");
 
-    const stages = page.locator("[data-epic-stage]");
-    const count = await stages.count();
-    expect(count).toBeGreaterThan(0);
+    const groundOf = () =>
+      page.evaluate(() => {
+        const style = getComputedStyle(document.body);
+        return {
+          ground: style.backgroundColor,
+          ink: style.color,
+          token: getComputedStyle(document.documentElement)
+            .getPropertyValue("--ground")
+            .trim(),
+        };
+      });
 
-    const empty: number[] = [];
-    const populated: number[] = [];
+    const light = await groundOf();
 
-    for (let i = 0; i < count; i++) {
-      const stage = stages.nth(i);
-      const stations = await stage.locator("[data-station]").count();
-      const box = await stage.boundingBox();
-      expect(box).not.toBeNull();
-      (stations === 0 ? empty : populated).push(box!.height);
+    await page.emulateMedia({ colorScheme: "dark" });
+    const dark = await groundOf();
+
+    // Both are real colours, and they are not the same colour.
+    for (const measured of [light, dark]) {
+      expect(measured.ground).toMatch(/^rgba?\(/);
+      expect(measured.ground).not.toBe("rgba(0, 0, 0, 0)");
     }
+    expect(dark.ground).not.toBe(light.ground);
+    expect(dark.ink).not.toBe(light.ink);
 
-    // The Fixture floor records three epics whose workgraph read failed, and
-    // the assertion is worthless if the render carries neither kind.
-    expect(empty.length).toBe(3);
-    expect(populated.length).toBeGreaterThan(0);
+    // And the ground is the token's value in each — `body` is grounded in
+    // `var(--ground)`, not in a colour of its own (§ Colors).
+    expect(light.token.toUpperCase()).toBe("#EDF0F2");
+    expect(dark.token.toUpperCase()).toBe("#0D1418");
 
-    const sorted = [...populated].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
-    const median =
-      sorted.length % 2 === 1
-        ? sorted[middle]
-        : (sorted[middle - 1] + sorted[middle]) / 2;
-    expect(median).toBeGreaterThan(0);
+    // § Colors: an explicit choice beats the OS in both directions. Under a
+    // dark OS, `data-theme="light"` returns the light ground; under a light OS,
+    // `data-theme="dark"` takes the dark one.
+    const stamped = async (theme: string) => {
+      await page.evaluate((value) => {
+        document.documentElement.setAttribute("data-theme", value);
+      }, theme);
+      return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    };
 
-    for (const height of empty) {
-      expect(height).toBeLessThan(median / 4);
-    }
+    expect(await stamped("light")).toBe(light.ground);
+    await page.emulateMedia({ colorScheme: "light" });
+    expect(await stamped("dark")).toBe(dark.ground);
   });
 
-  test("a deeper graph gets a taller stage", async ({ page, request }) => {
-    await page.goto("/showfloor");
-    await page.waitForSelector("[data-epic-stage]");
+  test("the rail's chips wear DESIGN.md's vocabulary in both themes", async ({ page }) => {
+    for (const scheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto("/showfloor");
+      await page.waitForSelector("[data-chip]");
 
-    const floorResponse = await request.get("/api/floor");
-    const floorDoc = (await floorResponse.json()) as {
-      epics: Array<{
-        epic_id: string;
-        stage?: { nodes: Array<{ id: string }> };
-      }>;
-    };
+      const tones = await page
+        .locator("[data-chip]")
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-chip-tone")));
 
-    // FR-002: height follows the graph, so the five-node epic's map is taller
-    // than the two-node one's. A constant height passes nothing here.
-    const twoNode = floorDoc.epics.find(
-      (epic) => epic.stage && epic.stage.nodes.length === 2,
-    );
-    const fiveNode = floorDoc.epics.find(
-      (epic) => epic.stage && epic.stage.nodes.length === 5,
-    );
-    expect(twoNode).toBeDefined();
-    expect(fiveNode).toBeDefined();
+      expect(tones.length).toBeGreaterThan(0);
+      // § Chips is the whole vocabulary; `unknown` is the Unknown Rule, not a
+      // seventh colour. A tone outside this set is a defect.
+      for (const tone of tones) {
+        expect(["landed", "building", "ready", "draft", "wait", "dead", "unknown"]).toContain(tone);
+      }
 
-    const mapOf = async (epicId: string): Promise<number> => {
-      const map = page
-        .locator(`[data-epic-stage][data-epic-id="${epicId}"][data-staged="true"] .epic-stage-map`)
-        .first();
-      const box = await map.boundingBox();
-      expect(box).not.toBeNull();
-      return box!.height;
-    };
-
-    const shallow = await mapOf(twoNode!.epic_id);
-    const deep = await mapOf(fiveNode!.epic_id);
-    expect(deep).toBeGreaterThan(shallow);
+      // Every chip carries its word — state is never colour alone.
+      const words = await page
+        .locator("[data-chip]")
+        .evaluateAll((nodes) => nodes.map((node) => (node.textContent ?? "").trim()));
+      for (const word of words) expect(word.length).toBeGreaterThan(0);
+    }
   });
 });
 
-/**
- * FR-004, FR-005, FR-006 (spec US2-S1, US2-S2, US2-S3): the landing line and
- * its four stations are on the screen — reachable by scrolling the map
- * horizontally, exactly as `DESIGN.md` § Layout describes.
- *
- * Every measurement of the lane is taken against its **wrapper**, never
- * against the viewport. A wrapper that scrolls is the specified behaviour —
- * "The map is an SVG of min-width 1040px inside a horizontally scrolling
- * wrapper" — so a viewport-containment assertion would forbid the very thing
- * the document asks for. What is forbidden is content laid out into nowhere:
- * past the edge with nothing on the screen that scrolls to reach it, which is
- * what shipped and what the sweep below separates out.
- */
-const LAYOUT_WIDTHS = [1280, 1440] as const;
+test.describe("the frame is fluid to 96rem (FR-007)", () => {
+  const WIDTHS = [1280, 1600, 2560] as const;
 
-/** DESIGN.md § Layout (Showfloor): "an SVG of min-width 1040px". */
-const MAP_MIN_WIDTH = 1040;
+  test("centred at the cap, fluid below it, and the stage column grows", async ({ page }) => {
+    const measured: Record<number, { frame: number; left: number; stage: number; cap: number; root: number }> = {};
 
-interface Box {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-  width: number;
-  height: number;
-}
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto("/showfloor");
+      await page.waitForSelector("[data-stage]");
 
-interface WrapperMeasure {
-  description: string;
-  overflowX: string;
-  box: Box;
-  clientWidth: number;
-  clientHeight: number;
-  scrollWidth: number;
-  scrollLeft: number;
-}
-
-interface LayoutMeasure {
-  viewportWidth: number;
-  /** The room's own scroll root, which scrolls the floor vertically. */
-  room: { scrollWidth: number; clientWidth: number };
-  lanes: Array<{
-    epicId: string | null;
-    box: Box;
-    stations: Array<{ stage: string | null; box: Box }>;
-    wrapper: WrapperMeasure | null;
-  }>;
-  maps: Array<{
-    epicId: string | null;
-    width: number;
-    wrapper: WrapperMeasure | null;
-  }>;
-  sweep: {
-    swept: number;
-    excused: number;
-    offenders: Array<{ description: string; right: number }>;
-  };
-}
-
-/**
- * Load the Showfloor at one width and take every measurement the assertions
- * below need, in one pass over one render.
- *
- * An element's scroll wrapper is found by walking its ancestors for a computed
- * `overflow-x` that scrolls — the computed style, so a wrapper that only looks
- * like one in the stylesheet cannot satisfy it. The walk stops at the room's
- * own scroll root: that element scrolls the floor vertically, and counting it
- * as a horizontal wrapper would excuse everything on the page, the lane laid
- * out 121px past the container included. The room is instead held to a
- * stricter rule of its own below — it must not scroll horizontally at all — so
- * stopping the walk there hides nothing.
- */
-async function measureLayout(page: Page, width: number): Promise<LayoutMeasure> {
-  await page.setViewportSize({ width, height: 1000 });
-  await page.goto("/showfloor");
-  await page.waitForSelector("[data-landing-line]");
-
-  return page.evaluate(() => {
-    const room = document.querySelector("[data-showfloor-root]") as HTMLElement;
-
-    const describe = (element: Element): string => {
-      const classes =
-        typeof element.className === "string" && element.className.trim()
-          ? `.${element.className.trim().split(/\s+/).join(".")}`
-          : "";
-      return `${element.tagName.toLowerCase()}${classes}`;
-    };
-
-    const boxOf = (element: Element): Box => {
-      const rect = element.getBoundingClientRect();
-      return {
-        left: rect.left,
-        right: rect.right,
-        top: rect.top,
-        bottom: rect.bottom,
-        width: rect.width,
-        height: rect.height,
-      };
-    };
-
-    const measureWrapper = (wrapper: HTMLElement): WrapperMeasure => ({
-      description: describe(wrapper),
-      overflowX: getComputedStyle(wrapper).overflowX,
-      box: boxOf(wrapper),
-      clientWidth: wrapper.clientWidth,
-      clientHeight: wrapper.clientHeight,
-      scrollWidth: wrapper.scrollWidth,
-      scrollLeft: wrapper.scrollLeft,
-    });
-
-    const wrapperOf = (element: Element): HTMLElement | null => {
-      let parent = element.parentElement;
-      while (
-        parent &&
-        parent !== room &&
-        parent !== document.body &&
-        parent !== document.documentElement
-      ) {
-        const overflowX = getComputedStyle(parent).overflowX;
-        if (overflowX === "auto" || overflowX === "scroll") return parent;
-        parent = parent.parentElement;
-      }
-      return null;
-    };
-
-    const epicOf = (element: Element): string | null =>
-      element.closest("[data-epic-stage]")?.getAttribute("data-epic-id") ?? null;
-
-    const lanes = Array.from(document.querySelectorAll("[data-landing-line]")).map(
-      (lane) => {
-        const wrapper = wrapperOf(lane);
+      measured[width] = await page.evaluate(() => {
+        const frame = document.querySelector("[data-showfloor-frame]") as HTMLElement;
+        const stage = document.querySelector("[data-stage]") as HTMLElement;
+        const root = document.querySelector("[data-showfloor-root]") as HTMLElement;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
         return {
-          epicId: epicOf(lane),
-          box: boxOf(lane),
-          stations: Array.from(lane.querySelectorAll("[data-landing-station]")).map(
-            (station) => ({
-              stage: station.getAttribute("data-landing-station"),
-              box: boxOf(station),
-            }),
-          ),
-          wrapper: wrapper ? measureWrapper(wrapper) : null,
+          frame: frame.getBoundingClientRect().width,
+          left: frame.getBoundingClientRect().left,
+          stage: stage.getBoundingClientRect().width,
+          cap: parseFloat(getComputedStyle(frame).maxWidth) / rem,
+          root: root.getBoundingClientRect().width,
         };
-      },
-    );
-
-    const maps = Array.from(document.querySelectorAll(".epic-stage-map")).map(
-      (map) => {
-        const wrapper = wrapperOf(map);
-        return {
-          epicId: epicOf(map),
-          width: map.getBoundingClientRect().width,
-          wrapper: wrapper ? measureWrapper(wrapper) : null,
-        };
-      },
-    );
-
-    // FR-006: every element carrying text, with the exception named explicitly.
-    const viewportWidth = document.documentElement.clientWidth;
-    const EPSILON = 0.5;
-    let swept = 0;
-    let excused = 0;
-    const offenders: Array<{ description: string; right: number }> = [];
-
-    /**
-     * How far right the element is actually painted.
-     *
-     * A box inside an `overflow: hidden` ancestor is cut off at that
-     * ancestor's edge, so its own right edge is not where it appears — React
-     * Flow's node wrappers are the width of the canvas they pan inside, and
-     * measuring their declared box would report content past the viewport that
-     * no operator can see there. Scrolling ancestors are deliberately *not*
-     * clipped here: content inside one is reachable, which is the exception
-     * this sweep is about, and it is tested for below rather than assumed.
-     */
-    const visibleRight = (element: Element): number => {
-      let right = element.getBoundingClientRect().right;
-      let parent = element.parentElement;
-      while (parent && parent !== document.documentElement) {
-        const overflowX = getComputedStyle(parent).overflowX;
-        if (overflowX === "hidden" || overflowX === "clip") {
-          const box = parent.getBoundingClientRect();
-          right = Math.min(right, box.left + parent.clientWidth);
-        }
-        parent = parent.parentElement;
-      }
-      return right;
-    };
-
-    for (const element of Array.from(document.querySelectorAll("*"))) {
-      const tag = element.tagName.toLowerCase();
-      if (tag === "script" || tag === "style" || tag === "head" || tag === "title") {
-        continue;
-      }
-      if (!(element.textContent ?? "").trim()) continue;
-      const rect = element.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0) continue;
-      swept++;
-      if (visibleRight(element) <= viewportWidth + EPSILON) continue;
-
-      // Past the edge. That is intended horizontal scroll only if a wrapper
-      // inside the room really scrolls and is itself on the screen, so the
-      // operator has something to scroll. Anything else is laid out into
-      // nowhere.
-      const wrapper = wrapperOf(element);
-      const reachable =
-        wrapper !== null &&
-        wrapper.scrollWidth > wrapper.clientWidth &&
-        wrapper.getBoundingClientRect().right <= viewportWidth + EPSILON;
-
-      if (reachable) excused++;
-      else offenders.push({ description: describe(element), right: rect.right });
+      });
     }
 
-    return {
-      viewportWidth,
-      room: { scrollWidth: room.scrollWidth, clientWidth: room.clientWidth },
-      lanes,
-      maps,
-      sweep: { swept, excused, offenders },
-    };
+    // § Layout: "full-bleed surface card, `max-width: 96rem`, centred".
+    for (const width of WIDTHS) {
+      expect(measured[width].cap).toBeCloseTo(96, 1);
+      // The room behind the frame is the whole viewport at every width.
+      expect(measured[width].root).toBeCloseTo(width, 0);
+    }
+
+    // Below the cap the frame is the window; the interior has no cap of its
+    // own, so the stage column grows with it. This is the assertion FR-007
+    // names: 1280 → 1600 must move it.
+    expect(measured[1600].frame).toBeGreaterThan(measured[1280].frame);
+    expect(measured[1600].stage).toBeGreaterThan(measured[1280].stage);
+
+    // At 2560 the cap binds and the frame is centred rather than stretched.
+    expect(measured[2560].frame).toBeLessThan(2560);
+    expect(measured[2560].left).toBeCloseTo((2560 - measured[2560].frame) / 2, 0);
   });
-}
 
-for (const width of LAYOUT_WIDTHS) {
-  test.describe(`the pane fits the screen at ${width}`, () => {
-    test("the landing line lies within its wrapper's scrollable extent", async ({
-      page,
-    }) => {
-      const measure = await measureLayout(page, width);
+  test("nothing is laid out into nowhere", async ({ page }) => {
+    // 004's FR-006 sweep, kept: no element carrying text may cross the
+    // viewport's right edge except inside an ancestor that really scrolls.
+    for (const width of [1280, 1600] as const) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto("/showfloor");
+      await page.waitForSelector("[data-stage]");
 
-      // The Fixture floor stages epics with graphs, so there are lanes to
-      // measure; an empty list would satisfy every assertion below for nothing.
-      expect(measure.lanes.length).toBeGreaterThan(0);
+      const sweep = await page.evaluate(() => {
+        const viewport = document.documentElement.clientWidth;
+        const EPSILON = 0.5;
+        let swept = 0;
+        const offenders: string[] = [];
 
-      for (const lane of measure.lanes) {
-        const wrapper = lane.wrapper;
-        expect(
-          wrapper,
-          `${lane.epicId}: the landing line has no scrolling wrapper inside the room`,
-        ).not.toBeNull();
+        const describe = (element: Element): string => {
+          const classes =
+            typeof element.className === "string" && element.className.trim()
+              ? `.${element.className.trim().split(/\s+/).join(".")}`
+              : "";
+          return `${element.tagName.toLowerCase()}${classes}`;
+        };
 
-        // FR-004, measured against the wrapper and never the viewport: the
-        // lane's whole box lies inside the extent the wrapper can scroll to.
-        const inWrapper = (x: number): number =>
-          x - wrapper!.box.left + wrapper!.scrollLeft;
-        expect(
-          inWrapper(lane.box.left),
-          `${lane.epicId}: lane starts before the wrapper's scrollable extent`,
-        ).toBeGreaterThanOrEqual(-0.5);
-        expect(
-          inWrapper(lane.box.right),
-          `${lane.epicId}: lane ends ${(inWrapper(lane.box.right) - wrapper!.scrollWidth).toFixed(1)}px past the wrapper's scrollable extent`,
-        ).toBeLessThanOrEqual(wrapper!.scrollWidth + 0.5);
+        for (const element of Array.from(document.querySelectorAll("*"))) {
+          const tag = element.tagName.toLowerCase();
+          if (["script", "style", "head", "title"].includes(tag)) continue;
+          if (!(element.textContent ?? "").trim()) continue;
+          const rect = element.getBoundingClientRect();
+          if (rect.width === 0 && rect.height === 0) continue;
+          swept++;
+          if (rect.right <= viewport + EPSILON) continue;
 
-        // The wrapper is on the screen, so that extent is one an operator can
-        // actually reach.
-        expect(wrapper!.box.right).toBeLessThanOrEqual(width + 0.5);
-
-        // And the four stations with it. The wrapper scrolls in one axis only,
-        // so a station outside its client box vertically is not reachable at
-        // all — DESIGN.md's landing line is taller than a shallow graph's map,
-        // and this is the assertion that says so.
-        expect(lane.stations.length).toBe(4);
-        for (const station of lane.stations) {
-          expect(
-            inWrapper(station.box.right),
-            `${lane.epicId}: station ${station.stage} is past the wrapper's scrollable extent`,
-          ).toBeLessThanOrEqual(wrapper!.scrollWidth + 0.5);
-          expect(
-            station.box.top,
-            `${lane.epicId}: station ${station.stage} sits above the wrapper`,
-          ).toBeGreaterThanOrEqual(wrapper!.box.top - 0.5);
-          expect(
-            station.box.bottom,
-            `${lane.epicId}: station ${station.stage} sits below the wrapper`,
-          ).toBeLessThanOrEqual(wrapper!.box.top + wrapper!.clientHeight + 0.5);
+          let parent = element.parentElement;
+          let reachable = false;
+          while (parent && parent !== document.documentElement) {
+            const overflowX = getComputedStyle(parent).overflowX;
+            if (
+              (overflowX === "auto" || overflowX === "scroll") &&
+              parent.scrollWidth > parent.clientWidth &&
+              parent.getBoundingClientRect().right <= viewport + EPSILON
+            ) {
+              reachable = true;
+              break;
+            }
+            parent = parent.parentElement;
+          }
+          if (!reachable) offenders.push(`${describe(element)} at ${rect.right.toFixed(0)}px`);
         }
-      }
-    });
 
-    test("a map wider than its wrapper makes the wrapper scroll", async ({ page }) => {
-      const measure = await measureLayout(page, width);
+        return { swept, offenders, scrollWidth: document.documentElement.scrollWidth, viewport };
+      });
 
-      expect(measure.maps.length).toBeGreaterThan(0);
-
-      // FR-005: the affordance is unconditional — DESIGN.md gives every map a
-      // horizontally scrolling wrapper, not only the ones that overflow today.
-      for (const map of measure.maps) {
-        expect(map.wrapper, `${map.epicId}: the map has no wrapper`).not.toBeNull();
-        expect(["auto", "scroll"]).toContain(map.wrapper!.overflowX);
-        // The wrapper can always reach DESIGN.md's stated map width.
-        expect(map.wrapper!.scrollWidth).toBeGreaterThanOrEqual(MAP_MIN_WIDTH);
-      }
-
-      // And where the content really does exceed the wrapper, the wrapper says
-      // so: `scrollWidth` exceeds `clientWidth`, asserted rather than assumed.
-      // The Given is read from DESIGN.md's own 1040px map width against the
-      // measured column, never from `scrollWidth` itself — a test that took its
-      // premise from the value under test would prove nothing.
-      const mustScroll = measure.maps.filter(
-        (map) => MAP_MIN_WIDTH > map.wrapper!.clientWidth,
-      );
-      for (const map of mustScroll) {
-        expect(
-          map.wrapper!.scrollWidth,
-          `${map.epicId}: a ${MAP_MIN_WIDTH}px map in a ${map.wrapper!.clientWidth}px wrapper that does not scroll`,
-        ).toBeGreaterThan(map.wrapper!.clientWidth);
-      }
-
-      // Non-vacuity, and it is width-dependent by arithmetic rather than by
-      // luck: the route's first column is 220px and DESIGN.md's map is 1040px,
-      // so at 1280 the map cannot fit its column and every map must scroll. At
-      // 1440 it can, and a map that fits is not a defect — the loop above still
-      // binds every map that does not.
-      if (width === 1280) {
-        expect(mustScroll.length).toBe(measure.maps.length);
-        expect(mustScroll.length).toBeGreaterThan(0);
-      }
-    });
-
-    test("no text is laid out past the viewport outside a scrollable wrapper", async ({
-      page,
-    }) => {
-      const measure = await measureLayout(page, width);
-
-      expect(measure.viewportWidth).toBe(width);
-
-      // The room scrolls the floor vertically. It must not scroll it sideways:
-      // that is what makes the exception below name a bounded wrapper on the
-      // screen rather than the whole page, and it is the measurement the
-      // shipped build failed — its lane was reachable only by scrolling the
-      // room itself, 121px past the container, which is why the defect could
-      // hide behind "the content is reachable".
-      expect(measure.room.scrollWidth).toBeLessThanOrEqual(
-        measure.room.clientWidth,
-      );
-
-      // A sweep over nothing passes for the wrong reason, so it has to have
-      // really walked the room.
-      expect(measure.sweep.swept).toBeGreaterThan(20);
-
-      // And an exception never exercised proves nothing either. Where the
-      // measured column is narrower than DESIGN.md's 1040px map, the map really
-      // does run past the viewport and really is excused — so at that width the
-      // sweep is separating the two cases rather than finding neither.
-      const mapOverflows = measure.maps.some(
-        (map) => map.wrapper!.clientWidth < MAP_MIN_WIDTH,
-      );
-      if (mapOverflows) expect(measure.sweep.excused).toBeGreaterThan(0);
-
-      expect(
-        measure.sweep.offenders.map(
-          (offender) => `${offender.description} at ${offender.right.toFixed(0)}px`,
-        ),
-      ).toEqual([]);
-    });
+      // A sweep over nothing passes for the wrong reason.
+      expect(sweep.swept).toBeGreaterThan(20);
+      expect(sweep.offenders).toEqual([]);
+      // And the page itself does not scroll sideways to hide the difference.
+      expect(sweep.scrollWidth).toBeLessThanOrEqual(sweep.viewport + 0.5);
+    }
   });
-}
+
+  test("no font file and no remote asset is requested", async ({ page }) => {
+    const urls: string[] = [];
+    page.on("request", (request) => urls.push(request.url()));
+
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-rail-row]");
+
+    // The load really happened, so an empty log would not be why this passes.
+    expect(urls.length).toBeGreaterThan(2);
+
+    for (const url of urls) {
+      expect(url, `${url} is not this pane`).toMatch(/^http:\/\/127\.0\.0\.1:/);
+      expect(url, `${url} is a font file`).not.toMatch(/\.(woff2?|ttf|otf|eot)(\?|$)/i);
+      expect(url, `${url} reaches the retired font directory`).not.toContain("/fonts/");
+    }
+  });
+});
+
+test.describe("the rail is the corpus (FR-008)", () => {
+  test("one row per spec, in the document's order, with its chip and count", async ({
+    page,
+    request,
+  }) => {
+    const rail = await railOf(request);
+    // The corpus of this repository is what the demo floor serves; an empty
+    // one would satisfy every assertion below for nothing.
+    expect(rail.length).toBeGreaterThan(3);
+
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-rail-row]");
+
+    const rows = page.locator("[data-rail-row]");
+    await expect(rows).toHaveCount(rail.length);
+
+    const rendered = await rows.evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        dir: node.getAttribute("data-spec-dir"),
+        href: node.getAttribute("href"),
+        id: node.querySelector("[data-rail-id]")?.textContent ?? "",
+        chip: (node.querySelector("[data-chip]")?.textContent ?? "").trim(),
+        name: node.querySelector("[data-rail-name]")?.textContent ?? "",
+      })),
+    );
+
+    expect(rendered.map((row) => row.dir)).toEqual(rail.map((entry) => entry.spec_dir));
+    for (const [index, entry] of rail.entries()) {
+      expect(rendered[index].chip).toBe(chipText(entry));
+      expect(rendered[index].name).toBe(entry.name);
+      expect(rendered[index].href).toBe(`/showfloor/${entry.spec_dir}`);
+      expect(rendered[index].id).toBe(entry.spec_dir.split("-")[0]);
+    }
+
+    // This corpus really does carry more than one kind of chip — a floor of
+    // one word would not prove the vocabulary is being read.
+    const tones = new Set(
+      await page
+        .locator("[data-chip]")
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-chip-tone"))),
+    );
+    expect(tones.size).toBeGreaterThan(1);
+  });
+});
+
+test.describe("selection deep-links (FR-009)", () => {
+  const selectionOf = async (page: Page) => ({
+    rail: await page
+      .locator("[data-rail-row][data-selected='true']")
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-spec-dir"))),
+    stage: await page.locator("[data-stage]").getAttribute("data-spec-dir"),
+    stageId: await page.locator("[data-stage-id]").textContent(),
+    miss: await page.locator("[data-selection-miss]").count(),
+  });
+
+  test("a spec's own path selects that spec, in the rail and on the stage", async ({
+    page,
+    request,
+  }) => {
+    const rail = await railOf(request);
+    const target = rail[1];
+
+    await page.goto(`/showfloor/${target.spec_dir}`);
+    await page.waitForSelector("[data-stage]");
+
+    const selection = await selectionOf(page);
+    expect(selection.rail).toEqual([target.spec_dir]);
+    expect(selection.stage).toBe(target.spec_dir);
+    expect(selection.stageId).toBe(target.spec_dir.split("-")[0]);
+    expect(selection.miss).toBe(0);
+
+    // One appbar, inside the frame, and its nav knows which room it is in.
+    // The first world rendered two here: the app shell's and the room's.
+    await expect(page.locator(".mast")).toHaveCount(1);
+    await expect(page.locator("[data-showfloor-frame] .mast")).toHaveCount(1);
+    await expect(page.locator(".mast nav a[aria-current='page']")).toHaveText("Showfloor");
+  });
+
+  test("an unknown directory falls back to the default and names the miss", async ({
+    page,
+    request,
+  }) => {
+    const rail = await railOf(request);
+
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-stage]");
+    const fallback = await selectionOf(page);
+
+    await page.goto("/showfloor/042-a-spec-that-was-never-written");
+    await page.waitForSelector("[data-stage]");
+    const missed = await selectionOf(page);
+
+    // Same selection as the bare path — and the miss is on the page, in words,
+    // naming what was asked for and what is shown instead.
+    expect(missed.rail).toEqual(fallback.rail);
+    expect(missed.miss).toBe(1);
+    const words = await page.locator("[data-selection-miss]").textContent();
+    expect(words).toContain("042-a-spec-that-was-never-written");
+    expect(words).toContain(missed.stage as string);
+    expect(rail.map((entry) => entry.spec_dir)).toContain(missed.stage as string);
+  });
+
+  test("a bare path selects the building epic, else the newest landed", async ({
+    page,
+    request,
+  }) => {
+    const rail = await railOf(request);
+
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-stage]");
+    const selection = await selectionOf(page);
+
+    const entry = rail.find((row) => row.spec_dir === selection.stage);
+    expect(entry, "the default selection is a row of the rail").toBeDefined();
+
+    // Nothing is dispatched against this repository's own corpus on the demo
+    // floor, so the rule that applies is the second one: the newest landed.
+    const landed = rail.filter((row) => row.chip === "landed");
+    if (landed.length > 0) {
+      expect(selection.stage).toBe(landed[landed.length - 1].spec_dir);
+    }
+    expect(selection.miss).toBe(0);
+  });
+});
+
+test.describe("the room has no verb (constitution I)", () => {
+  test("no control, one badge, and every request a GET", async ({ page }) => {
+    const requests: { method: string }[] = [];
+    page.on("request", (request) => requests.push({ method: request.method() }));
+
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-rail-row]");
+
+    // The room is really rendered before the sweep, so a clean sweep is a fact
+    // about the Showfloor and not about an empty page.
+    expect(await page.locator("[data-rail-row]").count()).toBeGreaterThan(0);
+
+    await expect(page.locator("button, form, input, select, textarea")).toHaveCount(0);
+
+    // The Fixture floor carries open Attention items, so the one badge is
+    // there — and it is an anchor, the Showfloor's only link out.
+    const badges = page.locator("[data-attention-badge]");
+    await expect(badges).toHaveCount(1);
+    const tagName = await badges.first().evaluate((element) => element.tagName.toLowerCase());
+    expect(tagName).toBe("a");
+    expect(await badges.first().textContent()).toMatch(/^\d/);
+    expect(await badges.first().getAttribute("href")).toBe("/");
+
+    // Following the rail's own links stays a read, too.
+    await page.locator("[data-rail-row]").nth(2).click();
+    await page.waitForSelector("[data-stage]");
+
+    expect(requests.filter((request) => request.method !== "GET")).toHaveLength(0);
+  });
+});

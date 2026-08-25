@@ -4,7 +4,11 @@
  *
  * DESIGN.md § Navigation (the attention badge at the far right in clay-ink
  * with a clay bell dot; it is a link, the Showfloor's only one),
- * § Colors (The Attention Ranking Rule — clay for waiting-on-you; never red).
+ * § Colors (waiting on you is gold, and gold is only ever that).
+ *
+ * 005 US2 points the link at `/` rather than `/desk`: the Desk answers at both,
+ * and `/` is the room's front door — the appbar's own nav is where the named
+ * route belongs. The destination is unchanged; only its spelling is.
  *
  * Three renderings, in this order of precedence:
  *
@@ -24,7 +28,7 @@
  */
 
 import type { AttentionItem, DegradedEntry } from "../api/floorDocument";
-import { DESK_PATH } from "../routes";
+import { DESK_ROOT_PATH } from "../routes";
 
 interface AttentionBadgeProps {
   attention: { seam: string; items: AttentionItem[] };
@@ -64,7 +68,7 @@ export default function AttentionBadge({
   }
 
   return (
-    <a className="attention-badge" data-attention-badge href={DESK_PATH}>
+    <a className="attention-badge" data-attention-badge href={DESK_ROOT_PATH}>
       <span className="num">{count}</span>
       <span className="attention-badge-words">{" waiting on you → Desk"}</span>
     </a>
