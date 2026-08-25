@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import type { FloorDocument } from "../api/floorDocument";
-import { subscribeFloor, upsertAttention } from "../api/events";
+import type { ShowfloorDocument } from "../api/showfloorDocument";
+import { subscribeFloor, upsertAttention, upsertRailEntry } from "../api/events";
 import Masthead from "../Masthead";
 import AttentionStrip from "./AttentionStrip";
 import EpicRow from "./EpicRow";
@@ -36,12 +37,29 @@ function Frame({ children }: { children: ReactNode }): JSX.Element {
 
 export default function Desk() {
   const [doc, setDoc] = useState<FloorDocument | null>(null);
+  // The floor section's ladders and chips, from the document the Showfloor
+  // renders (006 US2, T005). It is read beside `/api/floor` and never instead
+  // of it: the Desk's readiness is the floor's, so a slow or refused showfloor
+  // read costs the ladders and not the room (constitution III). Until it
+  // arrives there is no ladder to draw, and `EpicRow` says exactly that rather
+  // than deriving one (FR-005).
+  const [showfloor, setShowfloor] = useState<ShowfloorDocument | null>(null);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     let close: (() => void) | null = null;
+    fetch("/api/showfloor")
+      .then(async (response) => {
+        if (!response.ok) return;
+        const initial = (await response.json()) as ShowfloorDocument;
+        // A body that is not a showfloor document is not a rail of one entry:
+        // it is a read that answered something else, and the ladders stay
+        // unread.
+        if (!cancelled && Array.isArray(initial?.rail)) setShowfloor(initial);
+      })
+      .catch(() => undefined);
     fetch("/api/floor")
       .then(async (response) => {
         if (!response.ok) {
@@ -57,8 +75,16 @@ export default function Desk() {
       // An `attention` event is the fast path: it upserts into the list the
       // Desk already holds. The next `floor` event replaces the whole section,
       // so the stream can never drift away from the backend's own assembly.
-      close = subscribeFloor("/api/events", setDoc, (item) =>
-        setDoc((current) => (current ? upsertAttention(current, item) : current)),
+      // Three types on one subscription: `floor` replaces the document,
+      // `attention` upserts an item into it, and `showfloor` upserts the one
+      // rail entry the backend re-assembled (005 FR-005). The Desk opens no
+      // stream of its own for the third.
+      close = subscribeFloor(
+        "/api/events",
+        setDoc,
+        (item) => setDoc((current) => (current ? upsertAttention(current, item) : current)),
+        (entry) =>
+          setShowfloor((current) => (current ? upsertRailEntry(current, entry) : current)),
       );
     }
     return () => {
@@ -174,7 +200,10 @@ export default function Desk() {
           {summary === "quiet" && (
             <p className="quiet">Quiet floor: nothing is running and nothing is waiting on you.</p>
           )}
-          {summary === "busy" && doc.epics.map((epic) => <EpicRow key={epic.epic_id} epic={epic} />)}
+          {summary === "busy" &&
+            doc.epics.map((epic, index) => (
+              <EpicRow key={`${epic.epic_id}-${index}`} epic={epic} showfloor={showfloor} />
+            ))}
           {epicDegraded.map((entry, index) => (
             <DegradedWell key={index} entry={entry} />
           ))}
