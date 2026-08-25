@@ -177,6 +177,35 @@ const killedStory = story(
   factsFrom(killedRaw, "us1"),
 );
 
+/**
+ * Landed by content, with no live answer at all (009 US1-S2, FR-002a, SC-004).
+ *
+ * The condition the operator hit at 3:22 PM: an epic whose stories merged and
+ * whose Temporal workflow is gone. Every live fact is null because there is no
+ * answer to read — the three the *branch* holds are the landing commit's
+ * instant on the `merged` stop, its SHA, and the PR number in the squash
+ * subject the merge queue wrote. The SHA and the subject are this repository's
+ * own git history, which is where a landing fact exists at all; the shape is
+ * `pane/showfloor.py`'s, field for field.
+ */
+const branchLandedStory = story(
+  "us1",
+  "The Desk sees the floor",
+  ladderOf({
+    state: null,
+    specState: "ready",
+    stopKey: "merged",
+    chip: "merged",
+    done: true,
+    landedAt: "2026-08-25T15:36:32Z",
+  }),
+  {
+    ...Object.fromEntries(LIVE_FACTS.map((field) => [field, null])),
+    pr_number: 47,
+    landing_sha: "55920c910bb88fbf92261686c81030c588516144",
+  },
+);
+
 const recordedFloor = JSON.parse(floorLiveRaw) as Record<string, unknown>;
 
 /** The floor document 001 serves, carrying the recorded floor. */
@@ -276,6 +305,45 @@ describe("the pane tells the selected story whole (FR-015)", () => {
     expect(grid["wall clock"]).toBe(ABSENT);
   });
 
+  it("a story landed by the branch names when it merged, its SHA and its PR", () => {
+    // SC-004: three dashes before 009, three facts after — and no live answer
+    // anywhere in the story, which is the whole point. The workflow is gone.
+    const container = render(<DetailPane story={branchLandedStory} />);
+    const grid = facts(container);
+
+    expect(branchLandedStory.facts.state).toBeNull();
+    expect(grid.landed).toBe("15:36 UTC");
+    expect(grid.sha).toBe("55920c9");
+    expect(grid.pr).toBe("#47");
+    // The whole hash is on the cell, so the seven characters withhold nothing.
+    expect(container.querySelector('[data-fact="sha"]')!.getAttribute("title")).toBe(
+      branchLandedStory.facts.landing_sha,
+    );
+
+    // The instant is on the `merged` step too, and on no other: the branch
+    // holds one commit for this story and the pane invents no clock for the
+    // five stops before it.
+    expect(steps(container)[5][2]).toBe("15:36 UTC");
+    expect(steps(container).slice(0, 5).map(([, , when]) => when)).toEqual(Array(5).fill(ABSENT));
+
+    // Every fact the branch cannot supply stays unknown (FR-002a): it adds no
+    // store and reads no history the branch does not hold.
+    expect(grid.attempt).toBe(ABSENT);
+    expect(grid.judge).toBe(ABSENT);
+    expect(grid["wall clock"]).toBe(ABSENT);
+  });
+
+  it("a story the branch cannot place keeps its dashes rather than a hash", () => {
+    const grid = facts(render(<DetailPane story={buildingStory} />));
+
+    expect(buildingStory.facts.landing_sha).toBeUndefined();
+    expect(grid.sha).toBe(ABSENT);
+    expect(
+      render(<DetailPane story={buildingStory} />).querySelector('[data-fact="sha"]')!
+        .getAttribute("title"),
+    ).toBeNull();
+  });
+
   it("a building story marks the active step and leaves the rest pending", () => {
     const container = render(<DetailPane story={buildingStory} />);
 
@@ -323,7 +391,7 @@ describe("the pane tells the selected story whole (FR-015)", () => {
 
     // `attempt: 0` is the factory saying "not attempted" — an absence.
     expect(readyStory.facts.attempt).toBe(0);
-    expect(Object.values(grid)).toEqual(Array(5).fill(ABSENT));
+    expect(Object.values(grid)).toEqual(Array(6).fill(ABSENT));
     expect(Object.values(grid)).not.toContain("0");
 
     expect(steps(container).map(([, status]) => status)).toEqual([
@@ -511,12 +579,17 @@ describe("the readings themselves", () => {
     expect(prFact(readyStory)).toBeNull();
   });
 
-  it("names five facts, in DESIGN.md's order, whatever the answer carried", () => {
+  it("names six facts, in DESIGN.md's order, whatever the answer carried", () => {
+    // Five until 009: DESIGN.md § Detail pane has always named a landing SHA
+    // between the PR number and the wall clock, and the cell was left out
+    // because no live answer carries a merge commit. The landing branch does
+    // (FR-002a), so the grid is the one DESIGN.md describes.
     for (const subject of [mergedStory, buildingStory, waitingStory, readyStory, killedStory]) {
       expect(factsOf(subject, null, null).map((fact) => fact.label)).toEqual([
         "attempt",
         "judge",
         "pr",
+        "sha",
         "landed",
         "wall clock",
       ]);

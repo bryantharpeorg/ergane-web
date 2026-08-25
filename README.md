@@ -47,6 +47,7 @@ PANE_TOKEN=$(python3 -c 'import secrets; print(secrets.token_hex(16))') \
 | `PANE_DEMO_TRANSPORT_FAIL` | unset | comma-separated sections whose demo reads raise `TransportFailed` |
 | `PANE_SPECS_ROOT` | `factory.workgraph.cli.DEFAULT_SPECS_ROOT` | live: where `<epic_id>/workgraph.json` lives |
 | `PANE_POLL_INTERVAL_S` | `15` | SSE poll cycle |
+| `PANE_LANDING_BRANCH` | `dev` | the branch the Showfloor reads landing facts from (D-011); a spec whose stories are on it reads `merged` whether or not a workflow still answers and whether or not the frontmatter has been attested |
 | `PANE_WEB_DIST` | `<repo>/web/dist` | the built frontend the catch-all serves |
 | `PANE_TOKEN` | **required** | the one shared token every route but intake requires; unset and the backend refuses to start rather than serve open |
 | `PANE_INTAKE_CREDENTIAL` | unset | the path segment `ERGANE_WEBHOOK_URL` carries; unset means intake is closed and the backend says so once at startup |

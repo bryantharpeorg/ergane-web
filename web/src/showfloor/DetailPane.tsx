@@ -26,13 +26,14 @@
  * * **the attempt cap** is dispatch input; the answer carries `attempt` and no
  *   ceiling to divide it by, so the cell is the number alone. A denominator the
  *   pane picked would be a number the factory never said.
- * * **a landing SHA** is carried nowhere: `NodeStatus` surfaces the landing's
- *   state, PR number and outcome history, and `provenance` is the attribution
- *   of *externally completed* work, not a merge commit. What the answer does
- *   record about a landing is the instant the queue observed it MERGED, so that
- *   is what the `landed` cell says. § Don'ts — "don't render an element that
- *   can never fill" — is why this is not a `—` forever with a hash's label on
- *   it.
+ * * **a landing SHA** is carried by no *live* answer: `NodeStatus` surfaces the
+ *   landing's state, PR number and outcome history, and `provenance` is the
+ *   attribution of *externally completed* work, not a merge commit. **009 fills
+ *   it from the other side** — `facts.landing_sha` is the commit the landing
+ *   branch itself carries (FR-002a), which is the one place a merge commit has
+ *   ever existed. So the cell DESIGN.md names is now a cell that can fill, and
+ *   a story the branch cannot place still says `—` rather than a hash the pane
+ *   worked out.
  * * **the judge's scenario count** is not in `AttemptRecord` either; the verdict
  *   and the judge's outcome are, and they are what the `judge` cell shows,
  *   verbatim. The count the pane can stand behind is of the requirement keys it
@@ -115,11 +116,18 @@ export function mergedAt(story: ShowfloorStory): string | null {
 /**
  * The six stops as named steps, each carrying the instant the factory recorded.
  *
- * Only one stop has a recorded instant on this contract — `merged`, from the
- * queue's own outcome history — so the rest carry none and say so with `—`
- * rather than with a time the pane worked out. A step still ahead of the work
- * carries nothing at all: nothing has happened to stamp, and § Don'ts is
- * against drawing an element that can never fill.
+ * Only one stop has a recorded instant — `merged` — so the rest carry none and
+ * say so with `—` rather than with a time the pane worked out. A step still
+ * ahead of the work carries nothing at all: nothing has happened to stamp, and
+ * § Don'ts is against drawing an element that can never fill.
+ *
+ * Two sources answer for that one instant and the document has already layered
+ * them (009 FR-002a): `stop.at` is the landing commit's own date off the
+ * landing branch, and it is there for a story that merged whether or not a
+ * workflow still exists to be queried. The queue's outcome history is the
+ * fallback for a story still in flight, whose landing the branch has not seen.
+ * Neither is derived here — a pane that worked out a stop could disagree with
+ * the card that draws it.
  */
 export function stepsOf(story: ShowfloorStory): Step[] {
   const merged = mergedAt(story);
@@ -128,7 +136,7 @@ export function stepsOf(story: ShowfloorStory): Step[] {
     label: stop.label,
     status: stop.status,
     tone: STEP_TONE[stop.status] ?? "pending",
-    at: stop.key === "merged" && stop.status === "done" ? merged : null,
+    at: stop.at ?? (stop.key === "merged" && stop.status === "done" ? merged : null),
   }));
 }
 
@@ -172,6 +180,20 @@ export function prFact(story: ShowfloorStory): string | null {
   return typeof landing === "string" && landing !== ""
     ? `#${pr} · ${landing.toLowerCase().replace(/_/g, " ")}`
     : `#${pr}`;
+}
+
+/**
+ * The landing commit, abbreviated the way git abbreviates it (009 FR-002a).
+ *
+ * Seven characters is git's own short form, not a truncation the pane invented,
+ * and the full hash stays on the element's `title` so nothing is withheld. A
+ * story the landing branch cannot place has no SHA at all — null, and the grid
+ * says `—` (§ Don'ts: never a value the factory did not record).
+ */
+export function shaFact(story: ShowfloorStory): string | null {
+  const sha = story.facts.landing_sha;
+  if (typeof sha !== "string" || sha === "") return null;
+  return sha.slice(0, 7);
 }
 
 /** One epic's pace entry, as `collect_floor` records it. */
@@ -219,14 +241,16 @@ export function wallClockFact(
   return formatDuration(mine.reduce((total, attempt) => total + attempt.seconds, 0));
 }
 
-/** The five facts § Detail pane names, in its order, from what was answered. */
+/** The facts § Detail pane names, in its order, from what was answered. */
 export function factsOf(
   story: ShowfloorStory,
   floor: FloorDocument | null,
   epicId: string | null,
 ): Fact[] {
   const attempt = story.facts.attempt;
-  const merged = mergedAt(story);
+  // The same two layered sources `stepsOf` reads, so the `merged` step and the
+  // `landed` cell can never name two different instants for one landing.
+  const merged = stepsOf(story).find((step) => step.key === "merged")?.at ?? mergedAt(story);
 
   return [
     {
@@ -237,9 +261,19 @@ export function factsOf(
     },
     { label: "judge", value: judgeFact(story) },
     { label: "pr", value: prFact(story) },
+    // § Detail pane's order — "PR number, landing SHA" — with `landed` kept
+    // between the SHA and the wall clock: the *when* and the *what* of one
+    // landing read best side by side, and the cell predates the SHA's source.
+    { label: "sha", value: shaFact(story) },
     { label: "landed", value: merged === null ? null : stampOf(merged) },
     { label: "wall clock", value: wallClockFact(floor, epicId, story.id) },
   ];
+}
+
+/** The whole landing hash, for the `title` of the cell that shows seven of it. */
+function shaTitle(story: ShowfloorStory): string | undefined {
+  const sha = story.facts.landing_sha;
+  return typeof sha === "string" && sha !== "" ? sha : undefined;
 }
 
 /* ── the pane ──────────────────────────────────────────────────────────── */
@@ -368,7 +402,12 @@ function StoryDetail({ story, epicId, floor }: StoryDetailProps): JSX.Element {
         {facts.map((fact) => (
           <div className="kvrow" key={fact.label}>
             <dt data-fact-label={fact.label}>{fact.label}</dt>
-            <dd data-fact={fact.label}>{fact.value ?? ABSENT}</dd>
+            <dd
+              data-fact={fact.label}
+              title={fact.label === "sha" ? shaTitle(story) : undefined}
+            >
+              {fact.value ?? ABSENT}
+            </dd>
           </div>
         ))}
       </dl>

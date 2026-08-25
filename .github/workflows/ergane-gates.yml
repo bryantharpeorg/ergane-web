@@ -19,7 +19,18 @@ jobs:
     name: "smoke"
     runs-on: ubuntu-latest
     steps:
+      # Full history, for this gate alone: since 009 the Showfloor reads landing
+      # facts off the landing branch, and `actions/checkout`'s default depth-1
+      # single-branch clone carries no `dev` for it to read. The room degrades
+      # honestly when the branch is unreadable — every story under the Unknown
+      # Rule, the failed read named (FR-004) — so this is not a correctness
+      # fix; it is what stops the smoke suite sweeping a wholly degraded room
+      # the operator never sees, which is the sandbox/runner divergence the 009
+      # plan names as its own class of trap. The other three gates start no
+      # pane and read no branch, so they keep the shallow checkout.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-node@v4
         with:

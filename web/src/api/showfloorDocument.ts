@@ -16,6 +16,15 @@ export interface LadderStop {
   key: string;
   label: string;
   status: "done" | "active" | "waiting" | "ahead" | "frozen";
+  /**
+   * The instant the factory recorded for this stop, or null for none.
+   *
+   * 009 FR-002a: the landing branch holds a commit date for `merged` and
+   * nothing holds one for the five stops before it, so this is filled there and
+   * null elsewhere. Null is the absence, never a zero and never a stand-in
+   * time — the pane says `—` for it rather than borrowing another stop's clock.
+   */
+  at: string | null;
 }
 
 /** One story's whole ladder, derived server-side from DESIGN.md's table. */

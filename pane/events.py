@@ -63,6 +63,7 @@ async def floor_events(
     should_stop: Callable[[], Awaitable[bool]] | None = None,
     broadcaster: AttentionBroadcaster | None = None,
     specs_root: Path | str | None = None,
+    landing_branch: str | None = None,
 ) -> Any:
     """Yield typed ``{type, data}`` events until the subscriber disconnects.
 
@@ -70,6 +71,10 @@ async def floor_events(
     a full snapshot.  Between polls the generator waits on its own broadcaster
     queue with the remaining poll interval as the timeout, yielding every
     ``attention`` envelope it receives as it arrives.
+
+    ``landing_branch`` is the branch the showfloor assembly reads landing facts
+    from — a setting threaded from ``Settings``, never a name spelt into a
+    reader (009 plan D3).
 
     ``specs_root`` opts the stream into ``showfloor`` events: each poll
     re-assembles the document and yields one event per rail entry that differs
@@ -92,7 +97,9 @@ async def floor_events(
             if specs_root is not None:
                 showfloor = await assemble_showfloor(
                     specs_root,
-                    ShowfloorReaders.from_reader(reader, specs_root),
+                    ShowfloorReaders.from_reader(
+                        reader, specs_root, landing_branch=landing_branch
+                    ),
                     reference_instant=reference_instant,
                 )
                 for entry in showfloor["rail"]:

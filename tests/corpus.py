@@ -26,6 +26,16 @@ written into a scratch tree by `build_corpus` and asserted there:
 into a scratch tree so a test may perform the operator's edits — `attest` and
 `archive` — on the copy instead of asserting over the original.
 
+**009 adds a third condition to construct: a landing.** The showfloor document
+now reads landing facts off the landing branch, so a test needs a spec whose
+stories are landed *by content* and, separately, one whose attestation the
+branch contradicts. Both are built here and neither reads this repository's own
+branch: `landing_facts_for` composes the facts a reader returns, and
+`build_landed_repository` goes the whole way — a real git repository under the
+test's own `tmp_path`, with one commit per landing carrying the subject the
+merge queue writes, so `factory.workgraph.landed.landed_facts` is exercised as
+itself rather than stood in for.
+
 `tests/test_no_test_pins_live_corpus.py` is the guard that keeps the rest of the
 suite off these files (FR-001).
 """
@@ -36,10 +46,13 @@ import asyncio
 import copy
 import dataclasses
 import json
+import os
 import shutil
-from collections.abc import Sequence
+import subprocess
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from pane.landing import LandingFact, LandingReader
 from pane.readers import TransportFailed
 from pane.showfloor import (
     ShowfloorReaders,
@@ -146,9 +159,15 @@ async def no_epic(spec_dir: str) -> dict | None:
 class Corpus:
     """A specs root and an archive beside it, both under a test's own tmp tree."""
 
-    def __init__(self, specs_root: Path, archive_root: Path) -> None:
+    def __init__(
+        self, specs_root: Path, archive_root: Path, repo: Path | None = None
+    ) -> None:
         self.specs_root = specs_root
         self.archive_root = archive_root
+        #: The git repository this corpus lives in, when a test built one.
+        #: `None` for the scratch corpora, which are directories and not
+        #: checkouts — a landing read over one is a read that cannot be made.
+        self.repo = repo
 
     # --- what the corpus holds
 
@@ -235,9 +254,31 @@ class Corpus:
         return json.loads(path.read_text(encoding="utf-8"))
 
     def readers(self, **overrides) -> ShowfloorReaders:
+        """The reads bound to this corpus.
+
+        `landing_facts` is deliberately absent unless a test passes one: a
+        scratch corpus is a directory, not a checkout, and "this build has no
+        landing read" is a different condition from "the branch carries
+        nothing" (`ShowfloorReaders`).  A test that wants a landing says so.
+        """
         fields = {"workgraph": self.workgraph, "epic_status": no_epic}
         fields.update(overrides)
         return ShowfloorReaders(**fields)
+
+    def landing_reader(self, branch: str = "dev") -> ShowfloorReaders:
+        """The reads bound to this corpus' own git repository (009 FR-001).
+
+        The production binding, over a repository the test built: the same
+        `ShowfloorReaders.from_reader` path the app uses, so what is proved is
+        the wiring and not a stand-in for it.
+        """
+        if self.repo is None:
+            raise AssertionError("this corpus was not built inside a repository")
+        return dataclasses.replace(
+            self.readers(),
+            landing_facts=LandingReader(self.repo, branch).facts,
+            landing_branch=branch,
+        )
 
     # --- the document
 
@@ -254,9 +295,20 @@ def entry_for(document: dict, spec_dir: str) -> dict:
     return next(entry for entry in document["rail"] if entry["spec_dir"] == spec_dir)
 
 
-def build_corpus(tmp_path: Path, *fixtures: SpecFixture) -> Corpus:
-    """Write `fixtures` into a scratch corpus under `tmp_path` and return it."""
-    corpus = Corpus(tmp_path / "specs", tmp_path / "dags")
+def build_corpus(
+    tmp_path: Path,
+    *fixtures: SpecFixture,
+    root: Path | None = None,
+    repo: Path | None = None,
+) -> Corpus:
+    """Write `fixtures` into a scratch corpus under `tmp_path` and return it.
+
+    `root` puts the corpus somewhere other than `tmp_path` itself — a repository
+    keeps its specs at `<repo>/specs`, which is where the landing read looks for
+    the checkout the branch belongs to.
+    """
+    base = tmp_path if root is None else root
+    corpus = Corpus(base / "specs", base / "dags", repo)
     corpus.specs_root.mkdir(parents=True, exist_ok=True)
     corpus.archive_root.mkdir(parents=True, exist_ok=True)
 
@@ -274,6 +326,146 @@ def build_corpus(tmp_path: Path, *fixtures: SpecFixture) -> Corpus:
             corpus.archive(fixture.spec_dir)
 
     return corpus
+
+
+# --- a corpus inside a real git repository ---------------------------------
+
+
+#: The identity every commit a test writes is made under.  Spelt on the command
+#: rather than read from a config file: a gate's `HOME` is a fresh tmpfs with no
+#: `.gitconfig` in it (D-013), and a test that needed one would pass on the
+#: operator's machine and fail on the boundary.
+_GIT_IDENTITY = (
+    "-c", "user.name=Corpus Fixture",
+    "-c", "user.email=corpus@example.invalid",
+    "-c", "commit.gpgsign=false",
+)
+
+
+def git(repo: Path, *args: str) -> str:
+    """One git command in `repo`, with no host configuration reachable."""
+    completed = subprocess.run(
+        ["git", *_GIT_IDENTITY, "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={
+            # The host's `PATH` so `git` is found wherever it lives, and nothing
+            # else: no `GIT_*` of the operator's, and both config files pointed
+            # at `/dev/null` so a test's commits cannot inherit a host setting
+            # (a signing key, a hooks path) that the boundary's tmpfs `HOME`
+            # would not have.
+            "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
+            "HOME": str(repo.parent),
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_SYSTEM": "/dev/null",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+    )
+    return completed.stdout
+
+
+def landing_subject(spec_dir: str, story_key: str, pr: int) -> str:
+    """The subject the merge queue writes when a node's PR is squashed.
+
+    `factory.mergequeue.messages.pr_title` composes
+    `<epic_id>/<node_id>: <STORY_KEY>` and GitHub appends `(#<pr>)`; that is the
+    grammar `landed_facts` matches and the one the PR number is read out of, so
+    a test that spelt it any other way would prove nothing about either.
+    """
+    return f"{spec_dir}/{story_key.lower()}: {story_key} (#{pr})"
+
+
+def build_landed_repository(
+    tmp_path: Path,
+    *fixtures: SpecFixture,
+    landings: dict[str, Sequence[str]] | None = None,
+    branch: str = "dev",
+    first_pr: int = 41,
+) -> Corpus:
+    """A git repository whose landing branch carries `landings`, by content.
+
+    One commit per landing, in the queue's own subject grammar, on a branch with
+    no remote — so the read resolves the local branch and touches no network.
+    The frontmatter is whatever the fixtures declare: the point of this builder
+    is that the branch and the attestation can be made to disagree.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True, exist_ok=True)
+    git(repo, "init", "--quiet")
+    git(repo, "symbolic-ref", "HEAD", f"refs/heads/{branch}")
+
+    corpus = build_corpus(tmp_path, *fixtures, root=repo, repo=repo)
+    git(repo, "add", "--all")
+    git(repo, "commit", "--quiet", "-m", "the corpus, before anything landed")
+
+    pr = first_pr
+    for spec_dir, story_keys in (landings or {}).items():
+        for story_key in story_keys:
+            landed = repo / "landings" / spec_dir
+            landed.mkdir(parents=True, exist_ok=True)
+            (landed / f"{story_key.lower()}.txt").write_text(
+                f"{story_key} of {spec_dir}\n", encoding="utf-8"
+            )
+            git(repo, "add", "--all")
+            git(repo, "commit", "--quiet", "-m", landing_subject(spec_dir, story_key, pr))
+            pr += 1
+
+    return corpus
+
+
+# --- landing facts a test hands straight to the reader ---------------------
+
+
+def landing_facts_for(
+    spec_dir: str,
+    story_keys: Sequence[str],
+    *,
+    first_pr: int = 41,
+    kind: str = "observed",
+    merged_at: str = "2026-08-25T15:36:32Z",
+) -> dict[str, LandingFact]:
+    """`{story_key: LandingFact}` as `pane/landing.py` returns them.
+
+    `kind` is the provenance word `factory.workgraph.landed.LandedKind` carries.
+    `attested` is the interesting one to pass: it is the spec's own frontmatter
+    answering for itself, which is precisely the claim a landing read exists to
+    check, and `LandingFact.on_branch` is False for it.
+    """
+    facts: dict[str, LandingFact] = {}
+    for offset, story_key in enumerate(story_keys):
+        pr = first_pr + offset
+        subject = landing_subject(spec_dir, story_key, pr)
+        facts[story_key] = LandingFact(
+            story_key=story_key,
+            commit=f"{offset + 1:040x}",
+            kind=kind,
+            merged_at=merged_at,
+            subject=subject,
+            pr_number=pr,
+        )
+    return facts
+
+
+def landing_read(
+    by_spec: dict[str, dict[str, LandingFact]] | None = None,
+    *,
+    failure: Exception | None = None,
+) -> Callable[[str], dict[str, LandingFact]]:
+    """A `landing_facts` reader over facts a test composed.
+
+    With `failure`, every spec's read raises it — 001's two words reaching the
+    assembly unchanged, which is how the Unknown Rule path is driven.  Without
+    it, a spec not named in `by_spec` reads as a branch that carries nothing for
+    it, which is an answer and not a failure.
+    """
+
+    def read(spec_dir: str) -> dict[str, LandingFact]:
+        if failure is not None:
+            raise failure
+        return dict((by_spec or {}).get(spec_dir, {}))
+
+    return read
 
 
 def copy_repository_corpus(tmp_path: Path) -> Corpus:
