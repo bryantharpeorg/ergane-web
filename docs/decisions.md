@@ -379,3 +379,33 @@ coverage is unchanged, and the four gates still have to exit 0 — they are simp
 rung that actually runs them. Reported to the Ergane agent as finding N26 with the suggestion
 that `build_prompt` include the gate outcomes it already holds, so a judge asked about a gate can
 read the answer instead of predicting it.
+
+## D-015 · The second world: one epic on stage, a ladder per story (decided 2026-08-24)
+
+**Supersedes D-012's content, not its mechanism.** D-012 made `DESIGN.md` the pane's visual
+authority; that stands. This entry replaces what the document *says*: the light-sage mid-century
+world — skewed chevrons, the per-epic landing line, the vertical stack of full stages, the
+vendored OFL faces — is retired, and the operator-approved `Showfloor Redrawn` world takes its
+place. The approved comp is committed at `.impeccable/mocks/showfloor-redrawn.html`; the first
+world's comps remain beside it as history.
+
+**Why.** The first build falsified the old staging idea with measurements, not taste: six epics
+stacked as full stages produced three screens of guaranteed-empty canvas (514px each), populated
+stages 5–23% full, a legend rendered once per epic, and — after 004's repair — graphs laid out
+beside their own boxes (9 of 9 stations outside their maps). The unit was wrong. The second
+world's unit is the selection: an epic rail, one stage, one detail pane, and a six-stop status
+ladder worn identically by every story, fusing spec state, node state and landing state into one
+glance.
+
+**Decided with the operator, 2026-08-24:** the world applies to the **whole pane** (Showfloor
+first, the Desk restyled in a following spec); **both themes** are binding, replacing the old
+world's deliberate light-only stance; faces are **system stacks** — the vendored fonts are
+retired from these surfaces and nothing may load a font file; the ladder has **six stops, not
+seven** — task-level progress has no seam (`tasks.md` boxes are never ticked), and this pane does
+not render elements that can never fill. The gap is filed to the ergane agent as N46; if a seam
+appears, the stop is added to `DESIGN.md` first, then specced.
+
+**What does not change:** the one verb stays at the Desk; the Showfloor has no button; state is
+never colour alone; degradation stays honest and in place; the Unknown Rule, the countdown anchor
+rule, and the escalation body-segmentation rule carry over word for word. Constitution unchanged —
+this is an appearance decision inside VIII's frame, taken by the operator as VIII requires.
