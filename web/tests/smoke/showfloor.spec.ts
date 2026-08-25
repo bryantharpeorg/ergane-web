@@ -16,6 +16,13 @@
  * | "no text is laid out past the viewport outside a scrollable wrapper" | subject survives, and it is the defect class 004 exists to prevent | law (b) below, which is that assertion carried from one width to two and from one theme to both |
  * | US2's own "nothing is laid out into nowhere" | strictly succeeded: same sweep, now run at both widths *and* both `colorScheme` emulations, over every spec on the floor rather than the default selection | law (b) below |
  *
+ * 005 US4 adds the last two blocks: the detail pane read in a real browser
+ * (FR-015, FR-016) and constitution I re-proven against the finished room
+ * (FR-017). The zero-non-GET sweep US2 ran inside one test is now a `beforeEach`
+ * and an `afterEach` over **every** test in this file, so it covers the whole
+ * smoke run and not one navigation of it — which is what US4-S3 asks for, and
+ * what the node card becoming a `<button>` makes worth asking for.
+ *
  * 004 is why the last block of this file exists. Its scenarios asserted stage
  * *height* and never asserted containment, so a green gate shipped nine of nine
  * stations laid out beyond their own map, an escaped landing lane 121px past
@@ -42,6 +49,31 @@ async function railOf(request: { get: (url: string) => Promise<{ json: () => Pro
   const document = (await response.json()) as { rail: RailEntry[] };
   return document.rail;
 }
+
+/**
+ * Constitution I, over the whole run (005 US4-S3, FR-017).
+ *
+ * Every request the browser issues in every test of this file is recorded, and
+ * a test that ends having issued anything but a GET fails — whatever it was
+ * doing, and whichever route it reached. The room has one control now (the node
+ * card's selection button), so "there are no buttons" is no longer the proof
+ * that nothing here writes; this is. `tests/unit/noVerb.test.ts` is its other
+ * half: no write path exists in `web/src/showfloor/` to begin with.
+ */
+const nonGetRequests: string[] = [];
+
+test.beforeEach(({ page }) => {
+  nonGetRequests.length = 0;
+  page.on("request", (request) => {
+    if (request.method() !== "GET") {
+      nonGetRequests.push(`${request.method()} ${request.url()}`);
+    }
+  });
+});
+
+test.afterEach(() => {
+  expect(nonGetRequests, "the Showfloor issued a request that was not a GET").toEqual([]);
+});
 
 /** The chip a row must read, composed the way `ladder.ts` composes it. */
 function chipText(entry: RailEntry): string {
@@ -404,34 +436,48 @@ test.describe("selection deep-links (FR-009)", () => {
   });
 });
 
-test.describe("the room has no verb (constitution I)", () => {
-  test("no control, one badge, and every request a GET", async ({ page }) => {
-    const requests: { method: string }[] = [];
-    page.on("request", (request) => requests.push({ method: request.method() }));
-
+test.describe("the room has no verb (constitution I, FR-017)", () => {
+  /**
+   * **Succeeds US2's "no control, one badge, and every request a GET"**, whose
+   * `button` count of zero was true only while nothing on the stage could be
+   * picked. US4 gives the node card a selection button, so the assertion
+   * becomes the one this room has to keep forever: **every button in it is a
+   * node card, there is no form and no input at all, and the run issues no
+   * request that is not a GET** — including the requests a selection makes,
+   * which is none.
+   */
+  test("every control is a node card, and every request is a GET", async ({ page }) => {
     await page.goto("/showfloor");
     await page.waitForSelector("[data-rail-row]");
 
     // The room is really rendered before the sweep, so a clean sweep is a fact
     // about the Showfloor and not about an empty page.
     expect(await page.locator("[data-rail-row]").count()).toBeGreaterThan(0);
+    expect(await page.locator("[data-node-card]").count()).toBeGreaterThan(0);
 
-    await expect(page.locator("button, form, input, select, textarea")).toHaveCount(0);
+    await expect(page.locator("form, input, select, textarea")).toHaveCount(0);
+    // Every button on the page is a node card — counted, not spot-checked.
+    const buttons = await page.locator("button").count();
+    const cards = await page.locator("button[data-node-card]").count();
+    expect(buttons).toBe(cards);
 
     // The Fixture floor carries open Attention items, so the one badge is
-    // there — and it is an anchor, the Showfloor's only link out.
+    // there — and it is an anchor carrying a count, the Showfloor's only link
+    // out (§ Attention badge).
     const badges = page.locator("[data-attention-badge]");
     await expect(badges).toHaveCount(1);
     const tagName = await badges.first().evaluate((element) => element.tagName.toLowerCase());
     expect(tagName).toBe("a");
     expect(await badges.first().textContent()).toMatch(/^\d/);
     expect(await badges.first().getAttribute("href")).toBe("/");
+    expect(await badges.locator("button, form, input").count()).toBe(0);
 
-    // Following the rail's own links stays a read, too.
+    // Following the rail's own links stays a read, and so does picking a story:
+    // the `afterEach` sweep is what holds both to account.
     await page.locator("[data-rail-row]").nth(2).click();
     await page.waitForSelector("[data-stage]");
-
-    expect(requests.filter((request) => request.method !== "GET")).toHaveLength(0);
+    await page.locator("[data-node-card]").first().click();
+    await expect(page.locator("[data-detail-title]")).toHaveCount(1);
   });
 });
 
@@ -872,7 +918,8 @@ async function measureLaws(page: Page): Promise<LawReport> {
       past.push(`${describe(element)} at ${rect.right.toFixed(0)}px`);
     }
 
-    // ── law (c): no two text-carrying *leaves* overlap in both axes.
+    // ── law (c): no two text-carrying *leaves* overlap in both axes, as they
+    // are actually painted.
     // A leaf is an element with text and no element child that has text — the
     // ancestors of a text run necessarily contain it, and containment is not
     // collision.
@@ -887,12 +934,45 @@ async function measureLaws(page: Page): Promise<LawReport> {
     const leaves = texts.filter(
       (element) => !Array.from(element.children).some((child) => hasText(child)),
     );
+    //
+    // And the box is what survives its clipping ancestors (005 US4). A stage
+    // wide enough to scroll puts its right-hand cards *under* the detail
+    // column in coordinates while the scroller clips them away on the screen:
+    // two runs of text that cannot both be seen have not collided, and calling
+    // that a collision would make the law report the defect it was written to
+    // catch in a room that does not have it. The clip is applied, not excused —
+    // an overlap that survives it is still an overlap, which is what keeps the
+    // planted collision below going red.
+    const clipped = (element: Element, rect: DOMRect): DOMRect | null => {
+      let box = rect;
+      let parent = element.parentElement;
+      while (parent !== null && parent !== document.documentElement) {
+        const style = getComputedStyle(parent);
+        const clips =
+          style.overflowX !== "visible" ||
+          style.overflowY !== "visible" ||
+          style.overflow !== "visible";
+        if (clips) {
+          const bounds = parent.getBoundingClientRect();
+          const left = Math.max(box.left, bounds.left);
+          const right = Math.min(box.right, bounds.right);
+          const top = Math.max(box.top, bounds.top);
+          const bottom = Math.min(box.bottom, bounds.bottom);
+          if (right - left <= 0 || bottom - top <= 0) return null;
+          box = new DOMRect(left, top, right - left, bottom - top);
+        }
+        parent = parent.parentElement;
+      }
+      return box;
+    };
+
     const boxes = leaves.flatMap((element) => {
       const range = document.createRange();
       range.selectNodeContents(element);
       return Array.from(range.getClientRects())
         .filter((rect) => rect.width > 0 && rect.height > 0)
-        .map((rect) => ({ label: describe(element), rect }));
+        .map((rect) => ({ label: describe(element), rect: clipped(element, rect) }))
+        .filter((box): box is { label: string; rect: DOMRect } => box.rect !== null);
     });
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
@@ -1022,5 +1102,375 @@ test.describe("the three layout laws (FR-014)", () => {
     expect(after.escaped).toEqual([]);
     expect(after.past).toEqual([]);
     expect(after.overlapping).toEqual([]);
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   005 US4. The pane reads, the keyboard works, and the motion obeys.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/** One story of the document, as the pane must read it back. */
+interface PaneStory {
+  id: string | null;
+  story_key: string | null;
+  title: string;
+  intent: string;
+  requirement_keys: string[];
+  ladder: { stops: Array<{ key: string; label: string; status: string }> };
+}
+
+/** The first spec on the floor whose stories carry requirement keys. */
+async function keyedEntry(request: {
+  get: (url: string) => Promise<{ json: () => Promise<unknown> }>;
+}): Promise<{ spec_dir: string; stories: PaneStory[] }> {
+  const response = await request.get("/api/showfloor");
+  const document = (await response.json()) as {
+    rail: Array<{ spec_dir: string; stories: PaneStory[] }>;
+  };
+  const entry = document.rail.find((candidate) =>
+    candidate.stories.some((story) => story.requirement_keys.length > 0),
+  );
+  expect(entry, "a spec on this floor declares requirement keys").toBeDefined();
+  return entry!;
+}
+
+test.describe("the detail pane tells the selected story (FR-015)", () => {
+  test("a picked card fills the pane with the document's own words", async ({
+    page,
+    request,
+  }) => {
+    const entry = await keyedEntry(request);
+    const story = entry.stories.find((candidate) => candidate.requirement_keys.length > 0)!;
+
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.waitForSelector("[data-node-card]");
+
+    // Nothing is selected until something is picked, and the pane says what
+    // the room is for rather than sitting blank (§ Detail pane).
+    await expect(page.locator("[data-detail-empty]")).toHaveCount(1);
+    await expect(page.locator("[data-detail-title]")).toHaveCount(0);
+
+    await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+
+    await expect(page.locator("[data-detail-id]")).toHaveText(
+      (story.story_key ?? story.id ?? "").toUpperCase(),
+    );
+    await expect(page.locator("[data-detail-title]")).toHaveText(story.title);
+    await expect(page.locator("[data-detail-intent]")).toHaveText(story.intent);
+
+    // The six named steps, in the document's own order and status — the same
+    // six the card draws as bars, which is the point of deriving them once
+    // (plan D2).
+    const steps = await page
+      .locator("[data-detail-steps] li")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          key: node.getAttribute("data-step"),
+          status: node.getAttribute("data-step-status"),
+          name: (node.querySelector("[data-step-name]")?.textContent ?? "").trim(),
+        })),
+      );
+    expect(steps).toEqual(
+      story.ladder.stops.map((stop) => ({
+        key: stop.key,
+        status: stop.status,
+        name: stop.label,
+      })),
+    );
+
+    // The five facts DESIGN.md names, all present. No epic has been dispatched
+    // for this spec on the Fixture floor, so every one of them is an absence —
+    // and an absence renders as an em dash, never as a zero.
+    const facts = await page
+      .locator("[data-detail-facts] [data-fact]")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => [node.getAttribute("data-fact"), (node.textContent ?? "").trim()]),
+      );
+    expect(facts.map(([label]) => label)).toEqual([
+      "attempt",
+      "judge",
+      "pr",
+      "landed",
+      "wall clock",
+    ]);
+    for (const [label, value] of facts) {
+      expect(value, `${label} is either a reading or an em dash`).not.toBe("0");
+      expect(value).toBe("—");
+    }
+
+    // One sunken mono chip per requirement key, in the graph's own order.
+    await expect(page.locator("[data-fr-chip]")).toHaveText(story.requirement_keys);
+    const chip = page.locator("[data-fr-chip]").first();
+    expect(await chip.evaluate((element) => getComputedStyle(element).fontFamily)).toMatch(
+      /mono|Mono/,
+    );
+  });
+
+  test("picking a second story replaces the first, and the pane stays one region", async ({
+    page,
+    request,
+  }) => {
+    const entry = await keyedEntry(request);
+    const [first, second] = entry.stories;
+    expect(second, "this spec declares more than one story").toBeDefined();
+
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.locator(`[data-node-card][data-story-id="${first.id}"]`).click();
+    await expect(page.locator("[data-detail-title]")).toHaveText(first.title);
+    await expect(
+      page.locator(`[data-node-card][data-story-id="${first.id}"]`),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await page.locator(`[data-node-card][data-story-id="${second.id}"]`).click();
+    await expect(page.locator("[data-detail-title]")).toHaveText(second.title);
+
+    // Exactly one card is pressed, and exactly one pane is telling a story.
+    expect(await page.locator('[data-node-card][aria-pressed="true"]').count()).toBe(1);
+    expect(await page.locator("[data-detail-title]").count()).toBe(1);
+    expect(await page.locator("[data-detail]").count()).toBe(1);
+  });
+});
+
+test.describe("the room is keyboard-operable (FR-016)", () => {
+  test("the walk goes rail → card → card, in rank order, and Enter fills the pane", async ({
+    page,
+    request,
+  }) => {
+    const entry = await keyedEntry(request);
+
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.waitForSelector("[data-node-card]");
+
+    // Start on the rail: its rows are links, and they come first in the room.
+    await page.locator(`[data-rail-row][data-spec-dir="${entry.spec_dir}"]`).focus();
+    expect(
+      await page.evaluate(() => document.activeElement?.getAttribute("data-spec-dir")),
+    ).toBe(entry.spec_dir);
+
+    // Tab forward until the cards are reached, and record the order they are
+    // reached in. Nothing but rail rows may stand between the rail and the
+    // stage: a room that hides its graph behind a tab-trap is not operable.
+    const reached: string[] = [];
+    for (let press = 0; press < 60 && reached.length < entry.stories.length; press++) {
+      await page.keyboard.press("Tab");
+      const card = await page.evaluate(() => {
+        const active = document.activeElement;
+        return active === null || !active.hasAttribute("data-node-card")
+          ? null
+          : active.getAttribute("data-story-id");
+      });
+      if (card !== null) reached.push(card);
+    }
+
+    // Rank order is DOM order, left to right: the order the stage lays the
+    // ranks out and the order the graph declares the work in.
+    const laidOut = await page
+      .locator("[data-node-card]")
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-story-id")));
+    expect(reached).toEqual(laidOut);
+
+    // The keyboard picks with Enter, exactly as the pointer picks with a click.
+    await page.evaluate((id) => {
+      (document.querySelector(`[data-node-card][data-story-id="${id}"]`) as HTMLElement).focus();
+    }, laidOut[0]);
+    await page.keyboard.press("Enter");
+    await expect(page.locator("[data-detail-title]")).toHaveText(entry.stories[0].title);
+
+    // And Space, which is the other thing a button answers to.
+    await page.evaluate((id) => {
+      (document.querySelector(`[data-node-card][data-story-id="${id}"]`) as HTMLElement).focus();
+    }, laidOut[1]);
+    await page.keyboard.press("Space");
+    await expect(page.locator("[data-detail-title]")).toHaveText(entry.stories[1].title);
+  });
+
+  test("a keyboard focus is visible, and the selection outline is its own mark", async ({
+    page,
+    request,
+  }) => {
+    const entry = await keyedEntry(request);
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.waitForSelector("[data-node-card]");
+
+    const rail = page.locator("[data-rail-row]").first();
+    // A card other than the one the tab walk lands on, so "no outline before
+    // selection" is measured on a card that is neither focused nor selected.
+    const card = page.locator("[data-node-card]").last();
+
+    // § Shapes: the ring is drawn for `:focus-visible`, which is what a
+    // keyboard focus matches and a mouse press does not. Measured on a *card*,
+    // reached the way a keyboard reaches it — from the rail, by Tab.
+    await rail.focus();
+    let focused: {
+      onCard: boolean;
+      visible: boolean;
+      width: string;
+      style: string;
+      colour: string;
+    } | null = null;
+    for (let press = 0; press < 60; press++) {
+      await page.keyboard.press("Tab");
+      focused = await page.evaluate(() => {
+        const active = document.activeElement as HTMLElement | null;
+        if (active === null) return null;
+        const style = getComputedStyle(active);
+        return {
+          onCard: active.hasAttribute("data-node-card"),
+          visible: active.matches(":focus-visible"),
+          width: style.outlineWidth,
+          style: style.outlineStyle,
+          colour: style.outlineColor,
+        };
+      });
+      if (focused !== null && focused.onCard) break;
+    }
+    expect(focused).not.toBeNull();
+    expect(focused!.onCard, "the tab order reaches a node card").toBe(true);
+    expect(focused!.visible).toBe(true);
+    expect(focused!.style).toBe("solid");
+    expect(parseFloat(focused!.width)).toBeGreaterThanOrEqual(2);
+    expect(focused!.colour).not.toBe("rgba(0, 0, 0, 0)");
+
+    // The selection outline is a different thing from the focus ring: § Shapes
+    // gives the *selected* card a 2px accent outline, whether it was reached by
+    // keyboard or by pointer, and an unselected card has none.
+    expect(await card.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe("none");
+    await card.click();
+    await expect(card).toHaveClass(/\bsel\b/);
+    const selection = await card.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { width: style.outlineWidth, style: style.outlineStyle, border: style.borderTopColor };
+    });
+    expect(selection.style).toBe("solid");
+    expect(parseFloat(selection.width)).toBeGreaterThanOrEqual(2);
+    expect(selection.border).toBe(focused!.colour);
+  });
+
+  test("the pane is a polite live region", async ({ page, request }) => {
+    const entry = await keyedEntry(request);
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+
+    const pane = page.locator("[data-detail]");
+    await expect(pane).toHaveAttribute("aria-live", "polite");
+
+    // The region persists across the selection it announces: a live region
+    // that is torn down and rebuilt per story announces nothing at all.
+    await page.evaluate(() => {
+      (document.querySelector("[data-detail]") as HTMLElement).setAttribute("data-marked", "1");
+    });
+    await page.locator("[data-node-card]").first().click();
+    await expect(page.locator("[data-detail-title]")).toHaveCount(1);
+    await expect(pane).toHaveAttribute("data-marked", "1");
+    await expect(pane).toHaveAttribute("aria-live", "polite");
+  });
+});
+
+test.describe("the one motion obeys the reader (FR-016, § Motion)", () => {
+  /** The active stop's animation, as the browser resolved it. */
+  async function pulseOf(page: Page): Promise<{ name: string; duration: string; count: number }> {
+    await page.waitForSelector("[data-ladder] i.now");
+    return page.locator("[data-ladder] i.now").first().evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        name: style.animationName,
+        duration: style.animationDuration,
+        count: document.querySelectorAll("[data-ladder] i.now").length,
+      };
+    });
+  }
+
+  test("the pulse is authored at 1.6s, and reduced motion suppresses it", async ({ page }) => {
+    // A spec with a live stop is what makes this measurable at all; the floor
+    // carries several, and the sweep below asserts one was really found.
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/showfloor/005-one-epic-on-stage");
+    const moving = await pulseOf(page);
+
+    expect(moving.count).toBeGreaterThan(0);
+    expect(moving.name).toBe("ladder-pulse");
+    expect(moving.duration).toBe("1.6s");
+
+    // § Motion: "`prefers-reduced-motion` suppresses it." The rule is authored
+    // inside the no-preference gate, so there is no override to forget.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/showfloor/005-one-epic-on-stage");
+    const still = await pulseOf(page);
+
+    expect(still.count).toBe(moving.count);
+    expect(still.name).toBe("none");
+  });
+
+  test("nothing else in the room animates or transitions, under either setting", async ({
+    page,
+  }) => {
+    for (const reducedMotion of ["no-preference", "reduce"] as const) {
+      await page.emulateMedia({ reducedMotion });
+      await page.goto("/showfloor/005-one-epic-on-stage");
+      await page.waitForSelector("[data-node-card]");
+      await page.locator("[data-node-card]").first().click();
+      await page.waitForSelector("[data-detail-title]");
+
+      // "Exactly one authored motion" — so every animated element in the room
+      // is an active ladder stop, and nothing transitions at all.
+      const moving = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("[data-showfloor-root] *"))
+          .map((element) => {
+            const style = getComputedStyle(element);
+            return {
+              animation: style.animationName,
+              transition: style.transitionProperty,
+              stop: element.matches("[data-ladder] i.now"),
+            };
+          })
+          .filter((entry) => entry.animation !== "none" || entry.transition !== "all"),
+      );
+
+      for (const entry of moving) {
+        if (entry.animation !== "none") {
+          expect(entry.stop, "only an active ladder stop may animate").toBe(true);
+          expect(entry.animation).toBe("ladder-pulse");
+        }
+        expect(["none", "all"], "nothing in this room transitions").toContain(entry.transition);
+      }
+    }
+  });
+});
+
+test.describe("the three laws hold with the pane full (FR-014, FR-015)", () => {
+  /**
+   * US3 measured the laws over a room whose detail column was a placeholder.
+   * US4 fills it with the longest text the document carries — a story's intent
+   * runs to several lines — in a `26rem` track that folds twice. That is
+   * exactly the shape 004's defects took, so the laws are re-measured here
+   * against a *selected* story rather than assumed to survive the new content.
+   */
+  test("a selected story stays inside its box at both widths, in both themes", async ({
+    page,
+    request,
+  }) => {
+    const entry = await keyedEntry(request);
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of WIDTHS) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.goto(`/showfloor/${entry.spec_dir}`);
+        await page.waitForSelector("[data-node-card]");
+
+        for (const story of entry.stories) {
+          await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+          await page.waitForSelector("[data-detail-title]");
+
+          const where = `${entry.spec_dir}/${story.id} at ${width} in ${scheme}`;
+          const report = await measureLaws(page);
+
+          expect(report.swept, `${where} rendered something`).toBeGreaterThan(20);
+          expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
+          expect(report.past, `${where}: text past the viewport`).toEqual([]);
+          expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+          expect(report.roomScrollsSideways, `${where}: the room scrolls sideways`).toBe(false);
+        }
+      }
+    }
   });
 });
