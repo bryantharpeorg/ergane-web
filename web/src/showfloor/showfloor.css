@@ -640,6 +640,75 @@
   overflow-x: auto;
   overflow-y: hidden;
   min-width: 0;
+
+  /* D-016 clause (c) / § Stage: "When the stage does scroll, the scroll is
+     furniture and wears the room's clothes … Thin, no stepper buttons, thumb
+     on `--rule` and brighter on hover, trough transparent, in both themes."
+
+     Left unstyled this is the one surface in the pane the tokens never
+     reached: the host operating system paints a light grey trough with
+     stepper buttons into a dark room. These two declarations are the whole
+     standard-property half, and they are two rather than six because both
+     themes come from the same rule — `--rule` is a token, so the second
+     theme is a token swap and not a second stylesheet (plan D4).
+
+     No `scrollbar-gutter` is declared here or anywhere else in this file: a
+     reserved gutter would take width from a graph that fits, which is the
+     shortcut FR-011 exists to refuse. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+
+/* The WebKit half of the same sentence, for the engines that never implemented
+   the standard properties. Chromium implements both and lets the standard ones
+   win where a page declares both, so these rules are the authored fallback and
+   not the rendered result — which is also why the smoke asserts them as
+   *stylesheet text* rather than by measuring a rendered scrollbar's box
+   (plan § Risks: headless Chromium reports an overlay scrollbar where the
+   operator's browser renders a classic widget).
+
+   Not one colour below is a literal. `background: none` is how a trough says
+   transparent without spelling a colour keyword — the computed background
+   colour is the initial `rgba(0, 0, 0, 0)` either way, and the alternative
+   would be inventing a `--transparent` token DESIGN.md does not name
+   (constitution VIII). Every other value is `var(--rule)` or `var(--faint)`
+   (FR-010). */
+.showfloor .dag-scroll::-webkit-scrollbar {
+  /* "Thin", said in the one place a WebKit scrollbar's thickness can be said.
+     The stage scrolls on one axis, so this is the bar's height. */
+  height: 8px;
+  background: none;
+}
+
+.showfloor .dag-scroll::-webkit-scrollbar-track {
+  background: none;
+}
+
+/* § Shapes: "Rectangles with `2px` radius on cards". The thumb is furniture of
+   the same family, so it takes the same corner. */
+.showfloor .dag-scroll::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 2px;
+}
+
+/* "brighter on hover" — one step up the ramp from the room's border colour to
+   its tertiary ink, which raises the thumb's contrast against the surface in
+   *both* themes: `--faint` is darker than `--rule` on the light ground and
+   lighter than it on the dark one. A literal "brighter" would only be true in
+   one of the two, and DESIGN.md names both. */
+.showfloor .dag-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--faint);
+}
+
+/* "no stepper buttons" — the arrow caps at each end of the host widget, which
+   this room does not have furniture for. The unqualified selector covers the
+   horizontal bar this scroller actually grows as well as every other
+   orientation, and the two zeroes are there because Chromium has historically
+   kept a button's box on `display: none` alone. */
+.showfloor .dag-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* "Compute layout from content — a stage is the size of its graph" (§ Do's).
