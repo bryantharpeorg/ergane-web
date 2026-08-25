@@ -1,7 +1,24 @@
 ---
-state: ready
-depends_on_landed: []
-# NO `depends_on_landed` EDGE, DELIBERATELY, AND THIS IS THE REASON.
+state: landed
+depends_on_landed: [005-one-epic-on-stage]
+# Attested landed 2026-08-25. US1 22a557470979 (#43), US2 c8536eb06757 (#44),
+# US3 be04774b8e19 (#45) - all three observed on dev by content.
+# Dispatched 7:40:09 AM CT, complete 8:44 AM CT: 1h04m for three serial stories,
+# every story first attempt, every judge verdict PASS. The fastest epic of the
+# build so far, and the only one with no rework at all.
+#
+# THE EDGE IS NOW DECLARED, AND THE REASON IT WAS NOT IS PRESERVED BELOW because
+# it is the corpus's only worked example of a `depends_on_landed` cycle and how
+# to break one. #37 went green once US1 landed and 005 now reads `landed`, so
+# the edge costs nothing and keeps the corpus honest for whatever depends on 008.
+#
+# One thing to fix elsewhere, not here: the squash subjects above read
+# `008-the-stage-takes-the-room/us1: US1`. CLAUDE.md's landing discipline says
+# the PR title becomes the commit subject and `ergane spec landed` reads the
+# story out of it, so "US1" is work the factory cannot see it did. The title is
+# the factory's to generate, not this repository's to fix.
+#
+# WHY THE EDGE WAS ABSENT AT DISPATCH.
 # This spec builds on 005's room, and the honest edge is
 # `[005-one-epic-on-stage]`. It is not declared because that edge is a cycle:
 # ergane resolves `depends_on_landed` from a spec's *frontmatter*, 005's

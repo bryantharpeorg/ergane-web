@@ -91,8 +91,13 @@ Known seams that already carry part of this:
    read, no pane-side SQL over ergane's private schema — the whole point of
    constitution II is that ergane's internals may change shape without
    breaking the pane (they already did once: N28).
-4. **Placement — OPEN: the operator wants more information.** The decision
-   brief, for when 005's rebuilt room is real to look at:
+4. **Placement — ANSWERED 2026-08-25: B, a third room at `/spec/<dir>`.**
+   Decided after using the second-world Showfloor: the primary scene is
+   researched at a desk, not glanced at on a projector, and the durable store's
+   per-story history is dense enough (every attempt, every verdict, every gate)
+   to want tables rather than a detail pane. The brief that produced the answer
+   is kept below because the two facts it names are the ones that would reopen
+   it:
 
    | | A — a mode of the Showfloor | B — a third room `/spec/<dir>` |
    |---|---|---|
@@ -100,11 +105,11 @@ Known seams that already carry part of this:
    | fit | a landed spec's stage naturally *is* its history (frozen ladders already render) | a reading room can be dense: attempt tables, token grids |
    | against | mixes "now" and "then" on the projector surface; the detail pane is small for attempt tables | third room in a two-room product; duplicates rail + graph |
 
-   **Two facts would settle it:** (a) the primary scene — glanced on the
+   **The two facts that settled it:** (a) the primary scene — glanced on the
    projector (→ A) or researched at a desk (→ B); (b) how dense the durable
    store's per-story history actually is once it exists — a handful of rows
-   fits A's detail pane, dozens want B's tables. Decide after using the
-   second-world Showfloor for a while.
+   fits A's detail pane, dozens want B's tables. Both read B. The third room is
+   still a cost, and § "Out of scope" holds it to a reading room with no verb.
 
 ## Out of scope (already known)
 
