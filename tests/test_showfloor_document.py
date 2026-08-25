@@ -715,25 +715,33 @@ def test_the_document_level_degraded_list_names_the_spec_each_note_came_from(tmp
 def test_the_document_survives_the_operator_attesting_and_archiving(tmp_path):
     """008 US1-S2, in one test: the edit that used to turn this file red.
 
-    A copy of this repository's own corpus is mutated into the state the
-    operator's two open PRs produce — every spec attested `landed`, every
-    derived work graph archived beside it, which is a superset of "005 landed
-    with `005-one-epic-on-stage` archived" and cannot go stale when a spec is
-    renamed.  The document is then asserted well-formed over *both* the copy as
-    it stands and the copy after the edit, so what is proved is that the
-    contract is indifferent to the edit rather than that it holds for one of the
-    two.
+    This repository's own corpus is *copied* into a scratch tree, so the
+    material is the real thing and the conditions are still the test's own.  It
+    is first put into a known pre-state — every spec `ready`, nothing archived —
+    because trusting the copy to arrive in one would be the very dependence
+    this story removes; then the operator's two open PRs are performed on it:
+    every spec attested `landed`, every derived work graph archived beside it.
+    That is a superset of "005 attested `landed` with its work graph archived",
+    and it cannot go stale when a spec is renamed or a sixth one lands.
+
+    The document is asserted well-formed on *both* sides of the edit, so what is
+    proved is that the contract is indifferent to it — not that it happens to
+    hold for one of the two.
     """
     corpus = copy_repository_corpus(tmp_path)
+    assert corpus.dirs, "the repository's corpus copied as nothing"
+
+    for spec_dir in corpus.dirs:
+        corpus.attest(spec_dir, "ready")
+        corpus.unarchive(spec_dir)
 
     before = corpus.assemble()
     assert_well_formed(before, corpus)
-    # A copy of the corpus as it stands degrades only where a graph is genuinely
-    # not archived, and names each one — the honest half of the same contract.
-    assert {note["read"] for note in before["degraded"]} <= {"workgraph"}
-    assert not [
-        note for note in before["degraded"] if corpus.is_archived(note["spec_dir"])
-    ]
+    assert {entry["chip"] for entry in before["rail"]} == {"ready"}
+    # Nothing archived: every entry degrades to its own headings, and each one
+    # names the read that could not be made rather than going quiet.
+    assert all(entry["story_source"] == "headings" for entry in before["rail"])
+    assert {note["read"] for note in before["degraded"]} == {"workgraph"}
 
     for spec_dir in corpus.dirs:
         corpus.attest(spec_dir, "landed")
@@ -741,17 +749,16 @@ def test_the_document_survives_the_operator_attesting_and_archiving(tmp_path):
 
     after = corpus.assemble()
     assert_well_formed(after, corpus)
-    assert after["degraded"] == [], "the mutated corpus degraded no read"
+    assert after["degraded"] == [], "the attested, archived corpus degraded a read"
 
-    # The edit is real, and it is exactly the one the operator makes.
-    assert [entry["spec_dir"] for entry in after["rail"]] == [
-        entry["spec_dir"] for entry in before["rail"]
-    ]
+    # The edit landed, and it is exactly the one the operator makes.
+    assert [entry["spec_dir"] for entry in after["rail"]] == corpus.dirs
     assert {entry["chip"] for entry in after["rail"]} == {"landed"}
     assert all(corpus.is_archived(spec_dir) for spec_dir in corpus.dirs)
-    assert [entry["chip"] for entry in before["rail"]] != [
-        entry["chip"] for entry in after["rail"]
-    ], "the copy was already all-landed, so the mutation proved nothing"
+    assert all(entry["story_source"] == "workgraph" for entry in after["rail"])
+    assert all(
+        entry["stories_landed"] == entry["stories_total"] for entry in after["rail"]
+    )
 
 
 def assert_well_formed(document: dict, corpus) -> None:
