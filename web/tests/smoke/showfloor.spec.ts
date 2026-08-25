@@ -31,10 +31,19 @@
  * stage descendant inside its stage's box, no text past the viewport outside a
  * scrolling ancestor, and no two text leaves overlapping — at 1280 and 1600, in
  * both themes, over the whole fixture floor.
+ *
+ * 009 US2 adds the fourth (D-018, `DESIGN.md` § Layout): no element with a
+ * non-transparent background may paint over a text leaf it does not own. It
+ * runs in the same sweeps, over the same routes, widths and themes, out of the
+ * shared harness in `support/laws.ts` — and its mutation control asserts the
+ * other three stay green against the box it plants, which is the whole reason
+ * a fourth law was needed.
  */
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+
+import { measureLaws } from "./support/laws";
 
 interface RailEntry {
   spec_dir: string;
@@ -819,216 +828,40 @@ test.describe("the stage draws the selected epic's graph (FR-011, FR-012)", () =
 });
 
 /* ─────────────────────────────────────────────────────────────────────────
-   FR-014 — the three layout laws.
+   FR-014 — the layout laws, now four.
 
-   004 paid for these. Its suite asserted a stage's *height* and never asserted
-   where anything ended up, so the gate went green over nine of nine stations
-   laid out beyond their own map, a landing lane 121px past its container, and
-   the Desk's colliding labels. Each law below is one of those defects,
-   generalised so it cannot come back in a different component.
+   **Authority: `DESIGN.md` § Layout, "Containment is a design law."** It
+   states all four in one paragraph — nothing carrying text crosses the
+   viewport's right edge outside a scrolling ancestor, every stage element
+   sits inside its stage's box, no two text leaves overlap, "**and no element
+   with an opaque background may paint over a text leaf that is not its own**"
+   (2026-08-25, D-018) — and it ends "These are committed test assertions, not
+   aspirations." This block is where the Showfloor commits them.
+
+   004 paid for the first three. Its suite asserted a stage's *height* and
+   never asserted where anything ended up, so the gate went green over nine of
+   nine stations laid out beyond their own map, a landing lane 121px past its
+   container, and the Desk's colliding labels. Each of laws (a), (b) and (c) is
+   one of those defects, generalised so it cannot come back in a different
+   component.
+
+   D-018 paid for the fourth (009 US2, FR-005 … FR-007). A degraded note
+   rendered unreadable in both themes on 2026-08-25, its heading cut mid-word,
+   and all three laws passed — correctly, because they measure glyph geometry
+   through a `Range` and no glyph had moved. Law (d) reads the paint instead,
+   and the mutation control below is the committed evidence that the other
+   three structurally cannot: it plants an opaque box over a heading and
+   asserts (a), (b) and (c) stay green while (d) goes red.
+
+   The measurement itself lives in `support/laws.ts`, because D-018's law has
+   to hold over every route the smoke suite sweeps and the Desk sweeps its own
+   (`desk.spec.ts`). One harness, two rooms, four laws, one `evaluate` pass.
    ───────────────────────────────────────────────────────────────────────── */
 
 const WIDTHS = [1280, 1600] as const;
 const SCHEMES = ["light", "dark"] as const;
 
-interface LawReport {
-  swept: number;
-  leaves: number;
-  escaped: string[];
-  past: string[];
-  overlapping: string[];
-  documentScrollWidth: number;
-  roomScrollsSideways: boolean;
-  viewport: number;
-}
-
-/**
- * All three laws, measured in one pass over the rendered page.
- *
- * One `evaluate` rather than three: the boxes have to come from a single
- * layout, or a law could pass against a layout a later law never saw.
- */
-async function measureLaws(page: Page): Promise<LawReport> {
-  return page.evaluate(() => {
-    const EPSILON = 0.5;
-    /** § Layout's "no two text leaves overlap", with the 4px slack T024 names. */
-    const OVERLAP = 4;
-
-    const describe = (element: Element): string => {
-      const classes =
-        typeof element.className === "string" && element.className.trim()
-          ? `.${element.className.trim().split(/\s+/).join(".")}`
-          : "";
-      const id = element.getAttribute("data-story-id") ?? element.getAttribute("data-metric");
-      return `${element.tagName.toLowerCase()}${classes}${id ? `[${id}]` : ""}`;
-    };
-
-    const SKIP = ["script", "style", "head", "title", "meta", "link"];
-    const hasText = (element: Element) =>
-      !SKIP.includes(element.tagName.toLowerCase()) && (element.textContent ?? "").trim() !== "";
-
-    const painted = (element: Element) => {
-      const rect = element.getBoundingClientRect();
-      return rect.width > 0 || rect.height > 0;
-    };
-
-    /**
-     * An ancestor that really scrolls sideways, and is itself on the screen.
-     *
-     * The walk stops *below* the room's own scroll root. That root fills the
-     * viewport and carries `overflow: auto`, so it would excuse every escape on
-     * the page by the letter of the law — and a room that scrolls sideways is
-     * the defect, not the exemption. § Stage sanctions one horizontal scroll:
-     * the stage's, when a graph outgrows it. `rootScrollsSideways` below is the
-     * other half of that pair, asserted separately.
-     */
-    const scrollingAncestor = (element: Element, limit: Element | null, viewport: number) => {
-      const room = document.querySelector("[data-showfloor-root]");
-      let parent = element.parentElement;
-      while (parent !== null && parent !== document.documentElement && parent !== document.body) {
-        if (parent === room) return null;
-        const style = getComputedStyle(parent);
-        if (
-          (style.overflowX === "auto" || style.overflowX === "scroll") &&
-          parent.scrollWidth > parent.clientWidth &&
-          parent.getBoundingClientRect().right <= viewport + EPSILON
-        ) {
-          return parent;
-        }
-        if (parent === limit) return null;
-        parent = parent.parentElement;
-      }
-      return null;
-    };
-
-    const viewport = document.documentElement.clientWidth;
-    const escaped: string[] = [];
-    const past: string[] = [];
-    const overlapping: string[] = [];
-    let swept = 0;
-
-    // ── law (a): every stage descendant inside its stage's box, or inside a
-    // scrolling ancestor within it.
-    for (const stage of Array.from(document.querySelectorAll("[data-stage]"))) {
-      const bounds = stage.getBoundingClientRect();
-      for (const child of Array.from(stage.querySelectorAll("*"))) {
-        if (SKIP.includes(child.tagName.toLowerCase())) continue;
-        if (!painted(child)) continue;
-        const rect = child.getBoundingClientRect();
-        const inside =
-          rect.left >= bounds.left - EPSILON &&
-          rect.right <= bounds.right + EPSILON &&
-          rect.top >= bounds.top - EPSILON &&
-          rect.bottom <= bounds.bottom + EPSILON;
-        if (inside) continue;
-        // A wide graph is allowed to overflow the stage *inside a scroller the
-        // stage contains* — that is § Stage's horizontal scroll, not an escape.
-        const scroller = scrollingAncestor(child, stage, viewport);
-        if (scroller !== null && stage.contains(scroller)) continue;
-        escaped.push(
-          `${describe(child)} at [${rect.left.toFixed(0)}, ${rect.right.toFixed(0)}] outside stage [${bounds.left.toFixed(0)}, ${bounds.right.toFixed(0)}]`,
-        );
-      }
-    }
-
-    // ── law (b): no text-carrying element past the viewport's right edge,
-    // except inside an ancestor whose computed `overflow-x` scrolls.
-    const texts: Element[] = [];
-    for (const element of Array.from(document.querySelectorAll("*"))) {
-      if (!hasText(element) || !painted(element)) continue;
-      texts.push(element);
-      swept++;
-      const rect = element.getBoundingClientRect();
-      if (rect.right <= viewport + EPSILON) continue;
-      if (scrollingAncestor(element, null, viewport) !== null) continue;
-      past.push(`${describe(element)} at ${rect.right.toFixed(0)}px`);
-    }
-
-    // ── law (c): no two text-carrying *leaves* overlap in both axes, as they
-    // are actually painted.
-    // A leaf is an element with text and no element child that has text — the
-    // ancestors of a text run necessarily contain it, and containment is not
-    // collision.
-    //
-    // The boxes are the *text's*, measured through a `Range` over each leaf's
-    // contents — one rect per line fragment — and not the element's own
-    // `getClientRects()`. An inline element that wraps reports fragment rects
-    // carrying the whole inline box's height in Chromium, so a wrapped span
-    // "overlaps" every sibling on the lines it crosses: a collision that is an
-    // artefact of the measurement and is not on the screen. A range measures
-    // the glyphs, which is what a reader sees two of.
-    const leaves = texts.filter(
-      (element) => !Array.from(element.children).some((child) => hasText(child)),
-    );
-    //
-    // And the box is what survives its clipping ancestors (005 US4). A stage
-    // wide enough to scroll puts its right-hand cards *under* the detail
-    // column in coordinates while the scroller clips them away on the screen:
-    // two runs of text that cannot both be seen have not collided, and calling
-    // that a collision would make the law report the defect it was written to
-    // catch in a room that does not have it. The clip is applied, not excused —
-    // an overlap that survives it is still an overlap, which is what keeps the
-    // planted collision below going red.
-    const clipped = (element: Element, rect: DOMRect): DOMRect | null => {
-      let box = rect;
-      let parent = element.parentElement;
-      while (parent !== null && parent !== document.documentElement) {
-        const style = getComputedStyle(parent);
-        const clips =
-          style.overflowX !== "visible" ||
-          style.overflowY !== "visible" ||
-          style.overflow !== "visible";
-        if (clips) {
-          const bounds = parent.getBoundingClientRect();
-          const left = Math.max(box.left, bounds.left);
-          const right = Math.min(box.right, bounds.right);
-          const top = Math.max(box.top, bounds.top);
-          const bottom = Math.min(box.bottom, bounds.bottom);
-          if (right - left <= 0 || bottom - top <= 0) return null;
-          box = new DOMRect(left, top, right - left, bottom - top);
-        }
-        parent = parent.parentElement;
-      }
-      return box;
-    };
-
-    const boxes = leaves.flatMap((element) => {
-      const range = document.createRange();
-      range.selectNodeContents(element);
-      return Array.from(range.getClientRects())
-        .filter((rect) => rect.width > 0 && rect.height > 0)
-        .map((rect) => ({ label: describe(element), rect: clipped(element, rect) }))
-        .filter((box): box is { label: string; rect: DOMRect } => box.rect !== null);
-    });
-    for (let i = 0; i < boxes.length; i++) {
-      for (let j = i + 1; j < boxes.length; j++) {
-        if (boxes[i].label === boxes[j].label) continue;
-        const a = boxes[i].rect;
-        const b = boxes[j].rect;
-        const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
-        const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-        if (x > OVERLAP && y > OVERLAP) {
-          overlapping.push(`${boxes[i].label} × ${boxes[j].label}`);
-        }
-      }
-    }
-
-    const room = document.querySelector("[data-showfloor-root]");
-
-    return {
-      swept,
-      leaves: leaves.length,
-      escaped,
-      past,
-      overlapping,
-      documentScrollWidth: document.documentElement.scrollWidth,
-      roomScrollsSideways: room !== null && room.scrollWidth > room.clientWidth + EPSILON,
-      viewport,
-    };
-  });
-}
-
-test.describe("the three layout laws (FR-014)", () => {
+test.describe("the four layout laws (FR-014, 009 FR-005)", () => {
   test("hold at 1280 and 1600, in both themes, over the whole fixture floor", async ({
     page,
     request,
@@ -1048,13 +881,17 @@ test.describe("the three layout laws (FR-014)", () => {
           const where = `${entry.spec_dir} at ${width} in ${scheme}`;
           const report = await measureLaws(page);
 
-          // A sweep over nothing passes for the wrong reason.
+          // A sweep over nothing passes for the wrong reason — and law (d)
+          // over a page that paints nothing is the same empty pass, so the
+          // painters it considered carry a floor of their own (009 FR-005).
           expect(report.swept, `${where} rendered something`).toBeGreaterThan(20);
           expect(report.leaves, `${where} has text leaves`).toBeGreaterThan(10);
+          expect(report.painters, `${where} paints backgrounds`).toBeGreaterThan(5);
 
           expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
           expect(report.past, `${where}: text past the viewport`).toEqual([]);
           expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+          expect(report.occluded, `${where}: a box paints over text it does not own`).toEqual([]);
 
           // And neither the page nor the room scrolls sideways to hide any of
           // it — the room's scroll root is the one exemption law (b) refuses.
@@ -1087,6 +924,7 @@ test.describe("the three layout laws (FR-014)", () => {
     expect(clean.escaped).toEqual([]);
     expect(clean.past).toEqual([]);
     expect(clean.overlapping).toEqual([]);
+    expect(clean.occluded).toEqual([]);
 
     const plant = (kind: string) =>
       page.evaluate((which) => {
@@ -1139,6 +977,168 @@ test.describe("the three layout laws (FR-014)", () => {
     expect(after.escaped).toEqual([]);
     expect(after.past).toEqual([]);
     expect(after.overlapping).toEqual([]);
+    expect(after.occluded).toEqual([]);
+  });
+
+  /**
+   * 009 US2 (FR-006, FR-007). The mutation control for law (d) — and, in the
+   * same test, the committed record of the gap it closes.
+   *
+   * The plant is D-018's defect in its smallest honest form: an **inline
+   * element carrying no text of its own, with an opaque background**, laid
+   * over the heading its neighbour owns. Not one glyph moves, so the three
+   * laws 004 paid for see nothing at all:
+   *
+   *   * law (a) sees a stage descendant sitting inside its stage's box, which
+   *     is legal;
+   *   * law (b) sweeps elements that *carry text* past the viewport's right
+   *     edge — the plant carries none, and is inside the viewport besides;
+   *   * law (c) compares text leaves to text leaves, and the plant is not a
+   *     text leaf.
+   *
+   * All three stay green while the heading is unreadable. That is not
+   * argued here, it is asserted: the `toEqual([])` on `escaped`, `past` and
+   * `overlapping` below is FR-007's committed evidence for why a fourth law
+   * had to exist, and it is what would go red if someone ever "simplified"
+   * law (d) into one of the other three.
+   */
+  test("a planted occluder turns law (d) red and leaves (a), (b) and (c) green", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-stage-canvas]");
+
+    const clean = await measureLaws(page);
+    expect(clean.occluded, "the room paints over nothing before the plant").toEqual([]);
+    expect(clean.painters, "the room paints backgrounds at all").toBeGreaterThan(5);
+
+    // The target is the stage's own id: § Typography's `display` face, the
+    // biggest thing on the stage, and this room's nearest thing to the
+    // degraded note's heading that D-018 watched go unreadable.
+    const geometry = await page.evaluate(() => {
+      const stage = document.querySelector("[data-stage]") as HTMLElement;
+      const target = document.querySelector("[data-stage-id]") as HTMLElement;
+      const bounds = target.getBoundingClientRect();
+
+      const planted = document.createElement("span");
+      planted.className = "planted planted-occluder";
+      planted.style.display = "inline-block";
+      planted.style.position = "absolute";
+      planted.style.left = `${bounds.left}px`;
+      planted.style.top = `${bounds.top}px`;
+      planted.style.width = `${Math.max(bounds.width, 40)}px`;
+      planted.style.height = `${Math.max(bounds.height, 20)}px`;
+      // Opaque, and a colour this theme really produces — the room's own
+      // ground, so the plant is a plausible box and not a test artefact.
+      planted.style.background = getComputedStyle(document.body).backgroundColor;
+      stage.appendChild(planted);
+
+      // `position: absolute` resolves against whichever ancestor happens to be
+      // positioned, which this control cannot know from here. So the plant is
+      // measured where it landed and corrected onto the target, rather than
+      // assumed onto it — a control that missed its target would prove
+      // nothing, quietly.
+      const landed = planted.getBoundingClientRect();
+      planted.style.left = `${bounds.left + (bounds.left - landed.left)}px`;
+      planted.style.top = `${bounds.top + (bounds.top - landed.top)}px`;
+
+      const final = planted.getBoundingClientRect();
+      return {
+        text: (target.textContent ?? "").trim(),
+        covers:
+          final.left <= bounds.left + 1 &&
+          final.right >= bounds.right - 1 &&
+          final.top <= bounds.top + 1 &&
+          final.bottom >= bounds.bottom - 1,
+        opaque: getComputedStyle(planted).backgroundColor,
+        planted: (planted.textContent ?? "").trim(),
+      };
+    });
+
+    // The plant is what it claims to be: opaque, textless, and actually on top
+    // of the heading rather than near it.
+    expect(geometry.covers, "the plant landed over the stage's id").toBe(true);
+    expect(geometry.planted, "the plant carries no text of its own").toBe("");
+    expect(geometry.opaque, "the plant is opaque").not.toContain("rgba(0, 0, 0, 0)");
+    expect(geometry.text.length, "the stage's id is readable text").toBeGreaterThan(0);
+
+    const planted = await measureLaws(page);
+
+    // FR-006: the law can go red.
+    expect(planted.occluded.length, "law (d) catches the planted occluder").toBeGreaterThan(0);
+    expect(planted.occluded.join(" ")).toContain("planted-occluder");
+    expect(
+      planted.occluded.join(" "),
+      "law (d) names the text the plant made unreadable",
+    ).toContain(geometry.text.slice(0, 32));
+
+    // FR-007: the other three cannot see it. This is the whole reason law (d)
+    // exists, and it is asserted here so that the reason stays in the suite.
+    expect(planted.escaped, "law (a) cannot see an occluder inside the stage").toEqual([]);
+    expect(planted.past, "law (b) cannot see an occluder that carries no text").toEqual([]);
+    expect(planted.overlapping, "law (c) cannot see an occluder that is not a text leaf").toEqual(
+      [],
+    );
+
+    await page.evaluate(() => {
+      for (const element of Array.from(document.querySelectorAll(".planted"))) element.remove();
+    });
+
+    // And the red was the plant, not the page.
+    const after = await measureLaws(page);
+    expect(after.occluded).toEqual([]);
+    expect(after.escaped).toEqual([]);
+    expect(after.past).toEqual([]);
+    expect(after.overlapping).toEqual([]);
+
+    // ── the same violation, unpositioned ──────────────────────────────────
+    //
+    // The plant above is absolutely positioned, which is the easy case for any
+    // paint-order test to catch and the easy case for a law to be accidentally
+    // keyed on. D-018's defect was not: a box in the ordinary flow, painted
+    // after the text beside it, is how a heading gets cut mid-word. So the
+    // control plants that shape too — an in-flow inline-block backed onto its
+    // neighbour with a negative margin, positioned `static`, no `z-index` —
+    // and law (d) has to see it as well.
+    const inflow = await page.evaluate(() => {
+      const target = document.querySelector("[data-stage-id]") as HTMLElement;
+      const bounds = target.getBoundingClientRect();
+
+      const planted = document.createElement("span");
+      planted.className = "planted planted-inflow";
+      planted.style.display = "inline-block";
+      planted.style.width = `${Math.max(bounds.width, 40)}px`;
+      planted.style.height = `${Math.max(bounds.height, 20)}px`;
+      planted.style.marginLeft = `${-Math.max(bounds.width, 40)}px`;
+      planted.style.background = getComputedStyle(document.body).backgroundColor;
+      target.insertAdjacentElement("afterend", planted);
+
+      const landed = planted.getBoundingClientRect();
+      return {
+        position: getComputedStyle(planted).position,
+        zIndex: getComputedStyle(planted).zIndex,
+        overlaps:
+          Math.min(landed.right, bounds.right) - Math.max(landed.left, bounds.left) > 1 &&
+          Math.min(landed.bottom, bounds.bottom) - Math.max(landed.top, bounds.top) > 1,
+      };
+    });
+
+    expect(inflow.position, "the second plant is in the ordinary flow").toBe("static");
+    expect(inflow.zIndex, "the second plant claims no stacking order").toBe("auto");
+    expect(inflow.overlaps, "the second plant landed on the stage's id").toBe(true);
+
+    const unpositioned = await measureLaws(page);
+    expect(
+      unpositioned.occluded.length,
+      "law (d) catches an in-flow occluder as well as a positioned one",
+    ).toBeGreaterThan(0);
+    expect(unpositioned.occluded.join(" ")).toContain("planted-inflow");
+
+    await page.evaluate(() => {
+      for (const element of Array.from(document.querySelectorAll(".planted"))) element.remove();
+    });
+    expect((await measureLaws(page)).occluded).toEqual([]);
   });
 });
 
@@ -1580,7 +1580,7 @@ test.describe("the one motion obeys the reader (FR-016, § Motion)", () => {
   });
 });
 
-test.describe("the three laws hold with the pane full (FR-014, FR-015)", () => {
+test.describe("the laws hold with the pane full (FR-014, FR-015, 009 FR-005)", () => {
   /**
    * US3 measured the laws over a room whose detail column was a placeholder.
    * US4 fills it with the longest text the document carries — a story's intent
@@ -1609,9 +1609,13 @@ test.describe("the three laws hold with the pane full (FR-014, FR-015)", () => {
           const report = await measureLaws(page);
 
           expect(report.swept, `${where} rendered something`).toBeGreaterThan(20);
+          expect(report.painters, `${where} paints backgrounds`).toBeGreaterThan(5);
           expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
           expect(report.past, `${where}: text past the viewport`).toEqual([]);
           expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+          // 009 US2 (FR-005): the filled pane is where the room stacks the
+          // most paint over the most prose, so law (d) is measured here too.
+          expect(report.occluded, `${where}: a box paints over text it does not own`).toEqual([]);
           expect(report.roomScrollsSideways, `${where}: the room scrolls sideways`).toBe(false);
         }
       }
@@ -1816,15 +1820,17 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
             ).toBe(0);
           }
 
-          // FR-008: the same three laws, the same floors 005 committed. The
-          // width the stage gained does not buy an escape, a runaway or a
-          // collision.
+          // FR-008: the same laws, the same floors 005 committed. The width
+          // the stage gained does not buy an escape, a runaway, a collision —
+          // or, since 009 US2, a box painted over text it does not own.
           const report = await measureLaws(page);
           expect(report.swept, `${where} rendered something`).toBeGreaterThan(20);
           expect(report.leaves, `${where} has text leaves`).toBeGreaterThan(10);
+          expect(report.painters, `${where} paints backgrounds`).toBeGreaterThan(5);
           expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
           expect(report.past, `${where}: text past the viewport`).toEqual([]);
           expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+          expect(report.occluded, `${where}: a box paints over text it does not own`).toEqual([]);
           expect(report.documentScrollWidth, where).toBeLessThanOrEqual(report.viewport + 0.5);
           expect(report.roomScrollsSideways, `${where}: the room scrolls sideways`).toBe(false);
         }
