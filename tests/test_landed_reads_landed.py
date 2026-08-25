@@ -42,7 +42,13 @@ from corpus import (
 )
 
 from pane.config import DEFAULT_LANDING_BRANCH, Settings
-from pane.landing import LandingFact, LandingReader, pr_number_of
+from pane.landing import (
+    AssemblyLanding,
+    LandingFact,
+    LandingReader,
+    pr_number_of,
+    reader_for,
+)
 from pane.readers import QueryRefused, TransportFailed
 from pane.showfloor import assemble_showfloor
 
@@ -522,6 +528,37 @@ def test_the_read_is_repeated_only_when_the_branch_has_moved(tmp_path):
 
     moved = reader.facts(FINISHED)
     assert set(moved) == {"US1", "US2"}
+
+
+def test_the_branch_scan_is_shared_by_every_assembly_of_a_process(tmp_path):
+    """A memo rebuilt per request is not a memo.
+
+    `ShowfloorReaders.from_reader` binds a fresh set of reads for every document
+    the pane assembles, and the branch scan is most of a second over a corpus
+    this size.  Paying it per request is what cost the smoke suite its budget,
+    so the reader outlives the binding and only the head resolution is the
+    assembly's own.
+    """
+    corpus = build_landed_repository(
+        tmp_path, SpecFixture(FINISHED, state="ready"), landings={FINISHED: ["US1"]}
+    )
+
+    assert reader_for(corpus.repo, "dev") is reader_for(corpus.repo, "dev")
+    # A different branch is a different question, and gets its own reader.
+    assert reader_for(corpus.repo, "other") is not reader_for(corpus.repo, "dev")
+
+    first = AssemblyLanding(reader_for(corpus.repo, "dev"))
+    assert first.facts(FINISHED)["US1"].story_key == "US1"
+
+    # A branch that moves is seen by the next assembly: the memo is keyed on
+    # the head and on nothing resembling a clock.
+    (corpus.repo / "landings" / FINISHED / "us2.txt").write_text("x\n")
+    git(corpus.repo, "add", "--all")
+    git(corpus.repo, "commit", "--quiet", "-m", landing_subject(FINISHED, "US2", 93))
+
+    assert set(AssemblyLanding(reader_for(corpus.repo, "dev")).facts(FINISHED)) == {
+        "US1", "US2",
+    }
 
 
 def test_a_landing_facts_shape_is_the_shape_the_assembly_reads():

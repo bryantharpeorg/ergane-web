@@ -101,11 +101,18 @@ class LandingFact:
 class LandingReader:
     """The landing-facts read for one repository and one branch.
 
-    Bound per assembly by `ShowfloorReaders.from_reader`, and memoised on the
-    branch head: landing facts are a pure function of (repository, head, spec),
-    so the scan is repeated only when the branch has actually moved.  Without
-    that, every SSE poll would re-scan the branch's whole history once per spec
-    on the floor, in the event loop's own thread.
+    **Memoised on the branch head, and that is not an optimisation the room can
+    do without.**  `landed_facts` walks the landing branch's whole history once
+    per spec, in a subprocess, synchronously — eleven specs is most of a second,
+    and the assembly runs on every `GET /api/showfloor` *and* every SSE poll, in
+    the event loop's own thread.  Unmemoised, the room spends more time reading
+    git than serving; measured, it cost the smoke suite its 30-second budget.
+
+    The memo is exactly sound because the read is pure: landing facts at a given
+    (repository, head, spec) cannot change, since every one of `landed_facts`'s
+    reads is `git show <rev>:…` against a commit.  A branch that moves resolves
+    to a different head and the memo drops.  Nothing here is time-based, so
+    nothing here can serve a stale answer for a branch that has stood still.
     """
 
     def __init__(self, repo: Path | str, branch: str) -> None:
@@ -114,11 +121,25 @@ class LandingReader:
         self._head: str | None = None
         self._facts: dict[str, dict[str, LandingFact]] = {}
 
-    def facts(self, spec_dir: str) -> dict[str, LandingFact]:
-        """`{story_key: LandingFact}` for one spec, newest landing per story."""
-        head = self._resolve_head()
-        if head != self._head:
-            self._head = head
+    def head(self) -> str:
+        """The landing branch's head, through ergane's own precedence."""
+        from factory.workgraph.landed import _resolve_default_head
+
+        with _translated(self.repo):
+            return _resolve_default_head(self.repo, self.branch, fetch=False)
+
+    def facts(self, spec_dir: str, head: str | None = None) -> dict[str, LandingFact]:
+        """`{story_key: LandingFact}` for one spec, newest landing per story.
+
+        `head` is a head the caller has already resolved, passed so a caller
+        reading many specs pays for the resolution once.  It is the memo's key
+        and its staleness check, not a revision the scan is pinned to: ergane's
+        seam takes a branch name and reads that branch's head itself, and this
+        module does not reach past it to say otherwise.
+        """
+        resolved = self.head() if head is None else head
+        if resolved != self._head:
+            self._head = resolved
             self._facts = {}
         if spec_dir not in self._facts:
             self._facts[spec_dir] = read_landing_facts(
@@ -126,12 +147,42 @@ class LandingReader:
             )
         return self._facts[spec_dir]
 
-    def _resolve_head(self) -> str:
-        """The landing branch's head, through ergane's own precedence."""
-        from factory.workgraph.landed import _resolve_default_head
 
-        with _translated(self.repo):
-            return _resolve_default_head(self.repo, self.branch, fetch=False)
+#: One reader per (repository, branch), for the lifetime of the process.
+#:
+#: The memo above is worth nothing if the reader is rebuilt per request, and
+#: `ShowfloorReaders.from_reader` binds a fresh set of reads for every assembly.
+#: Keyed by the resolved path so two spellings of one checkout share a memo, and
+#: never by anything derived from a clock.
+_READERS: dict[tuple[str, str], LandingReader] = {}
+
+
+def reader_for(repo: Path | str, branch: str) -> LandingReader:
+    """The process's reader for one repository and branch, built once."""
+    key = (str(Path(repo).resolve()), branch)
+    reader = _READERS.get(key)
+    if reader is None:
+        reader = LandingReader(repo, branch)
+        _READERS[key] = reader
+    return reader
+
+
+class AssemblyLanding:
+    """One assembly's landing read: the head resolved once, facts per spec.
+
+    The per-request half of the memo.  Resolving the head is two git commands;
+    doing it once per document rather than once per spec is what keeps a whole
+    assembly down to that pair when the branch has not moved.
+    """
+
+    def __init__(self, reader: LandingReader) -> None:
+        self._reader = reader
+        self._head: str | None = None
+
+    def facts(self, spec_dir: str) -> dict[str, LandingFact]:
+        if self._head is None:
+            self._head = self._reader.head()
+        return self._reader.facts(spec_dir, self._head)
 
 
 def read_landing_facts(

@@ -449,9 +449,12 @@ class ShowfloorReaders:
         whose landing branch carries the landings.  The branch is the caller's
         setting (`Settings.landing_branch`, D-011's `dev` by default); a caller
         that passes none takes that same default rather than a name typed here.
+        Its reader outlives this binding on purpose (`pane.landing.reader_for`):
+        the branch scan is expensive and pure, so it is memoised on the head for
+        the process, and only the *head resolution* is this assembly's own.
         """
         from pane.config import DEFAULT_LANDING_BRANCH
-        from pane.landing import LandingReader
+        from pane.landing import AssemblyLanding, reader_for
 
         root = Path(specs_root)
         archive = archive_root if archive_root is not None else root.parent / "docs" / "dags"
@@ -461,7 +464,7 @@ class ShowfloorReaders:
             workgraph=bound.workgraph,
             epic_status=bound.epic_status,
             reference_instant=getattr(reader, "reference_instant", None),
-            landing_facts=LandingReader(root.parent, branch).facts,
+            landing_facts=AssemblyLanding(reader_for(root.parent, branch)).facts,
             landing_branch=branch,
         )
 
