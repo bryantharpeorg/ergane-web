@@ -37,6 +37,17 @@ function render(story: ShowfloorStory): HTMLElement {
   return container;
 }
 
+/** The card as a whole element, for the props US4 gave it. */
+function renderCard(node: JSX.Element): HTMLElement {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  containers.push(container);
+  act(() => {
+    createRoot(container).render(node);
+  });
+  return container;
+}
+
 /** The six bars' statuses, left to right. */
 function bars(container: HTMLElement): string[] {
   return Array.from(container.querySelectorAll("[data-ladder] i")).map(
@@ -72,12 +83,49 @@ describe("the card carries id, title, chip, ladder and sub-line (FR-011)", () =>
     expect(container.querySelector("[data-node-sub]")!.textContent).toBe("P1 · att 2");
   });
 
-  it("is not a control: the Showfloor never grows a button", () => {
-    const container = render(storyOf("us1", "a story", ladderOf()));
-    // Constitution I and § Do's and Don'ts. Selection and its keyboard path
-    // are US4's; a card that reads is not one that writes.
-    expect(container.querySelectorAll("button, form, input, select, textarea").length).toBe(0);
-    expect(container.querySelector("[data-node-card]")!.tagName).toBe("ARTICLE");
+  /**
+   * **Succeeds US3's "is not a control: the Showfloor never grows a button"**,
+   * which asserted `ARTICLE` and zero buttons. Its subject changed in this
+   * story's diff, and it said so itself: "selection and its keyboard path are
+   * US4's". They are here. What that assertion was protecting — that a card
+   * touches no seam and the room grows no *write* — is what is re-asserted
+   * below and, whole-room, in `noVerb.test.ts` and the smoke's zero-non-GET
+   * sweep (plan D4, FR-016, FR-017).
+   */
+  it("is a selection button and nothing else: no form, no input, no write", () => {
+    const picked: string[] = [];
+    const container = renderCard(
+      <NodeCard
+        story={storyOf("us1", "a story", ladderOf())}
+        onSelect={(story) => picked.push(story.id ?? "")}
+      />,
+    );
+
+    const card = container.querySelector("[data-node-card]") as HTMLButtonElement;
+    expect(card.tagName).toBe("BUTTON");
+    // `type="button"` is what keeps it out of any submit path — there is no
+    // form in this room, and a card that grew one would still not submit.
+    expect(card.getAttribute("type")).toBe("button");
+    expect(container.querySelectorAll("form, input, select, textarea").length).toBe(0);
+    expect(container.querySelectorAll("a").length).toBe(0);
+
+    // It moves the room's own selection, and reports which card is being told.
+    expect(card.getAttribute("aria-pressed")).toBe("false");
+    act(() => {
+      card.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(picked).toEqual(["us1"]);
+  });
+
+  it("wears the selection § Shapes gives it, and says so to a screen reader", () => {
+    const container = renderCard(
+      <NodeCard story={storyOf("us1", "a story", ladderOf())} selected />,
+    );
+    const card = container.querySelector("[data-node-card]")!;
+
+    expect(card.className).toBe("node sel");
+    expect(card.getAttribute("aria-pressed")).toBe("true");
+    expect(card.getAttribute("data-selected")).toBe("true");
   });
 });
 

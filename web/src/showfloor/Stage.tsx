@@ -253,9 +253,18 @@ interface StageProps {
   entry: RailEntry;
   /** The floor document, for the two facts only `collect_floor` records. */
   floor: FloorDocument | null;
+  /** The story the detail pane is telling, by node id (005 US4). */
+  selectedStory?: string | null;
+  /** What a card does when it is picked; absent where nothing listens. */
+  onSelectStory?: (story: ShowfloorStory) => void;
 }
 
-export default function Stage({ entry, floor }: StageProps): JSX.Element {
+export default function Stage({
+  entry,
+  floor,
+  selectedStory = null,
+  onSelectStory,
+}: StageProps): JSX.Element {
   const stories = entry.stories;
   const chip = railChip(entry);
 
@@ -325,7 +334,12 @@ export default function Stage({ entry, floor }: StageProps): JSX.Element {
               {ranksOf(stories).map((column, depth) => (
                 <div className="rank" data-rank={depth} key={depth}>
                   {column.map((story) => (
-                    <NodeCard key={story.id ?? story.story_key ?? depth} story={story} />
+                    <NodeCard
+                      key={story.id ?? story.story_key ?? depth}
+                      story={story}
+                      selected={(story.id ?? story.story_key) === selectedStory}
+                      onSelect={onSelectStory}
+                    />
                   ))}
                 </div>
               ))}

@@ -19,6 +19,13 @@
  * *here* — once, from the component the room has exactly one of, which is the
  * whole fix for the first world's legend-per-epic repetition (FR-012).
  *
+ * 005 US4 gives the room its reading surface. Selection of a *story* is state
+ * this component holds — the rail's selection is a URL because a spec is a
+ * place, but a story is a reading of the spec that is already open, and a
+ * second path segment would make the back button walk a reader's every glance.
+ * `DetailPane` renders what the selection says; the cards report it with
+ * `aria-pressed`.
+ *
  * Two documents, both bare GETs: `/api/showfloor` (005 US1) is the room, and
  * `/api/floor` carries the attention count and the two facts only
  * `collect_floor` records — this epic's pace and the usage rollup the stage's
@@ -28,10 +35,11 @@
 
 import { useEffect, useState } from "react";
 import type { DegradedEntry, FloorDocument } from "../api/floorDocument";
-import type { RailEntry, ShowfloorDocument } from "../api/showfloorDocument";
+import type { RailEntry, ShowfloorDocument, ShowfloorStory } from "../api/showfloorDocument";
 import { subscribeFloor } from "../api/events";
 import Masthead from "../Masthead";
 import AttentionBadge from "./AttentionBadge";
+import DetailPane from "./DetailPane";
 import Legend from "./Legend";
 import Rail from "./Rail";
 import Stage from "./Stage";
@@ -139,6 +147,9 @@ export default function Showfloor(): JSX.Element {
   const [floorUnread, setFloorUnread] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // The room opens on no story: the pane's own two sentences are how an
+  // operator who has never seen it learns what the stage is for (FR-015).
+  const [selectedStory, setSelectedStory] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,7 +266,14 @@ export default function Showfloor(): JSX.Element {
               No spec was read from the corpus, so there is nothing to stage.
             </p>
           ) : (
-            <Stage entry={entry} floor={floor} />
+            <Stage
+              entry={entry}
+              floor={floor}
+              selectedStory={selectedStory}
+              onSelectStory={(story: ShowfloorStory) =>
+                setSelectedStory(story.id ?? story.story_key)
+              }
+            />
           )}
           {/* § Stage: "One legend row under the stage, rendered once per page,
               never per epic." Here is the once — the room has exactly one
@@ -263,9 +281,17 @@ export default function Showfloor(): JSX.Element {
               epics the rail carries (T021, FR-012). */}
           <Legend />
         </section>
-        <aside className="detail" data-detail>
-          <p className="detail-empty">No story is selected.</p>
-        </aside>
+        <DetailPane
+          story={
+            entry === null
+              ? null
+              : (entry.stories.find(
+                  (story) => (story.id ?? story.story_key) === selectedStory,
+                ) ?? null)
+          }
+          epicId={entry === null ? null : entry.epic_id}
+          floor={floor}
+        />
       </main>
     </Frame>
   );
