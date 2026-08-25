@@ -1,0 +1,59 @@
+{
+  "epic_id": "013-the-gates-show-their-work",
+  "feature": "013-the-gates-show-their-work",
+  "specs_root": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-13r/specs",
+  "target_repo": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-13r",
+  "nodes": [
+    {
+      "id": "us1",
+      "story_key": "US1",
+      "persona": "implementer",
+      "spec_ref": "013-the-gates-show-their-work:US1",
+      "requirement_keys": [
+        "US1",
+        "FR-001",
+        "FR-002",
+        "FR-003"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": 3600
+    },
+    {
+      "id": "us2",
+      "story_key": "US2",
+      "persona": "implementer",
+      "spec_ref": "013-the-gates-show-their-work:US2",
+      "requirement_keys": [
+        "US2",
+        "FR-004",
+        "FR-005",
+        "FR-006",
+        "FR-007",
+        "FR-008"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us1"
+      ],
+      "timeout_override_s": 3600
+    },
+    {
+      "id": "us3",
+      "story_key": "US3",
+      "persona": "implementer",
+      "spec_ref": "013-the-gates-show-their-work:US3",
+      "requirement_keys": [
+        "US3",
+        "FR-009",
+        "FR-010"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us2"
+      ],
+      "timeout_override_s": 3600
+    }
+  ],
+  "inferred_edges": []
+}

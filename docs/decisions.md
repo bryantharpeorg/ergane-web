@@ -644,3 +644,52 @@ one. The reading room for a spec's full history is 007, and it is still a sketch
 **Why an entry at all.** Constitution VIII: composition is appearance, and the authority is amended
 before the spec that builds to it. This entry amends `DESIGN.md` § Stage and § Detail pane. Spec 009
 US4 cites these clauses.
+
+---
+
+## D-020 · The verify store's evidence readers join the approved seams (decided 2026-08-25)
+
+**Raised by** spec 013, which cannot render a gate step without reading the record ergane already
+keeps of it.
+
+**The question 007 left open.** 007's Open Question 3 ruled that the pane never opens
+`verification.db` raw, that a durable history store would ship "with its **own** ergane-exported
+read-only reader", and that such a reader "joins the constitution II list by a D-entry when it
+exists". The premise was that no reader existed. It was wrong: two do, and both are exported,
+typed and already load-bearing inside ergane itself.
+
+- **`factory.verify.store.node_history(conn, epic_id, node_id) -> list[VerificationResult]`** — every
+  verification of one node, oldest attempt first. Its docstring calls it "the canonical per-node
+  query from the DDL — what retry prompts quote and what an escalation's failure history is built
+  from". It returns the whole evidence bundle: gate results, judge verdict, diff check, ladder
+  summary, timestamps.
+- **`factory.verify.store.attempt_timings(conn, epic_id) -> list[AttemptTiming]`** — the narrow
+  sibling, six columns across an epic, explicitly built for pace reporting.
+
+Both are read-only by construction and are reached over `connect_readonly`, which constitution II
+already names for the Question reader on the same store.
+
+**Decided.** `node_history`, `attempt_timings`, `pending_escalations` and `get_escalation`, all over
+`connect_readonly`, join the approved seam list in constitution II. The constitution's parenthetical
+becomes "list amended by D-010 and D-020".
+
+**What is still forbidden, and this is the part that matters.** The pane may call these functions and
+nothing else. It may not open the database with its own SQL, may not read a column these readers do
+not return, and may not reach for a table they do not cover. The whole point of principle II is that
+ergane's internals may change shape without breaking the pane — and they already did once (N28). A
+reader is a contract; a schema is not.
+
+**What this does not solve.** These readers are exported and durable-*ish*, not durable. A
+re-dispatch overwrites a node's rows (N28) and nothing here changes that. So a spec riding them
+renders **the current record**, honestly labelled, and does not claim a history it cannot keep. The
+durable store remains the prerequisite for 007, and is filed to the ergane agent as PR-1 in the
+platform requirements section of the feedback log.
+
+**And they do not carry the model.** `VerificationResult` has eighteen columns and none of them is
+the persona or the model alias; the only authority is the epic's Temporal start payload, which
+expires with the workflow. A consumer must render that as unknown rather than guess from the
+registry, because the DEBUGGER rung relabels the persona without re-resolving the model and the two
+disagree. Filed as PR-2.
+
+**Why an entry at all.** Constitution II is a closed list by design, and adding to it is the
+operator's act, not a node's. This entry is what makes spec 013 legal.
