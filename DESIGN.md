@@ -108,6 +108,12 @@ Base `15.5px`. Steps, by role — a size off this ramp is a defect:
 - **Showfloor grid**: `17rem` epic rail · `1fr` stage · `26rem` detail pane.
   Below `1180px` the detail pane drops to a full-width row beneath; below
   `820px` the rail stacks above the stage.
+- **The detail track is a story's track, not a permanent one** (2026-08-25).
+  While no story is selected the pane holds nothing but the room's own
+  explanation, and `26rem` of stage is a poor price for two sentences: the
+  track collapses to `0` and the stage takes the width. Picking a story
+  restores it. The stage is the room's subject; the pane is what a pick
+  earns.
 - **Containment is a design law.** No element carrying text may cross the
   viewport's right edge except inside an ancestor whose `overflow-x` scrolls,
   and every stage element sits inside its stage's box. No two text leaves may
@@ -192,13 +198,27 @@ page, never per epic. The stage scrolls horizontally when a graph outgrows it;
 an epic whose stage document has no nodes renders as its degraded notice with
 **no stage canvas at all**.
 
+**When the stage does scroll, the scroll is furniture and wears the room's
+clothes** (2026-08-25). Left unstyled, a scroller renders the host operating
+system's widget — a light grey trough with stepper buttons, pasted into a dark
+room — and it is the one surface in this pane the tokens never reached. Thin,
+no stepper buttons, thumb on `--rule` and brighter on hover, trough
+transparent, in both themes. It is always rendered rather than an overlay that
+fades in: a graph continuing past the edge with no visible affordance is a
+graph with pieces missing.
+
 ### Detail pane
 
 For the selected story: id, serif title, the story's one-sentence intent, the
 six named steps with timestamps, a facts grid (attempt `n of cap`, judge
 verdict with scenario count, PR number, landing SHA, wall clock), and the
-`requirement_keys` as sunken mono chips. `aria-live="polite"`. When nothing is
-selected it explains the room in two sentences.
+`requirement_keys` as sunken mono chips. `aria-live="polite"`.
+
+When nothing is selected it still explains the room in two sentences — but not
+from a `26rem` column (2026-08-25). The explanation moves beneath the stage,
+above the legend row, and the pane's track is gone until a story is picked.
+The words do not change and they are never withheld; what changes is that they
+stop costing the graph its width.
 
 ### Attention badge
 
