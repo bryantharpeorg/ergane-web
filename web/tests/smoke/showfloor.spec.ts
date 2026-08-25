@@ -1,22 +1,29 @@
 /**
- * The Showfloor, in a real browser (005 US2: FR-006 … FR-009).
+ * The Showfloor, in a real browser (005 US2: FR-006 … FR-009; 005 US3:
+ * FR-011, FR-012, FR-014).
  *
  * **This file replaces 002's and 004's Showfloor smoke wholesale.** Every
- * assertion it dropped had its *subject* deleted by D-015 and by this story,
- * and each is named here with what succeeds it (plan D4):
+ * assertion it dropped had its *subject* deleted by D-015 and by 005, and each
+ * is named here with what succeeds it (plan D4):
  *
  * | dropped | why | succeeded by |
  * |---|---|---|
- * | "the Showfloor stages the fixture floor read-only" — one `[data-epic-stage]` per running epic, its stations and edges | the room is a master–detail now: one epic on stage, chosen from a rail. There is no per-epic stage to enumerate. | "the rail is the corpus" + US3's T024, which asserts the one stage's graph |
+ * | "the Showfloor stages the fixture floor read-only" — one `[data-epic-stage]` per running epic, its stations and edges | the room is a master–detail now: one epic on stage, chosen from a rail. There is no per-epic stage to enumerate. | "the rail is the corpus" + "the stage draws the selected epic's graph", below |
  * | "pure glass sweep" — no control, one badge, badge is an anchor | subject survives entirely | "the room has no verb" below, against the rebuilt DOM |
  * | "full-bleed is measured" | subject survives | "the frame is centred at 96rem" below, which measures the root *and* the frame |
- * | "the stage is the size of its graph" (empty vs populated stage heights) | there is one stage, not six, so there is no stack of empty ones to measure | US3's T022/T024: a stage document with no nodes renders its notice and no canvas |
- * | "the landing line lies within its wrapper's scrollable extent" and "a map wider than its wrapper makes the wrapper scroll" | the landing line and the React Flow map are deleted from the room; DESIGN.md draws neither | US3's T024, on the rebuilt stage |
- * | "no text is laid out past the viewport outside a scrollable wrapper" | subject survives, and it is the defect class 004 exists to prevent | "nothing is laid out into nowhere" below, kept at two widths, and US3's T024 which extends it to the stage's own box |
+ * | "the stage is the size of its graph" (empty vs populated stage heights) | there is one stage, not six, so there is no stack of empty ones to measure | "a stage with no graph has no canvas", below: the canvas is absent from the DOM rather than short |
+ * | "the landing line lies within its wrapper's scrollable extent" and "a map wider than its wrapper makes the wrapper scroll" | the landing line and the React Flow map are deleted from the room; DESIGN.md draws neither | "the three layout laws" below — law (a) measures every stage descendant against the stage's own box, which is the general form of both |
+ * | "no text is laid out past the viewport outside a scrollable wrapper" | subject survives, and it is the defect class 004 exists to prevent | law (b) below, which is that assertion carried from one width to two and from one theme to both |
+ * | US2's own "nothing is laid out into nowhere" | strictly succeeded: same sweep, now run at both widths *and* both `colorScheme` emulations, over every spec on the floor rather than the default selection | law (b) below |
  *
- * What this file adds is US2's own: the two themes really rendering, the frame
- * really centred and fluid, the request log really empty of fonts, and the
- * three routing cases really selecting.
+ * 004 is why the last block of this file exists. Its scenarios asserted stage
+ * *height* and never asserted containment, so a green gate shipped nine of nine
+ * stations laid out beyond their own map, an escaped landing lane 121px past
+ * its container, and a Desk whose labels collided. FR-014 turns the three
+ * things nobody asserted into the three things that cannot regress: every
+ * stage descendant inside its stage's box, no text past the viewport outside a
+ * scrolling ancestor, and no two text leaves overlapping — at 1280 and 1600, in
+ * both themes, over the whole fixture floor.
  */
 
 import type { Page } from "@playwright/test";
@@ -254,65 +261,6 @@ test.describe("the frame is fluid to 96rem (FR-007)", () => {
     expect(measured[2560].left).toBeCloseTo((2560 - measured[2560].frame) / 2, 0);
   });
 
-  test("nothing is laid out into nowhere", async ({ page }) => {
-    // 004's FR-006 sweep, kept: no element carrying text may cross the
-    // viewport's right edge except inside an ancestor that really scrolls.
-    for (const width of [1280, 1600] as const) {
-      await page.setViewportSize({ width, height: 1000 });
-      await page.goto("/showfloor");
-      await page.waitForSelector("[data-stage]");
-
-      const sweep = await page.evaluate(() => {
-        const viewport = document.documentElement.clientWidth;
-        const EPSILON = 0.5;
-        let swept = 0;
-        const offenders: string[] = [];
-
-        const describe = (element: Element): string => {
-          const classes =
-            typeof element.className === "string" && element.className.trim()
-              ? `.${element.className.trim().split(/\s+/).join(".")}`
-              : "";
-          return `${element.tagName.toLowerCase()}${classes}`;
-        };
-
-        for (const element of Array.from(document.querySelectorAll("*"))) {
-          const tag = element.tagName.toLowerCase();
-          if (["script", "style", "head", "title"].includes(tag)) continue;
-          if (!(element.textContent ?? "").trim()) continue;
-          const rect = element.getBoundingClientRect();
-          if (rect.width === 0 && rect.height === 0) continue;
-          swept++;
-          if (rect.right <= viewport + EPSILON) continue;
-
-          let parent = element.parentElement;
-          let reachable = false;
-          while (parent && parent !== document.documentElement) {
-            const overflowX = getComputedStyle(parent).overflowX;
-            if (
-              (overflowX === "auto" || overflowX === "scroll") &&
-              parent.scrollWidth > parent.clientWidth &&
-              parent.getBoundingClientRect().right <= viewport + EPSILON
-            ) {
-              reachable = true;
-              break;
-            }
-            parent = parent.parentElement;
-          }
-          if (!reachable) offenders.push(`${describe(element)} at ${rect.right.toFixed(0)}px`);
-        }
-
-        return { swept, offenders, scrollWidth: document.documentElement.scrollWidth, viewport };
-      });
-
-      // A sweep over nothing passes for the wrong reason.
-      expect(sweep.swept).toBeGreaterThan(20);
-      expect(sweep.offenders).toEqual([]);
-      // And the page itself does not scroll sideways to hide the difference.
-      expect(sweep.scrollWidth).toBeLessThanOrEqual(sweep.viewport + 0.5);
-    }
-  });
-
   test("no font file and no remote asset is requested", async ({ page }) => {
     const urls: string[] = [];
     page.on("request", (request) => urls.push(request.url()));
@@ -484,5 +432,595 @@ test.describe("the room has no verb (constitution I)", () => {
     await page.waitForSelector("[data-stage]");
 
     expect(requests.filter((request) => request.method !== "GET")).toHaveLength(0);
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   005 US3. The stage, its graph, and the three laws.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/** One epic's stories and edges, straight off the document the room renders. */
+interface StageEntry {
+  spec_dir: string;
+  epic_id: string | null;
+  stories_total: number;
+  stories_landed: number;
+  stories: Array<{
+    id: string | null;
+    story_key: string | null;
+    title: string;
+    requirement_keys: string[];
+    depends_on: string[];
+    depends_on_merged: string[];
+    ladder: { stops: Array<{ key: string; status: string }>; chip: string | null };
+  }>;
+  unknown: string[];
+}
+
+async function stageRail(request: {
+  get: (url: string) => Promise<{ json: () => Promise<unknown> }>;
+}): Promise<StageEntry[]> {
+  const response = await request.get("/api/showfloor");
+  const document = (await response.json()) as { rail: StageEntry[] };
+  return document.rail;
+}
+
+test.describe("the stage draws the selected epic's graph (FR-011, FR-012)", () => {
+  test("one card per story, in ranks, with six ladder stops each", async ({ page, request }) => {
+    const rail = await stageRail(request);
+    const staged = rail.filter((entry) => entry.stories.length > 0);
+    // This corpus really carries staged specs; a sweep over none would pass
+    // for the wrong reason.
+    expect(staged.length).toBeGreaterThan(2);
+
+    for (const entry of staged) {
+      await page.goto(`/showfloor/${entry.spec_dir}`);
+      await page.waitForSelector("[data-stage-canvas]");
+
+      const cards = page.locator("[data-node-card]");
+      await expect(cards).toHaveCount(entry.stories.length);
+
+      const rendered = await cards.evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          id: node.getAttribute("data-story-id"),
+          title: node.querySelector("[data-node-title]")?.textContent ?? "",
+          chip: (node.querySelector("[data-chip]")?.textContent ?? "").trim(),
+          stops: Array.from(node.querySelectorAll("[data-ladder] i")).map((bar) =>
+            bar.getAttribute("data-stop-status"),
+          ),
+          sub: (node.querySelector("[data-node-sub]")?.textContent ?? "").trim(),
+        })),
+      );
+
+      for (const [index, story] of entry.stories.entries()) {
+        const card = rendered.find((candidate) => candidate.id === story.id);
+        expect(card, `${entry.spec_dir} stages ${story.id}`).toBeDefined();
+        expect(card!.title).toBe(story.title);
+        // § The status ladder: six stops, always six, and each wears the
+        // status the *document* derived (plan D2) — never one the browser did.
+        expect(card!.stops).toEqual(story.ladder.stops.map((stop) => stop.status));
+        expect(card!.chip).toBe(story.ladder.chip ?? "unknown");
+        // Every card says something true about itself on its sub-line.
+        expect(card!.sub.length, `${story.id} has a sub-line`).toBeGreaterThan(0);
+        expect(index).toBeGreaterThanOrEqual(0);
+      }
+
+      // Ranks run left to right in the DOM, and their boxes really do too.
+      const ranks = await page.locator("[data-rank]").evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          depth: Number(node.getAttribute("data-rank")),
+          left: node.getBoundingClientRect().left,
+        })),
+      );
+      expect(ranks.length).toBeGreaterThan(0);
+      for (let index = 1; index < ranks.length; index++) {
+        expect(ranks[index].depth).toBe(ranks[index - 1].depth + 1);
+        expect(ranks[index].left).toBeGreaterThan(ranks[index - 1].left);
+      }
+    }
+  });
+
+  test("wires join the boxes they name, told apart by stroke", async ({ page, request }) => {
+    const rail = await stageRail(request);
+
+    // The spec with the most declared edges is the one worth measuring; this
+    // corpus has one with both kinds.
+    const edgesOf = (entry: StageEntry) =>
+      entry.stories.flatMap((story) => [
+        ...story.depends_on_merged.map((source) => ({ source, target: story.id, kind: "merge" })),
+        ...story.depends_on.map((source) => ({ source, target: story.id, kind: "pass" })),
+      ]);
+    const wired = rail
+      .filter((entry) => edgesOf(entry).length > 0)
+      .sort((a, b) => edgesOf(b).length - edgesOf(a).length)[0];
+    expect(wired, "some spec on this floor declares dependencies").toBeDefined();
+
+    await page.goto(`/showfloor/${wired.spec_dir}`);
+    // The canvas, not the paths: a horizontal wire has a zero-height box, and
+    // Playwright's visibility check would wait on it forever.
+    await page.waitForSelector("[data-stage-canvas]");
+
+    const declared = edgesOf(wired);
+    await expect(page.locator("[data-wire]")).toHaveCount(declared.length);
+
+    const measured = await page.evaluate(() => {
+      const canvas = document.querySelector("[data-stage-canvas]") as HTMLElement;
+      const svg = document.querySelector("[data-wires]") as SVGElement;
+      const origin = svg.getBoundingClientRect();
+      const box = (id: string) => {
+        const card = document.querySelector(`[data-story-id="${id}"]`) as HTMLElement | null;
+        if (card === null) return null;
+        const rect = card.getBoundingClientRect();
+        return {
+          right: rect.right - origin.left,
+          left: rect.left - origin.left,
+          middle: rect.top + rect.height / 2 - origin.top,
+        };
+      };
+
+      return {
+        pointer: getComputedStyle(svg).pointerEvents,
+        // "behind the cards": the SVG is the canvas's first child, the ranks
+        // come after it, so a card is painted over the wire that reaches it.
+        first: canvas.firstElementChild === svg,
+        wires: Array.from(document.querySelectorAll("[data-wire]")).map((path) => {
+          const style = getComputedStyle(path);
+          return {
+            kind: path.getAttribute("data-edge-kind"),
+            sourceId: path.getAttribute("data-edge-source"),
+            targetId: path.getAttribute("data-edge-target"),
+            d: path.getAttribute("d") ?? "",
+            stroke: style.stroke,
+            width: style.strokeWidth,
+            dash: style.strokeDasharray,
+            source: box(path.getAttribute("data-edge-source") ?? ""),
+            target: box(path.getAttribute("data-edge-target") ?? ""),
+          };
+        }),
+        olive: getComputedStyle(document.documentElement).getPropertyValue("--olive").trim(),
+        rule: getComputedStyle(document.documentElement).getPropertyValue("--rule").trim(),
+      };
+    });
+
+    expect(measured.pointer).toBe("none");
+    expect(measured.first).toBe(true);
+
+    // Every wire on the page is an edge the document declared, kind for kind.
+    expect(
+      measured.wires.map((wire) => `${wire.kind}:${wire.sourceId}->${wire.targetId}`).sort(),
+    ).toEqual(declared.map((edge) => `${edge.kind}:${edge.source}->${edge.target}`).sort());
+
+    for (const wire of measured.wires) {
+      // § Stage: merge solid 2px olive, pass dashed 2px `--rule`.
+      expect(wire.width).toBe("2px");
+      if (wire.kind === "merge") {
+        expect(wire.stroke).toBe(hexToRgb(measured.olive));
+        expect(wire.dash === "none" || wire.dash === "").toBe(true);
+      } else {
+        expect(wire.stroke).toBe(hexToRgb(measured.rule));
+        expect(wire.dash).not.toBe("none");
+        expect(wire.dash.length).toBeGreaterThan(0);
+      }
+
+      // And the path really starts on the source's right edge and ends on the
+      // target's left, at each card's vertical middle — the assertion 004's
+      // suite never made, and the one that would have caught nine stations
+      // laid out beyond their own map.
+      const start = wire.d.match(/^M(-?[\d.]+) (-?[\d.]+)/);
+      const end = wire.d.match(/(-?[\d.]+) (-?[\d.]+)$/);
+      expect(start, `${wire.d} starts with a move`).not.toBeNull();
+      expect(end, `${wire.d} ends at a point`).not.toBeNull();
+      expect(wire.source).not.toBeNull();
+      expect(wire.target).not.toBeNull();
+      expect(Number(start![1])).toBeCloseTo(wire.source!.right, 0);
+      expect(Number(start![2])).toBeCloseTo(wire.source!.middle, 0);
+      expect(Number(end![1])).toBeCloseTo(wire.target!.left, 0);
+      expect(Number(end![2])).toBeCloseTo(wire.target!.middle, 0);
+    }
+
+    // This repository's own corpus declares merge edges and no pass edge — its
+    // stories share files, so `depends_on_merged` is the honest dependency
+    // every time — so the *pair* is proven over the recorded five-node
+    // workgraph in `tests/unit/Wires.test.tsx`, which carries both kinds. What
+    // a real browser adds is that the two strokes are actually different here:
+    // a probe path of each class, measured in the live canvas and removed.
+    const strokes = await page.evaluate(() => {
+      const svg = document.querySelector("[data-wires]") as SVGElement;
+      const read = (kind: string) => {
+        const probe = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        probe.setAttribute("class", `wire ${kind}`);
+        probe.setAttribute("d", "M0 0 L10 0");
+        svg.appendChild(probe);
+        const style = getComputedStyle(probe);
+        const measured = {
+          stroke: style.stroke,
+          width: style.strokeWidth,
+          dash: style.strokeDasharray,
+        };
+        probe.remove();
+        return measured;
+      };
+      return { merge: read("merge"), pass: read("pass") };
+    });
+
+    expect(strokes.merge.width).toBe("2px");
+    expect(strokes.pass.width).toBe("2px");
+    expect(strokes.merge.stroke).toBe(hexToRgb(measured.olive));
+    expect(strokes.pass.stroke).toBe(hexToRgb(measured.rule));
+    expect(strokes.merge.stroke).not.toBe(strokes.pass.stroke);
+    // Solid against dashed: the one distinction a colour-blind reader has.
+    expect(strokes.merge.dash === "none" || strokes.merge.dash === "").toBe(true);
+    expect(strokes.pass.dash).not.toBe("none");
+    expect(strokes.pass.dash.length).toBeGreaterThan(0);
+  });
+
+  test("the legend renders exactly once, however many specs the floor has", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    expect(rail.length).toBeGreaterThan(3);
+
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-legend]");
+
+    // The first world drew one legend per epic on stage; this floor would have
+    // shown as many as it has specs. § Stage: "rendered once per page".
+    await expect(page.locator("[data-legend]")).toHaveCount(1);
+    await expect(page.locator("[data-legend-edges]")).toHaveCount(1);
+    await expect(page.locator("[data-legend-fill]")).toHaveCount(4);
+
+    const words = await page.locator("[data-legend]").textContent();
+    expect(words).toContain("merge edge");
+    expect(words).toContain("pass edge");
+  });
+
+  test("a stage with no graph has no canvas element (FR-013)", async ({ page, request }) => {
+    const rail = await stageRail(request);
+    const empty = rail.find((entry) => entry.stories.length === 0);
+    expect(empty, "this corpus carries a spec that declares no work graph").toBeDefined();
+
+    await page.goto(`/showfloor/${empty!.spec_dir}`);
+    await page.waitForSelector("[data-stage-empty]");
+
+    // Absent from the DOM, not present and empty, and not hidden: 004's FR-001
+    // restated on the rebuilt stage.
+    await expect(page.locator("[data-stage-canvas]")).toHaveCount(0);
+    await expect(page.locator("[data-wires]")).toHaveCount(0);
+    await expect(page.locator("[data-node-card]")).toHaveCount(0);
+
+    // And the head still names what is on stage, with its metrics grid.
+    await expect(page.locator("[data-stage-id]")).toHaveCount(1);
+    await expect(page.locator("[data-metrics]")).toHaveCount(1);
+  });
+
+  test("the metrics grid obeys the Unknown Rule (FR-010)", async ({ page, request }) => {
+    const rail = await stageRail(request);
+
+    for (const entry of rail) {
+      await page.goto(`/showfloor/${entry.spec_dir}`);
+      await page.waitForSelector("[data-metrics]");
+
+      const cells = await page.locator("[data-metric]").evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          label: node.getAttribute("data-metric"),
+          value: (node.querySelector("[data-metric-value]")?.textContent ?? "").trim(),
+          unknown: node.querySelector(".unknown") !== null,
+          style: node.querySelector(".unknown")
+            ? getComputedStyle(node.querySelector(".unknown")!).fontStyle
+            : null,
+        })),
+      );
+
+      expect(cells.map((cell) => cell.label)).toEqual([
+        "stories",
+        "merged",
+        "FRs",
+        "last story",
+        "spend to date",
+      ]);
+
+      for (const cell of cells) {
+        // § The Unknown Rule: the word, in italic muted — never `0`, a dash, or
+        // an empty cell.
+        if (cell.unknown) {
+          expect(cell.value).toBe("unknown");
+          expect(cell.style).toBe("italic");
+        } else {
+          expect(cell.value.length).toBeGreaterThan(0);
+          expect(cell.value).not.toBe("—");
+          expect(cell.value).not.toBe("-");
+        }
+      }
+
+      // The counts the corpus really declared are on the page as numerals.
+      if (entry.stories.length > 0) {
+        expect(cells[0].value).toBe(String(entry.stories_total));
+        expect(cells[1].value).toBe(String(entry.stories_landed));
+      }
+
+      // "the word 'live' appears nowhere near spend".
+      const spend = await page.locator('[data-metric="spend to date"]').textContent();
+      expect((spend ?? "").toLowerCase()).not.toContain("live");
+    }
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FR-014 — the three layout laws.
+
+   004 paid for these. Its suite asserted a stage's *height* and never asserted
+   where anything ended up, so the gate went green over nine of nine stations
+   laid out beyond their own map, a landing lane 121px past its container, and
+   the Desk's colliding labels. Each law below is one of those defects,
+   generalised so it cannot come back in a different component.
+   ───────────────────────────────────────────────────────────────────────── */
+
+const WIDTHS = [1280, 1600] as const;
+const SCHEMES = ["light", "dark"] as const;
+
+interface LawReport {
+  swept: number;
+  leaves: number;
+  escaped: string[];
+  past: string[];
+  overlapping: string[];
+  documentScrollWidth: number;
+  roomScrollsSideways: boolean;
+  viewport: number;
+}
+
+/**
+ * All three laws, measured in one pass over the rendered page.
+ *
+ * One `evaluate` rather than three: the boxes have to come from a single
+ * layout, or a law could pass against a layout a later law never saw.
+ */
+async function measureLaws(page: Page): Promise<LawReport> {
+  return page.evaluate(() => {
+    const EPSILON = 0.5;
+    /** § Layout's "no two text leaves overlap", with the 4px slack T024 names. */
+    const OVERLAP = 4;
+
+    const describe = (element: Element): string => {
+      const classes =
+        typeof element.className === "string" && element.className.trim()
+          ? `.${element.className.trim().split(/\s+/).join(".")}`
+          : "";
+      const id = element.getAttribute("data-story-id") ?? element.getAttribute("data-metric");
+      return `${element.tagName.toLowerCase()}${classes}${id ? `[${id}]` : ""}`;
+    };
+
+    const SKIP = ["script", "style", "head", "title", "meta", "link"];
+    const hasText = (element: Element) =>
+      !SKIP.includes(element.tagName.toLowerCase()) && (element.textContent ?? "").trim() !== "";
+
+    const painted = (element: Element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 || rect.height > 0;
+    };
+
+    /**
+     * An ancestor that really scrolls sideways, and is itself on the screen.
+     *
+     * The walk stops *below* the room's own scroll root. That root fills the
+     * viewport and carries `overflow: auto`, so it would excuse every escape on
+     * the page by the letter of the law — and a room that scrolls sideways is
+     * the defect, not the exemption. § Stage sanctions one horizontal scroll:
+     * the stage's, when a graph outgrows it. `rootScrollsSideways` below is the
+     * other half of that pair, asserted separately.
+     */
+    const scrollingAncestor = (element: Element, limit: Element | null, viewport: number) => {
+      const room = document.querySelector("[data-showfloor-root]");
+      let parent = element.parentElement;
+      while (parent !== null && parent !== document.documentElement && parent !== document.body) {
+        if (parent === room) return null;
+        const style = getComputedStyle(parent);
+        if (
+          (style.overflowX === "auto" || style.overflowX === "scroll") &&
+          parent.scrollWidth > parent.clientWidth &&
+          parent.getBoundingClientRect().right <= viewport + EPSILON
+        ) {
+          return parent;
+        }
+        if (parent === limit) return null;
+        parent = parent.parentElement;
+      }
+      return null;
+    };
+
+    const viewport = document.documentElement.clientWidth;
+    const escaped: string[] = [];
+    const past: string[] = [];
+    const overlapping: string[] = [];
+    let swept = 0;
+
+    // ── law (a): every stage descendant inside its stage's box, or inside a
+    // scrolling ancestor within it.
+    for (const stage of Array.from(document.querySelectorAll("[data-stage]"))) {
+      const bounds = stage.getBoundingClientRect();
+      for (const child of Array.from(stage.querySelectorAll("*"))) {
+        if (SKIP.includes(child.tagName.toLowerCase())) continue;
+        if (!painted(child)) continue;
+        const rect = child.getBoundingClientRect();
+        const inside =
+          rect.left >= bounds.left - EPSILON &&
+          rect.right <= bounds.right + EPSILON &&
+          rect.top >= bounds.top - EPSILON &&
+          rect.bottom <= bounds.bottom + EPSILON;
+        if (inside) continue;
+        // A wide graph is allowed to overflow the stage *inside a scroller the
+        // stage contains* — that is § Stage's horizontal scroll, not an escape.
+        const scroller = scrollingAncestor(child, stage, viewport);
+        if (scroller !== null && stage.contains(scroller)) continue;
+        escaped.push(
+          `${describe(child)} at [${rect.left.toFixed(0)}, ${rect.right.toFixed(0)}] outside stage [${bounds.left.toFixed(0)}, ${bounds.right.toFixed(0)}]`,
+        );
+      }
+    }
+
+    // ── law (b): no text-carrying element past the viewport's right edge,
+    // except inside an ancestor whose computed `overflow-x` scrolls.
+    const texts: Element[] = [];
+    for (const element of Array.from(document.querySelectorAll("*"))) {
+      if (!hasText(element) || !painted(element)) continue;
+      texts.push(element);
+      swept++;
+      const rect = element.getBoundingClientRect();
+      if (rect.right <= viewport + EPSILON) continue;
+      if (scrollingAncestor(element, null, viewport) !== null) continue;
+      past.push(`${describe(element)} at ${rect.right.toFixed(0)}px`);
+    }
+
+    // ── law (c): no two text-carrying *leaves* overlap in both axes.
+    // A leaf is an element with text and no element child that has text — the
+    // ancestors of a text run necessarily contain it, and containment is not
+    // collision.
+    //
+    // The boxes are the *text's*, measured through a `Range` over each leaf's
+    // contents — one rect per line fragment — and not the element's own
+    // `getClientRects()`. An inline element that wraps reports fragment rects
+    // carrying the whole inline box's height in Chromium, so a wrapped span
+    // "overlaps" every sibling on the lines it crosses: a collision that is an
+    // artefact of the measurement and is not on the screen. A range measures
+    // the glyphs, which is what a reader sees two of.
+    const leaves = texts.filter(
+      (element) => !Array.from(element.children).some((child) => hasText(child)),
+    );
+    const boxes = leaves.flatMap((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return Array.from(range.getClientRects())
+        .filter((rect) => rect.width > 0 && rect.height > 0)
+        .map((rect) => ({ label: describe(element), rect }));
+    });
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        if (boxes[i].label === boxes[j].label) continue;
+        const a = boxes[i].rect;
+        const b = boxes[j].rect;
+        const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (x > OVERLAP && y > OVERLAP) {
+          overlapping.push(`${boxes[i].label} × ${boxes[j].label}`);
+        }
+      }
+    }
+
+    const room = document.querySelector("[data-showfloor-root]");
+
+    return {
+      swept,
+      leaves: leaves.length,
+      escaped,
+      past,
+      overlapping,
+      documentScrollWidth: document.documentElement.scrollWidth,
+      roomScrollsSideways: room !== null && room.scrollWidth > room.clientWidth + EPSILON,
+      viewport,
+    };
+  });
+}
+
+test.describe("the three layout laws (FR-014)", () => {
+  test("hold at 1280 and 1600, in both themes, over the whole fixture floor", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    // Every spec on the floor, staged and unstaged alike: the empty stage is a
+    // layout too, and 004 shipped three screens of it.
+    expect(rail.length).toBeGreaterThan(3);
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of WIDTHS) {
+        await page.setViewportSize({ width, height: 1000 });
+        for (const entry of rail) {
+          await page.goto(`/showfloor/${entry.spec_dir}`);
+          await page.waitForSelector("[data-metrics]");
+          const where = `${entry.spec_dir} at ${width} in ${scheme}`;
+          const report = await measureLaws(page);
+
+          // A sweep over nothing passes for the wrong reason.
+          expect(report.swept, `${where} rendered something`).toBeGreaterThan(20);
+          expect(report.leaves, `${where} has text leaves`).toBeGreaterThan(10);
+
+          expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
+          expect(report.past, `${where}: text past the viewport`).toEqual([]);
+          expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+
+          // And neither the page nor the room scrolls sideways to hide any of
+          // it — the room's scroll root is the one exemption law (b) refuses.
+          expect(report.documentScrollWidth, where).toBeLessThanOrEqual(report.viewport + 0.5);
+          expect(report.roomScrollsSideways, `${where}: the room scrolls sideways`).toBe(false);
+        }
+      }
+    }
+  });
+
+  test("would catch an escape, a runaway and a collision if one were planted", async ({ page }) => {
+    // Three green laws are only worth their green if each goes red on the thing
+    // it forbids. Each is planted into the live room and then removed.
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-stage-canvas]");
+
+    const clean = await measureLaws(page);
+    expect(clean.escaped).toEqual([]);
+    expect(clean.past).toEqual([]);
+    expect(clean.overlapping).toEqual([]);
+
+    const plant = (kind: string) =>
+      page.evaluate((which) => {
+        const stage = document.querySelector("[data-stage]") as HTMLElement;
+        const planted = document.createElement("p");
+        planted.className = "planted";
+        planted.textContent = "planted";
+        planted.style.position = "absolute";
+        if (which === "escape") {
+          // Outside the stage's box, in nothing that scrolls.
+          const bounds = stage.getBoundingClientRect();
+          planted.style.left = `${bounds.left - 200}px`;
+          planted.style.top = `${bounds.top + 10}px`;
+        } else if (which === "past") {
+          planted.style.left = `${document.documentElement.clientWidth + 40}px`;
+          planted.style.top = "40px";
+        } else {
+          // Straight on top of the stage's own id.
+          const target = document.querySelector("[data-stage-id]")!.getBoundingClientRect();
+          planted.style.left = `${target.left}px`;
+          planted.style.top = `${target.top}px`;
+          planted.style.width = `${Math.max(target.width, 40)}px`;
+          planted.style.height = `${Math.max(target.height, 40)}px`;
+        }
+        stage.appendChild(planted);
+      }, kind);
+
+    const uproot = () =>
+      page.evaluate(() => {
+        for (const planted of Array.from(document.querySelectorAll(".planted"))) {
+          planted.remove();
+        }
+      });
+
+    await plant("escape");
+    expect((await measureLaws(page)).escaped.length).toBeGreaterThan(0);
+    await uproot();
+
+    await plant("past");
+    expect((await measureLaws(page)).past.length).toBeGreaterThan(0);
+    await uproot();
+
+    await plant("overlap");
+    expect((await measureLaws(page)).overlapping.length).toBeGreaterThan(0);
+    await uproot();
+
+    // And the room is clean again once the plants are pulled — so the three
+    // reds above were the plants and not the page.
+    const after = await measureLaws(page);
+    expect(after.escaped).toEqual([]);
+    expect(after.past).toEqual([]);
+    expect(after.overlapping).toEqual([]);
   });
 });
