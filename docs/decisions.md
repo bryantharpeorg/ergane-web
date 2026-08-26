@@ -742,3 +742,64 @@ to be the right permanent answer rather than a stopgap.
 
 **Supersedes** the second sentence of D-001's rule. D-001 otherwise stands: a requirement that needs
 a write this principle does not name is still a defect in the requirement.
+
+## D-022 · The spec-corpus checkers join the approved seams, and the drafting table gets a face (decided 2026-08-25)
+
+**Raised by** spec 014, carved out of 010 on the operator's instruction after D-021 established that
+010's three writes are all refused by clause 1 for want of an ergane authoring seam. What was left of
+010 — render the trio, check it, draw the graph — writes nothing and needs two things this repository
+has not granted: seams, and an appearance.
+
+### The seams
+
+`factory.workgraph.derive.derive_workgraph`, `factory.workgraph.preflight.check_slice_coverage` and
+`factory.workgraph.preflight.check_prompt_assembly` join constitution II's approved list. All three
+are exported, typed, pure, and already load-bearing inside ergane — they are what `ergane spec
+validate` itself composes. The constitution's parenthetical becomes "list amended by D-010, D-020 and
+D-022".
+
+### What is emphatically NOT granted, and this is the decision that matters
+
+**The pane may not compose these three into a verdict.** `ergane spec validate` has no library form:
+its whole policy — which checks run, in what order, which failures are refusals and which are
+warnings — lives in `_validate_command(args: argparse.Namespace) -> int`
+(`factory/cli/nouns/spec.py:231`), a private CLI handler that prints and returns an exit code. There
+is no `validate_spec()`, no report dataclass, and the `--json` output is produced by a `print` at
+line 388.
+
+So the pane has the pieces and cannot have the answer. The tempting move — call the five underlying
+functions, apply the same severities, render a green pill — *looks* like riding seams and is
+re-derivation of exactly the kind D-005 forbids. It would produce a verdict that agrees with the CLI
+today and drifts the first time ergane changes a severity, and the operator would believe the pane
+over the terminal, because the pane is the thing on screen.
+
+**Decided:** spec 014 renders each checker's own answer, attributed to the seam that produced it, and
+states on screen that the CLI's verdict is unavailable. No summary chip, no composite. Filed to the
+ergane agent as **PR-8**: `ergane spec validate` needs a library form returning a typed report, so
+that a consumer can ask "is this dispatchable, and why not" without shelling a CLI that constitution
+II forbids it to shell.
+
+### The face
+
+`DESIGN.md` gains **§ The drafting table in this world**. Three points are load-bearing rather than
+decorative:
+
+- **`absent` is quiet.** Eight of this corpus's fourteen spec directories lack a `plan.md`, a
+  `tasks.md` or both. Rendering absence as degradation would paint most of the corpus red — which is
+  constitution III inverted, and is precisely the defect spec 012 was written to remove from the
+  Desk. Absence renders as the word `absent`, italic muted, no border, no colour.
+- **A third chip state, `not run`.** The eleven-state glyph grammar describes *work*; a check needs
+  three states — `passed`, `refused`, `not run` — and the third means an input was missing, never a
+  failure the spec earned. Reporting "refused" for a check that could not run is how a sketch looks
+  broken instead of unfinished.
+- **The pre-dispatch stage is unlit, and there is no twelfth glyph.** A graph that has not run has no
+  run state. "Not yet" is the absence of state, not a state, and inventing a glyph for it would put a
+  fabricated status on screen — the failure class this corpus has already paid for once.
+
+### Read instant, and why it is a requirement rather than a nicety
+
+The roadmap's `clone_target` activity runs `git reset --quiet --hard origin/<default>` on the
+operator's own working checkout on every 300-second tick (**N50**,
+`factory/activities/roadmap_activities.py:118`). This room only reads, so it cannot lose the
+operator's work — but the revision under a reader can change within five minutes, and a rendered
+document with no read instant is a claim that has quietly expired. FR-003 exists for that reason.

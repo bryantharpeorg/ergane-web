@@ -62,8 +62,12 @@ the verify store's Question reader over `connect_readonly`, the Temporal queries
 the factory's workflows answer (`epic_status`, `roadmap_status`,
 `escalation_status`), `CallbackBridge.handle_relay`, the `escalation_resolved`
 signal, and the verify store's evidence readers `node_history`, `attempt_timings`,
-`pending_escalations` and `get_escalation` over `connect_readonly` (list amended by
-D-010 and D-020). Re-implementing
+`pending_escalations` and `get_escalation` over `connect_readonly`, and the
+spec-corpus checkers `derive_workgraph`, `check_slice_coverage` and
+`check_prompt_assembly` (list amended by D-010, D-020 and D-022). Composing those
+last three into a verdict is forbidden: `ergane spec validate` has no library form,
+so a composed verdict is re-derived policy, not a borrowed seam (D-022).
+Re-implementing
 readiness, blockers, escalation listing, or answer settlement in this repository is
 a defect by construction — ergane's spec 046 names the re-derivation of "ready" as
 one, and D-005 extends that doctrine to every seam. Never shell `ergane doctor` from

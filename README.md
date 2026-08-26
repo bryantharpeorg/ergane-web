@@ -162,7 +162,7 @@ word inside one epic's workgraph.)
   Answer, Attention item, Fixture floor). Factory-side words are defined in
   [ergane's `CONTEXT.md`](https://github.com/bryantharpeorg/ergane/blob/HEAD/CONTEXT.md)
   and win on any conflict.
-- `docs/decisions.md` — the immutable decision log (D-001…D-021).
+- `docs/decisions.md` — the immutable decision log (D-001…D-022).
 - `.specify/memory/constitution.md` — the standards every node building this repo
   obeys.
 - `ergane.yaml` — the gates, ladder and landing-branch declaration (`dev`, D-011);

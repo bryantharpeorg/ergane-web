@@ -264,6 +264,39 @@ the word `unknown` in italic muted — never `0`, a dash, or an empty cell; a
 total is unknown when any row in scope is; the word "live" appears nowhere
 near spend.
 
+### The drafting table in this world
+
+The third room (D-022, spec 014) and the only one that renders **documents**
+rather than state. Same tokens, same faces, same chips. What it adds is a reading
+measure and a vocabulary for a check that has not been run.
+
+- **Three documents, one column each, one scroll.** Running text holds the ramp's
+  body size at a measure of roughly 68 characters; the three columns collapse to
+  one below the width at which that measure cannot be held twice. A document is
+  read, not scanned — this is the one place in the pane where prose sets the
+  layout rather than a table.
+- **The read stamp.** Every render names the working-tree revision and the instant
+  it was read, in micro uppercase over a hairline, at the top of the view. The
+  roadmap hard-resets the operator's checkout on a 300-second timer (N50); a
+  document with no read instant is a claim that has quietly expired.
+- **An absent document is quiet.** A `plan.md` that does not exist reads as the
+  word `absent` in italic muted, in its own column, with no border and no colour.
+  Most of this corpus has no `plan.md`; painting that red would be constitution
+  III inverted. **Absent is not degraded, and present-but-empty is neither.**
+- **Checks are attributed, never totalled.** Each check renders as one row: the
+  seam's own name in mono, its answer, and its message verbatim when it has one.
+  There is **no summary chip and no composite verdict** — the pane cannot obtain
+  one (spec 014's frontmatter says why), and a green pill the operator reads as
+  "validated" would be the most expensive lie this room could tell.
+- **A third chip state: `not run`.** Alongside the eleven-state glyph grammar,
+  which describes *work*, a check carries one of three: `passed`, `refused`,
+  `not run`. `not run` is muted and unbordered, and it means an input was missing
+  — never a failure the spec earned.
+- **The pre-dispatch stage is unlit.** A compiled Work Graph draws with the
+  Showfloor's stage assets and the same two edge strokes, with every node in the
+  unlit form. No node carries a run state, because none has run. Do not add a
+  twelfth glyph for "not yet": that is the absence of state, not a state.
+
 ### Motion
 
 Exactly one authored motion: the active ladder stop's 1.6s opacity pulse.
