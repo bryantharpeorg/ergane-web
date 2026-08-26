@@ -46,14 +46,23 @@ import { measureLawsIn } from "./laws";
 import type { LawReport } from "./laws";
 
 /**
- * The widths the operator may pick, and the first is the default.
+ * The widths the operator may pick, ascending.
  *
- * 1280 leads because it is the width both manual reviews were taken at and the
- * width every defect they found was found at. The other three are the ones
- * `showfloor.spec.ts` and `desk.spec.ts` already sweep, so a number the room
- * reports and a number the gate reports are about the same layout.
+ * The upper three are the ones `showfloor.spec.ts`, `desk.spec.ts` and
+ * `draft.spec.ts` already sweep, so a number this room reports and a number a
+ * gate reports are about the same layout; 960 is below all of them, because a
+ * defect that only shows when the room runs out of horizontal space shows there
+ * first.
  */
-export const WIDTHS = [1280, 1600, 2560, 960] as const;
+export const WIDTHS = [960, 1280, 1600, 2560] as const;
+
+/**
+ * The width the room opens at.
+ *
+ * 1280, because it is the width both manual reviews were taken at and the width
+ * every defect they found was found at — `235px of graph hidden at 1280`.
+ */
+export const DEFAULT_WIDTH = 1280;
 
 /** The two themes `DESIGN.md` renders, and the room renders both with equal care. */
 export const THEMES = ["light", "dark"] as const;
@@ -218,7 +227,7 @@ interface Props {
 export default function TheThingItself({ routes, specDir }: Props): JSX.Element {
   const rooms = routes.filter((route) => route.kind === "room");
   const [selected, setSelected] = useState<string | null>(null);
-  const [width, setWidth] = useState<number>(WIDTHS[0]);
+  const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
   const [theme, setTheme] = useState<Theme>(THEMES[0]);
   const [report, setReport] = useState<LawReport | null>(null);
   const [unmeasured, setUnmeasured] = useState<Unmeasured | null>(null);
@@ -237,8 +246,8 @@ export default function TheThingItself({ routes, specDir }: Props): JSX.Element 
    * whenever the frame's document changes, and a measurement that also *wrote*
    * to that document (the theme attribute, say) would be its own trigger: it
    * would schedule itself forever, at whatever interval the debounce below
-   * happened to be. Dressing the frame is `dress`, once per theme; reading it is
-   * this, as often as the document moves.
+   * happened to be. The effect below dresses the frame, once per theme; this
+   * reads it, as often as the document moves.
    */
   const measure = useCallback(() => {
     const element = frame.current;

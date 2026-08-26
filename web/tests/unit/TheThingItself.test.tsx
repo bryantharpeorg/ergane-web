@@ -17,7 +17,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
-import TheThingItself, { Measured, WIDTHS, hiddenPast } from "../../src/review/TheThingItself";
+import TheThingItself, {
+  DEFAULT_WIDTH,
+  Measured,
+  WIDTHS,
+  hiddenPast,
+} from "../../src/review/TheThingItself";
 import type { LawReport } from "../../src/review/laws";
 import type { ReviewRoute } from "../../src/api/reviewDocument";
 
@@ -81,7 +86,11 @@ describe("the frame renders the route, width and theme the operator picked (FR-0
     expect(frame.getAttribute("src")).toBe("/");
     expect(frame.getAttribute("src")?.startsWith("/")).toBe(true);
     expect(frame.getAttribute("data-render-route")).toBe("/");
-    expect(frame.getAttribute("data-render-width")).toBe(String(WIDTHS[0]));
+    expect(frame.getAttribute("data-render-width")).toBe(String(DEFAULT_WIDTH));
+    // The width both manual reviews were taken at, and the one every defect
+    // they found was found at.
+    expect(DEFAULT_WIDTH).toBe(1280);
+    expect(WIDTHS).toContain(DEFAULT_WIDTH);
     expect(frame.getAttribute("data-render-theme")).toBe("light");
   });
 
