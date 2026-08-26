@@ -15,40 +15,31 @@ the committed file holds after `Bearer ` is `{token}` or `{wrong}`, and a brace
 is in neither character class. A placeholder like `<token>` is not matched
 either. A test that hard-codes a real-looking credential still fails, which is
 the whole point of the definition being this one and not a looser one.
+
+**The definition moved to `pane/sweep.py`; nothing about it changed** (013 US2,
+FR-007). A failing gate's `output_tail` is now rendered, and it is raw process
+output — so it goes through a sweep on its way into the showfloor document, and
+US2-S3 asks that it be *the same* sweep this file runs over every committed
+file. One definition is the only way that sentence can be true, so the patterns,
+the token shape and the environment rule live in the module both callers import
+and this file keeps the trees, the traversal and the assertions that are its
+own. `tests/test_gate_tail_sweep.py` asserts the two are the same object.
 """
 
 import os
-import re
 import secrets
 from pathlib import Path
 
 import pytest
 
+from pane.sweep import MINTED_NAMES, PATTERNS, TOKEN_SHAPED, credential_hits  # noqa: F401
+from pane.sweep import SECRET_SUFFIXES, MIN_SECRET
+
 ROOT = Path(__file__).resolve().parents[1]
-
-#: What a real credential looks like once it is sitting in a file.
-TOKEN_SHAPED = r"(?:[0-9a-fA-F]{16,}|[A-Za-z0-9+/=_\-]{20,})"
-
-PATTERNS = [
-    # OpenAI-style keys are word-bounded so that ``the-desk-sees-the-floor``
-    # does not match (README sweep note; the substring is ``sk-sees``).
-    re.compile(r"\bsk-[A-Za-z0-9_\-]{8,}\b"),
-    re.compile(r"\bghp_[A-Za-z0-9_]{8,}\b"),
-    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{8,}\b"),
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    # US4: a bearer or basic credential written out rather than built from a
-    # value, and a webhook URL with the operator's credential still in it.
-    re.compile(r"\bBearer " + TOKEN_SHAPED),
-    re.compile(r"\bBasic " + TOKEN_SHAPED),
-    re.compile(r"/intake/" + TOKEN_SHAPED),
-]
 
 #: Every tree a credential could be committed into: the recorded floor, and both
 #: test worlds. `tests/` includes this file and its siblings on purpose.
 SUBTREES = ("fixtures", "scripts", "tests", "web/tests")
-
-#: The three the run minted, plus 001's generic rule for anything else exported.
-MINTED_NAMES = ("PANE_TOKEN", "PANE_INTAKE_CREDENTIAL", "PANE_ANSWER_IDENTITY")
 
 #: Build products, not committed files. A `.pyc` holds the string constants of
 #: the module it was compiled from, so sweeping one reports the source twice.
@@ -65,30 +56,20 @@ def _committed_files(root: Path):
 
 
 def _sensitive_env_values() -> set[str]:
+    """The run's own credentials, by the shared rule (`pane.sweep`'s)."""
     values: set[str] = set()
     for name, value in os.environ.items():
-        if len(value) < 8:
+        if len(value) < MIN_SECRET:
             continue
-        if name in MINTED_NAMES or name.endswith(("_TOKEN", "_KEY", "_SECRET", "_PASSWORD")):
+        if name in MINTED_NAMES or name.endswith(SECRET_SUFFIXES):
             values.add(value)
     return values
 
 
 def _scan_file(path: Path, sensitive_values: set[str]) -> list[str]:
+    """One file, through the shared scanner, with the path put back on."""
     text = path.read_text(errors="replace")
-    hits: list[str] = []
-    for pattern in PATTERNS:
-        for match in pattern.finditer(text):
-            hits.append(f"{path}: matched {pattern.pattern!r} at {match.start()}")
-    for value in sensitive_values:
-        start = 0
-        while True:
-            idx = text.find(value, start)
-            if idx == -1:
-                break
-            hits.append(f"{path}: contains env value of {value[:3]}... at {idx}")
-            start = idx + 1
-    return hits
+    return [f"{path}: {hit}" for hit in credential_hits(text, sensitive_values)]
 
 
 def test_the_run_actually_minted_something_to_sweep_for():
