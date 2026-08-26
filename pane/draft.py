@@ -1,10 +1,12 @@
 """The drafting table's read: one spec's trio, and when it was read.
 
-The third room renders **documents** rather than state, and this module is the
-whole of its backend for 014 US1.  It answers one question — what does
-`specs/<dir>/` hold right now — and it answers it in the pane's existing
-vocabulary: a document per name, a `degraded` list in the same triple the
-Showfloor's rail notes use, and nothing invented for either.
+The third room renders **documents** rather than state.  `read_trio` answers one
+question — what does `specs/<dir>/` hold right now — and it answers it in the
+pane's existing vocabulary: a document per name, a `degraded` list in the same
+triple the Showfloor's rail notes use, and nothing invented for either.
+`read_draft` at the foot of this file is what the route calls: the trio, plus
+what each of ergane's three exported checkers says about those same bytes
+(014 US2, `pane/checks.py`).
 
 **Three outcomes, and they are three different facts** (constitution III, and
 this spec's plan D3).
@@ -48,11 +50,13 @@ Reporting it as a failed read would put a note on every spec of a corpus checked
 out without git — and, more to the point, on every one of this suite's own
 constructed corpora, which is how a rule this loose gets discovered late.
 
-**This module derives nothing.**  It reads three documents as text and hands
-them on.  It does not parse a `## Work Graph` out of `spec.md`, does not read
-frontmatter, and does not decide whether a spec is valid: `derive_workgraph` is
-the only thing that knows what a Work Graph means, and a second parser in this
-repository is D-005 by construction (plan D1).
+**This module derives nothing itself.**  It reads three documents as text and
+hands them on.  It does not parse a `## Work Graph` out of `spec.md`, does not
+read frontmatter, and does not decide whether a spec is valid: `derive_workgraph`
+is the only thing that knows what a Work Graph means, and a second parser in this
+repository is D-005 by construction (plan D1).  US2's checks change nothing about
+that — `read_draft` hands the bytes to the seams and carries back what they said,
+under their own names.
 """
 
 from __future__ import annotations
@@ -281,3 +285,37 @@ def _document(
         "documents": documents,
         "degraded": degraded,
     }
+
+
+def read_draft(specs_root: Path | str, spec_dir: str) -> dict:
+    """The trio, and what each exported checker says about it (014 US2).
+
+    The whole of `GET /api/draft/<spec-dir>`: `read_trio` above reads the three
+    documents, and `pane.checks.run_checks` asks ergane's three exported
+    checkers about the bytes it just read.
+
+    **One read, one document, one set of bytes.**  The checkers are handed the
+    text the room is rendering rather than a second read of the same files, so
+    the graph the operator is shown is provably compiled from the `spec.md` on
+    screen.  A second read could land either side of the roadmap's 300-second
+    `git reset --hard` (N50) and produce a page whose checks disagree with its
+    own documents.
+
+    `read_trio` still derives nothing, and neither does this: the deriving is the
+    seam's, and this function only decides which seam has the inputs it needs
+    (`pane/checks.py` on why that decision is FR-010 and not a policy).
+    """
+    from pane.checks import run_checks
+
+    document = read_trio(specs_root, spec_dir)
+    texts = {entry["name"]: entry["text"] for entry in document["documents"]}
+    document.update(
+        run_checks(
+            spec_path=None if document["path"] is None else Path(document["path"]),
+            specs_root=specs_root,
+            spec_text=texts.get("spec.md"),
+            plan_text=texts.get("plan.md"),
+            tasks_text=texts.get("tasks.md"),
+        )
+    )
+    return document

@@ -16,6 +16,11 @@ web/node_modules/
 web/dist/
 web/test-results/
 web/playwright-report/
+# Vitest's run cache. It lands wherever vitest was invoked from, which is the
+# repository root when the runner is reached as `npx --prefix web vitest`
+# rather than through `npm --prefix web run test:unit`.
+.vite/
+web/.vite/
 
 # The pane's own delivery store (PANE_ATTENTION_DB): what the factory delivered
 # to this host, never part of the repository.

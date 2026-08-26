@@ -80,4 +80,107 @@ export interface DraftDocument {
    */
   documents: DraftDocumentEntry[];
   degraded: DraftNote[];
+  /**
+   * What each of ergane's three exported checkers said, in seam order.
+   *
+   * A list and never a verdict (FR-009). There is deliberately no field here
+   * that totals them: `ergane spec validate` composes five layers into one exit
+   * code inside a private CLI handler the distribution does not export, so the
+   * pane cannot obtain that verdict and must not compose one of its own.
+   */
+  checks: DraftCheck[];
+  /** The compiled graph, or null when there is none (US3 draws it). */
+  graph: DraftGraph | null;
+  /** The sentence that stands where a verdict would, required on screen by FR-009. */
+  verdict_unavailable: string;
+}
+
+/**
+ * One thing a checker said, in its own words (014 US2).
+ *
+ * `detail` is the seam's own `__str__` and is never a paraphrase: an operator
+ * handed a summary of a refusal has been handed a description of the defect
+ * instead of the defect. The structured fields ride beside it so the view can
+ * render the coordinates without parsing them back out of the sentence.
+ *
+ * `informational` is the **seam's** field, not the pane's. `check_slice_coverage`
+ * marks a task that reaches no node and names no story as "expected in a setup or
+ * verification phase the operator works by hand, a defect anywhere else"; the
+ * room states those and never counts them, exactly as the seam asks.
+ */
+export interface DraftCheckFinding {
+  detail: string;
+  informational: boolean;
+  /** The trio document at fault, when the checker named one. */
+  document: string | null;
+  /** The node whose prompt would not assemble, when the finding belongs to one. */
+  node_id: string | null;
+  task_ids: string[];
+  story_key: string | null;
+}
+
+/**
+ * The three answers a check may carry (DESIGN.md § The drafting table).
+ *
+ * `not_run` is the one this room needed and the eleven-state glyph grammar does
+ * not have, because that grammar describes *work* and this describes a check.
+ * It means an input was missing — never a failure the spec earned (FR-010).
+ */
+export type DraftCheckState = "passed" | "refused" | "not_run";
+
+/**
+ * One exported checker's answer, under the name of the function that gave it.
+ *
+ * `check` is the function's own name and `seam` its import path, which is what
+ * FR-006 and FR-008 mean by attribution: an answer under a label this repository
+ * invented would be the pane's answer wearing a seam's clothes.
+ *
+ * Exactly one of `detail` and `not_run_because` carries the row's sentence,
+ * and which one it is follows from `state`. They are two fields rather than one
+ * because they are two different kinds of claim — what a checker said, and why
+ * no checker was asked.
+ */
+export interface DraftCheck {
+  check: string;
+  seam: string;
+  state: DraftCheckState;
+  detail: string | null;
+  not_run_because: string | null;
+  findings: DraftCheckFinding[];
+}
+
+/** One node of a compiled graph, as `workgraph.json` holds it. */
+export interface DraftGraphNode {
+  id: string;
+  story_key: string;
+  persona: string;
+  spec_ref: string;
+  requirement_keys: string[];
+  depends_on: string[];
+  depends_on_merged: string[];
+  timeout_override_s: number | null;
+}
+
+/** An ordering edge the deriver added that nobody wrote (069-US2). */
+export interface DraftGraphInferredEdge {
+  node_id: string;
+  depends_on_merged: string;
+  shared_files: string[];
+  reason: string;
+}
+
+/**
+ * The compiled Work Graph — the deriver's result, carried rather than described.
+ *
+ * The same shape `ergane spec derive` writes to `workgraph.json`, because it is
+ * that value serialized. `null` on the document means the graph does not exist,
+ * and FR-013 draws no stage for one: an empty stage is a claim about a graph.
+ */
+export interface DraftGraph {
+  epic_id: string;
+  feature: string;
+  specs_root: string;
+  target_repo: string;
+  nodes: DraftGraphNode[];
+  inferred_edges: DraftGraphInferredEdge[];
 }

@@ -940,6 +940,161 @@ a {
 .degraded .draft-note-path { margin-top: 0.4rem; word-break: break-all; }
 .degraded .draft-note-path .num { color: var(--ink); }
 
+/* ── The checks (014 US2, DESIGN.md § The drafting table) ──────────────────
+   "Checks are attributed, never totalled. Each check renders as one row: the
+   seam's own name in mono, its answer, and its message verbatim when it has
+   one. There is no summary chip and no composite verdict." Nothing below styles
+   an aggregate, because there is none to style. */
+.draft-checks {
+  border-top: 1px solid var(--hairline);
+  padding-top: 0.7rem;
+  margin: 0 0 1.6rem;
+}
+
+.draft-checks-name {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  margin: 0 0 0.6rem;
+}
+
+/* Where a verdict would go, and the sentence saying there is none (FR-009).
+   Body-adjacent rather than micro: an operator who skims past it will compose
+   the three rows themselves, which is the one reading this room must prevent. */
+.draft-checks-statement {
+  font-size: var(--t-small);
+  color: var(--muted);
+  max-width: 68ch;
+  margin: 0 0 1rem;
+}
+
+.draft-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.draft-check {
+  border-left: 1px solid var(--hairline);
+  padding: 0 0 0 0.8rem;
+}
+
+.draft-check-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.15rem;
+}
+
+/* The function's own name, and the size of a thing to read rather than a
+   label: it is the attribution, and FR-006 and FR-008 are about it. */
+.draft-check-name {
+  font-family: var(--mono);
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+/* § Chips' geometry, in this room's own class: the § Chips vocabulary describes
+   *work* and these three words describe a check, so they are not a seventh row
+   of it. Two of the three wear their hue over its own wash, per § Colors
+   ("washes take their own hue's ink"). */
+.draft-check-answer {
+  font-family: var(--mono);
+  font-size: var(--t-chip);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.24em 0.55em;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  white-space: nowrap;
+}
+.draft-check-answer.passed { color: var(--olive); background: var(--olive-w); }
+.draft-check-answer.refused { color: var(--alarm); background: var(--alarm-w); }
+/* "`not run` is muted and unbordered, and it means an input was missing — never
+   a failure the spec earned." The Unknown Rule's treatment, for the same
+   reason: it is the absence of an answer, not a bad one. */
+.draft-check-answer.not_run {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  font-style: italic;
+  text-transform: none;
+  padding-left: 0;
+}
+
+.draft-check-seam {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  margin: 0 0 0.4rem;
+  word-break: break-all;
+}
+
+/* The seam's own message, with its own line breaks: a `DerivationError` is one
+   line per rejected declaration and all of them are the answer (FR-007). It
+   scrolls itself for the same reason `.draft-source` does — § Layout's
+   containment law, and its one named exception. */
+.draft-check-detail {
+  font-size: var(--t-small);
+  color: var(--ink);
+  max-width: 68ch;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  overflow-wrap: break-word;
+}
+
+/* Why no checker was asked. A different kind of claim from a checker's answer,
+   and muted because it is a fact about the inputs rather than about the spec. */
+.draft-check-why { color: var(--muted); font-style: italic; }
+
+.draft-finding-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.draft-finding { margin: 0; }
+
+/* Coordinates before prose, the review room's discipline (D-023): a finding
+   whose ids have to be read out of the sentence is one nobody reproduces. */
+.draft-finding-where {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 0 0 0.2rem;
+  word-break: break-word;
+}
+
+/* The seam's own word for a finding it did not count. Gold is § Colors' waiting
+   on the operator, which is what a setup phase the operator works by hand is. */
+.draft-finding-kind { color: var(--gold); font-style: italic; text-transform: none; }
+
+.draft-finding-detail {
+  font-size: var(--t-small);
+  color: var(--ink);
+  max-width: 68ch;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
 @media (max-width: 900px) {
   .draft { padding: 0 1rem 1.4rem; }
 }

@@ -13,7 +13,7 @@ from pane.attention import assemble_attention_section
 from pane.attention_store import open_store
 from pane.auth import Unauthorized, require_viewer, unauthorized_handler
 from pane.config import Settings
-from pane.draft import read_trio
+from pane.draft import read_draft
 from pane.events import EVENT_TYPES, AttentionBroadcaster, floor_events
 from pane.fixture_floor import FixtureReader
 from pane.floor_document import assemble_floor_document
@@ -104,12 +104,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         return JSONResponse(document)
 
-    # 014 US1: the drafting table's read.  Mounted before the SPA catch-all
-    # below, because `/{path:path}` matches `/api/draft/…` too and a route
-    # registered after it is a route nothing ever reaches.
+    # 014 US1: the drafting table's read, and US2's three attributed checks on
+    # the same bytes.  Mounted before the SPA catch-all below, because
+    # `/{path:path}` matches `/api/draft/…` too and a route registered after it
+    # is a route nothing ever reaches.
     @router.get("/api/draft/{spec_dir}")
     async def api_draft(spec_dir: str):
-        return JSONResponse(read_trio(settings.specs_root, spec_dir))
+        return JSONResponse(read_draft(settings.specs_root, spec_dir))
 
     # 011 US1: the review room's one document, on the same guarded router as
     # every other read.  Two answers are refusals rather than documents and both
