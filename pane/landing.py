@@ -52,6 +52,12 @@ LANDING_READ = "landed_facts"
 #: could not say which of the two the operator lost.
 CHANGED_FILES_READ = "changed_files"
 
+#: The served-revision read's own name (011 FR-009).  Its own word for the same
+#: reason `CHANGED_FILES_READ` has one: which revision this process is serving
+#: is a fact about the *checkout*, not about any epic's landing, and a room that
+#: named both failures `landed_facts` could not say which the operator lost.
+SERVED_REVISION_READ = "served_revision"
+
 #: The PR number GitHub appends to a squash subject: `… : US1 (#47)`.  The
 #: number is read out of the subject the queue wrote, never invented — a subject
 #: without one leaves `pr_number` unknown.
@@ -257,6 +263,57 @@ def read_changed_files(repo: Path | str, commit: str) -> list[str]:
             "--",
         )
     return sorted({line.strip() for line in output.splitlines() if line.strip()})
+
+
+def read_served_revision(repo: Path | str) -> tuple[str, str | None]:
+    """The revision this checkout is on, and the branch name if it is on one.
+
+    **What "the revision the service is serving" can honestly mean** (011
+    FR-009).  The pane is a process running out of a checkout, serving a bundle
+    somebody built from a tree.  It cannot know when that bundle was built and
+    it does not guess: what it can read is the revision of the checkout it is
+    running from, and that is what it names.  The room says so in those words.
+
+    The branch is `None` for a detached HEAD — git answers the literal string
+    `HEAD` there, which is not a branch name and is never rendered as one.
+
+    Same seam and same doctrine as every other git read in this module
+    (constitution II): `factory.workgraph.worktree._git`, ergane's own helper,
+    with its scrubbed environment and its `WorktreeError` vocabulary translated
+    into 001's two words.
+    """
+    from factory.workgraph.worktree import _git
+
+    path = Path(repo)
+    with _translated(path, read=SERVED_REVISION_READ):
+        revision = _git(path, "rev-parse", "HEAD").strip()
+        named = _git(path, "rev-parse", "--abbrev-ref", "HEAD").strip()
+    return revision, (None if named in {"", "HEAD"} else named)
+
+
+def revision_carries(repo: Path | str, commit: str, revision: str) -> bool:
+    """Whether `revision` carries `commit` — as an ancestor, or as itself.
+
+    **`rev-list --count`, and not `merge-base --is-ancestor`, on purpose.**  The
+    ancestry test answers by *exit status*: 1 for "no", which `_git` cannot tell
+    from 1 for "that is not a revision", because it raises on any non-zero
+    status.  A room that rendered a mismatch it had not measured would be
+    exactly the lie FR-010 exists to prevent.  `rev-list --count <commit>
+    ^<revision>` counts what `commit` reaches that `revision` does not and exits
+    0 either way: **zero is containment**, because a commit reachable from
+    `revision` puts every commit it reaches inside `revision` too, and a commit
+    that is not reachable counts at least itself.  Unrelated histories count
+    high rather than failing, which is the right answer and not an error.
+
+    An unknown revision is git running and declining, so it comes back through
+    `_translated` as `QueryRefused` — never as a quiet False.
+    """
+    from factory.workgraph.worktree import _git
+
+    path = Path(repo)
+    with _translated(path, read=SERVED_REVISION_READ):
+        output = _git(path, "rev-list", "--count", commit, f"^{revision}", "--")
+    return int(output.strip()) == 0
 
 
 def pr_number_of(subject: str | None) -> int | None:

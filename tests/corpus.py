@@ -52,7 +52,13 @@ import subprocess
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from pane.landing import LandingFact, LandingReader, read_changed_files
+from pane.landing import (
+    LandingFact,
+    LandingReader,
+    read_changed_files,
+    read_served_revision,
+    revision_carries,
+)
 from pane.readers import TransportFailed
 from pane.review import ReviewReaders
 from pane.showfloor import (
@@ -291,6 +297,27 @@ class Corpus:
             raise AssertionError("this corpus was not built inside a repository")
         return LandingReader(self.repo, branch).facts(spec_dir)
 
+    def git_head(self) -> str:
+        """Where this corpus' checkout is standing right now."""
+        if self.repo is None:
+            raise AssertionError("this corpus was not built inside a repository")
+        return git(self.repo, "rev-parse", "HEAD").strip()
+
+    def check_out(self, revision: str) -> str:
+        """Move this corpus' checkout to `revision`, and return where it is now.
+
+        011 US2's constructed pair of revisions (FR-010, T015).  A review room
+        cannot be asked whether the served revision carries an epic unless a
+        test can serve a revision that does not — and the honest way to build
+        one is to stand the checkout somewhere earlier on its own branch, which
+        is exactly the condition an operator hits when the pane has been running
+        since before the epic merged.
+        """
+        if self.repo is None:
+            raise AssertionError("this corpus was not built inside a repository")
+        git(self.repo, "checkout", "--quiet", "--detach", revision)
+        return git(self.repo, "rev-parse", "HEAD").strip()
+
     def review_readers(self, branch: str = "dev", **overrides) -> "ReviewReaders":
         """The review room's reads, bound to this corpus (011 US1).
 
@@ -306,6 +333,14 @@ class Corpus:
             "changed_files": lambda commit: read_changed_files(self.repo, commit),
             "workgraph": self.workgraph,
             "landing_branch": branch,
+            # 011 US2: the two served-revision reads, over the repository this
+            # corpus was built in.  A test moves the checkout with `check_out`
+            # below and the room's answer moves with it, so what is asserted is
+            # the production read against a revision the test constructed.
+            "served_revision": lambda: read_served_revision(self.repo),
+            "revision_carries": (
+                lambda commit, revision: revision_carries(self.repo, commit, revision)
+            ),
         }
         fields.update(overrides)
         return ReviewReaders(**fields)
