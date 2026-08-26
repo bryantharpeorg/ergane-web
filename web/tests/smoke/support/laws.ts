@@ -33,6 +33,26 @@
  * control is the committed proof that the other three structurally cannot see
  * it.
  *
+ * ── what 013 corrected, and what it did not ────────────────────────────────
+ *
+ * 013 US3 pointed the four at the gate run — the pane's last section, and the
+ * first thing in this repository to hold a `<details>` and a leaf that scrolls
+ * itself. Neither law changed. What changed is that the measurement stopped
+ * reporting text a reader cannot see, which is the doctrine `clipped()` has
+ * encoded since 005 US4 and had two blind spots in:
+ *
+ *   * a leaf's **own** `overflow` now clips its own text, because the output
+ *     tail is a `<pre>` capped at `16rem` that scrolls thirty lines behind a
+ *     248px window (`clipped`'s `from` argument);
+ *   * `painted()` now asks `checkVisibility()`, because Chromium skips a closed
+ *     disclosure through a shadow `::details-content` that no light-DOM
+ *     ancestor carries, and the skipped element still answers
+ *     `getBoundingClientRect()` with the box it would have had.
+ *
+ * Both are paid for the way 005's and 009's laws were: `showfloor.spec.ts`
+ * plants a collision over the visible part of an open tail and over a shut
+ * fold's summary, and requires law (c) red for each.
+ *
  * ── why this file exists ───────────────────────────────────────────────────
  *
  * 005 landed the measurement inside `showfloor.spec.ts` and 006 copied law (c)
