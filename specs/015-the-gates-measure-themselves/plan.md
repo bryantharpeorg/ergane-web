@@ -63,6 +63,19 @@ is the expensive way to find out.
   particular, do not add an SBOM generator, a SARIF converter, or a second audit
   tool because the first one's output looked awkward.
 
+- **Do not add an allowlist, ignore file, or suppression flag.** D-024 decided
+  against one on purpose: a finding above the threshold stops the line even when
+  no fix exists, and a human decides. The tempting move when the gate goes red on
+  an unfixable transitive advisory is to add a suppression line, and that is the
+  move that turns an audit gate into decoration. If the gate is red and cannot be
+  made green by any change to this repository, **that is the gate working** —
+  report it and stop; it is the operator's call, not a node's.
+
+- **The `audit` gate is deliberately not in the branch ruleset.** US3 adds the
+  gate to `ergane.yaml` and a job of the same name to the workflow, and stops
+  there. Do not attempt a ruleset change (a node has no `gh` and no admin), and do
+  not treat the absence of a required check as a bug to fix.
+
 - **Do not build a reader.** Nothing in `pane/` or `web/src` may open these
   artifacts. The spec's Out of scope says why, N54 says why, and PR-3 is the thing
   that makes reading them correct. A "small helper that just parses coverage.xml

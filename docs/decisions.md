@@ -861,3 +861,56 @@ that made the ritual worth automating.
 **And one honesty rule with teeth.** The room reviews the *running service*, which may not be serving
 the tree under review. When it is not, the room says so where the operator cannot miss it — otherwise
 every note taken is about something other than the epic named at the top of the page.
+
+## D-024 · The audit gate blocks nodes, not the merge queue, and has no allowlist (decided 2026-08-25)
+
+**Raised by** spec 015's third story, which adds a fifth gate. Two questions had to be answered before
+it could dispatch, and neither is a detail: a gate's enforcement point decides who it stops, and an
+audit gate's escape hatch decides whether it means anything.
+
+### Where it is enforced
+
+`ergane.yaml`'s gate list drives the **boundary gate** every node must pass before it may land; the
+branch ruleset drives the **merge queue**. The repository has treated those as one set — `CLAUDE.md`
+§ Landing discipline says `dev` requires *exactly* those checks — and for the four original gates that
+is right.
+
+`audit` is different in one respect that matters: **it can go red without anything in this repository
+changing.** A CVE published overnight in a transitive dependency turns the gate red on code that
+passed an hour earlier. If that also blocks the merge queue, the one actor who could fix it — a human
+with a lockfile bump — is locked out by the same gate that is asking for the fix.
+
+**Decided:** `audit` goes in `ergane.yaml` and in `.github/workflows/ergane-gates.yml`, and **not**
+in the `dev` or `main` rulesets. Every node must pass it to land, which is the enforcement that
+matters, because nodes are what land ninety-odd percent of the work. A human can still land a fix by
+hand when the line is stopped.
+
+**This deliberately breaks half of a rule this repository states as binding**, so `CLAUDE.md` is
+amended in the same diff rather than left quietly disagreeing. The other half — every gate in
+`ergane.yaml` has a job of the same name — is untouched and still absolute. `audit` is the only
+permitted asymmetry; the four original gates stay required.
+
+### The allowlist, and why there is not one
+
+The obvious companion to a severity threshold is an ignore file: a committed list of advisory ids
+with a reason and a review date, so an unfixable transitive advisory does not stop the line forever.
+It was considered and **refused**.
+
+The argument against is not that suppression is never legitimate. It is that the cheapest possible
+response to a red gate at three in the morning is to add a line to the ignore file, and that response
+requires no thought, leaves no decision behind, and is indistinguishable in the diff from a
+considered one. A gate whose failure has a one-line remedy is decoration within a month.
+
+**Decided:** no allowlist, no ignore file, no suppression flag. A finding above the declared threshold
+stops the line **even when no fix is available**, and a human decides what happens next — bump, vendor,
+accept and raise the threshold deliberately, or remove the dependency. The threshold is the only dial,
+and moving it is a visible edit to a committed policy rather than an append to a list of exceptions.
+
+**The cost is real and is accepted:** an unfixable critical advisory in a transitive dev dependency
+will stop every node until someone acts. That is the intended behaviour. Spec 015's plan names it as
+a trap so no node tries to "fix" a working gate by suppressing it.
+
+### What a node may not do
+
+Change a ruleset (it has no `gh` and no admin), add a suppression mechanism, or treat the absence of a
+required `audit` check on `dev` as a defect. All three are named in spec 015's plan.

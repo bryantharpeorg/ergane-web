@@ -12,7 +12,7 @@ a state-lit DAG). Today it has exactly one verb, **Answer**, and it never replac
 CLI. D-021 admits four further *grooming* writes by test rather than by list, and every
 one is refused today for want of an ergane authoring seam — see constitution I.
 
-Start with `CONTEXT.md` (the conceptual model), then `docs/decisions.md` (D-001…D-023,
+Start with `CONTEXT.md` (the conceptual model), then `docs/decisions.md` (D-001…D-024,
 the binding design decisions), then `specs/`. `docs/greenfield-log.md` is the append-only
 record of how the repository came to be.
 
@@ -75,8 +75,12 @@ Applies to everyone, operator and node alike.
   the story out of that subject, so a vague title is work the factory cannot see it did.
   One story per PR.
 - **Every gate in `ergane.yaml` has a job of the same name** in
-  `.github/workflows/ergane-gates.yml`, and `dev` requires exactly those checks. A gate the
-  forge does not run does not exist.
+  `.github/workflows/ergane-gates.yml`. A gate the forge does not run does not exist.
+  `dev` required *exactly* those checks until D-024, which admits one deliberate
+  asymmetry: a gate may be in `ergane.yaml` and the workflow while being absent from
+  the ruleset. Such a gate blocks every **node** at the boundary and does not block
+  the **merge queue**, so a human can still land a fix when the line is stopped.
+  `audit` (spec 015) is the only one; the four original gates stay required.
 - The merge queue re-runs the gates on a `merge_group` event after the PR checks pass, so
   expect two workflow runs per landing.
 
