@@ -22,10 +22,15 @@
  *   name, and no composite verdict reaches it at all (014 US2, FR-006/008/009);
  * * the room answers 401 without the token, like every other route (US1-S5,
  *   FR-005) — asserted through a request that deliberately carries none;
+ * * the compiled graph draws with the Showfloor's stage assets and no run state
+ *   on any node, and its two edge kinds carry the two strokes DESIGN.md names
+ *   (014 US3, FR-011/012), while a spec whose graph did not compile draws no
+ *   stage at all (FR-013);
  * * and § Layout's four containment laws report zero violations over the whole
  *   room, in both themes and at every width the suite sweeps.
  */
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 import { measureLaws } from "./support/laws";
 
@@ -36,16 +41,87 @@ const NO_SUCH_DIR = "930-no-such-draft-directory";
 const WIDTHS = [1280, 1600, 2560];
 const THEMES = ["light", "dark"] as const;
 
-/** A spec the backend is actually serving, read off the Showfloor's own rail. */
-async function aSpecOnDisk(request: {
+/** The half of a request context this file uses. */
+interface Reader {
   get: (url: string) => Promise<{ json: () => Promise<unknown> }>;
-}): Promise<string> {
+}
+
+/** A spec the backend is actually serving, read off the Showfloor's own rail. */
+async function aSpecOnDisk(request: Reader): Promise<string> {
   const document = (await (await request.get("/api/showfloor")).json()) as {
     rail?: { spec_dir?: string }[];
   };
   const specDir = document.rail?.[0]?.spec_dir;
   expect(specDir, "the corpus the backend serves has no spec in it").toBeTruthy();
   return specDir as string;
+}
+
+/** One node of a compiled graph, in the two fields these cases read. */
+interface StagedNode {
+  id: string;
+  depends_on: string[];
+  depends_on_merged: string[];
+}
+
+/**
+ * Two specs on disk, told apart by what the deriver did with them (014 US3).
+ *
+ * Still no directory named: which spec compiles is a fact about the corpus and
+ * moves with it, so both are *discovered* by shape — the first whose graph
+ * compiled to more than one node, and the first whose graph did not compile at
+ * all. This corpus holds both today (most specs compile; the sketches that carry
+ * no `## Work Graph` do not), and the assertions below say which one they need
+ * rather than assuming it.
+ *
+ * The walk is memoised per worker because every case below needs it — the six
+ * law sweeps included — and re-reading the whole corpus once per test would cost
+ * more wall clock than the page loads it exists to set up.
+ */
+let discovered: Promise<{ staged: string | null; unstaged: string | null }> | null = null;
+
+function corpus(request: Reader) {
+  if (discovered !== null) return discovered;
+  discovered = (async () => {
+    const document = (await (await request.get("/api/showfloor")).json()) as {
+      rail?: { spec_dir?: string }[];
+    };
+    let staged: string | null = null;
+    let unstaged: string | null = null;
+    for (const entry of document.rail ?? []) {
+      if (entry.spec_dir === undefined) continue;
+      if (staged !== null && unstaged !== null) break;
+      const draft = (await (
+        await request.get(`/api/draft/${encodeURIComponent(entry.spec_dir)}`)
+      ).json()) as { graph?: { nodes?: StagedNode[] } | null };
+      const nodes = draft.graph?.nodes;
+      if (Array.isArray(nodes) && nodes.length > 1) staged ??= entry.spec_dir;
+      if (draft.graph === null) unstaged ??= entry.spec_dir;
+    }
+    return { staged, unstaged };
+  })();
+  return discovered;
+}
+
+/** The spec whose graph the stage draws, and the graph it draws. */
+async function aStagedSpec(request: Reader): Promise<{ specDir: string; nodes: StagedNode[] }> {
+  const { staged } = await corpus(request);
+  expect(
+    staged,
+    "no spec the backend serves compiles to a graph of more than one node",
+  ).not.toBeNull();
+  const draft = (await (
+    await request.get(`/api/draft/${encodeURIComponent(staged as string)}`)
+  ).json()) as { graph: { nodes: StagedNode[] } };
+  return { specDir: staged as string, nodes: draft.graph.nodes };
+}
+
+/** Every card the stage drew, by the id the deriver gave its node. */
+async function stagedCards(page: Page): Promise<string[]> {
+  return page
+    .locator("[data-draft-stage] [data-draft-node]")
+    .evaluateAll((cards) =>
+      cards.map((card) => card.getAttribute("data-story-id") ?? ""),
+    );
 }
 
 test("the trio reads together, stamped with what was read and when", async ({
@@ -149,6 +225,12 @@ test("a directory that is not there degrades honestly and draws no trio", async 
   await expect(page.locator("[data-draft-trio]")).toHaveCount(0);
   await expect(page.locator("[data-document]")).toHaveCount(0);
 
+  // And no stage, for the same reason one requirement later (014 US3, FR-013):
+  // there is no spec here, so there is certainly no graph, and an empty stage
+  // is a claim about one.
+  await expect(page.locator("[data-draft-stage]")).toHaveCount(0);
+  await expect(page.locator("[data-wires]")).toHaveCount(0);
+
   // Stale is stale whichever way the read went, so the stamp is here too.
   await expect(page.locator("[data-read-stamp]")).toBeVisible();
 });
@@ -173,18 +255,306 @@ test("the room answers 401 without the token, like every other route", async ({
   }
 });
 
-test.describe("§ Layout's four laws over the drafting table (FR-001, containment)", () => {
+test.describe("the graph draws what will run (014 US3)", () => {
+  test("draws the compiled graph with the stage's assets, unlit", async ({
+    page,
+    request,
+  }) => {
+    const { specDir, nodes } = await aStagedSpec(request);
+    await page.goto(`/draft/${encodeURIComponent(specDir)}`);
+    // The canvas, not a card: a rank is laid out before the wires measure, and
+    // waiting on the section is what proves the stage exists at all.
+    await page.waitForSelector("[data-draft-stage-canvas]");
+
+    // FR-011: one card per node of the graph the backend compiled, under the
+    // dispatch id the deriver gave it. Not a count — the ids, so a stage
+    // drawing the right number of the wrong nodes fails.
+    expect((await stagedCards(page)).sort()).toEqual(nodes.map((node) => node.id).sort());
+
+    // The Showfloor's own assets, and the proof is that they are the same
+    // classes: the card, the ranks and the canvas are one declaration in
+    // `showfloor.css` worn by two rooms (`tests/unit/stageRules.test.ts`).
+    const classes = await page
+      .locator("[data-draft-stage] [data-draft-node]")
+      .first()
+      .getAttribute("class");
+    expect(classes).toBe("node");
+    await expect(page.locator("[data-draft-stage] [data-ranks]")).toHaveCount(1);
+
+    // And **no run state on any node** — the whole of "unlit". The eleven-state
+    // glyph grammar dresses an `epic_status` answer, and there is no answer
+    // because nothing has run.
+    for (const clothing of ["[data-chip]", "[data-ladder]", "[data-stop]", "button"]) {
+      await expect(
+        page.locator(`[data-draft-stage] ${clothing}`),
+        `${clothing} is a run's clothing and no node here has run`,
+      ).toHaveCount(0);
+    }
+
+    // § Named Rules: the absence is in words on the page, not only in what is
+    // missing from it.
+    await expect(page.locator("[data-draft-stage-statement]")).toContainText("none has run");
+    await expect(page.locator("[data-draft-stage-legend]")).toContainText("merge edge");
+  });
+
+  test("wires join the boxes they name, told apart by stroke", async ({ page, request }) => {
+    const { specDir, nodes } = await aStagedSpec(request);
+    await page.goto(`/draft/${encodeURIComponent(specDir)}`);
+    await page.waitForSelector("[data-draft-stage-canvas]");
+
+    // Every edge the graph declares, and no edge it does not: the pane reads
+    // both lists and re-derives neither.
+    const declared = nodes.flatMap((node) => [
+      ...node.depends_on_merged.map((source) => `merge:${source}->${node.id}`),
+      ...node.depends_on.map((source) => `pass:${source}->${node.id}`),
+    ]);
+    expect(declared.length, "the spec found declares no dependency at all").toBeGreaterThan(0);
+    await expect(page.locator("[data-draft-stage] [data-wire]")).toHaveCount(declared.length);
+
+    const measured = await page.evaluate(() => {
+      const canvas = document.querySelector("[data-draft-stage-canvas]") as HTMLElement;
+      const svg = canvas.querySelector("[data-wires]") as SVGElement;
+      const origin = svg.getBoundingClientRect();
+      const box = (id: string) => {
+        const card = canvas.querySelector(`[data-story-id="${id}"]`) as HTMLElement | null;
+        if (card === null) return null;
+        const rect = card.getBoundingClientRect();
+        return {
+          left: rect.left - origin.left,
+          right: rect.right - origin.left,
+          middle: rect.top + rect.height / 2 - origin.top,
+        };
+      };
+
+      /**
+       * A token as the engine resolves it, through a probe wearing it.
+       *
+       * Reading the custom property gives its authored text; what a stroke has
+       * to equal is the colour, so the comparison is made in the space the
+       * browser answers `getComputedStyle().stroke` in.
+       */
+      const resolved = (token: string) => {
+        const probe = document.createElement("span");
+        probe.style.color = `var(${token})`;
+        document.body.appendChild(probe);
+        const colour = getComputedStyle(probe).color;
+        probe.remove();
+        return colour;
+      };
+
+      /** Each stroke as authored, measured on a probe path in this canvas. */
+      const stroke = (kind: string) => {
+        const probe = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        probe.setAttribute("class", `wire ${kind}`);
+        probe.setAttribute("d", "M0 0 L10 0");
+        svg.appendChild(probe);
+        const style = getComputedStyle(probe);
+        const read = {
+          colour: style.stroke,
+          width: style.strokeWidth,
+          dash: style.strokeDasharray,
+        };
+        probe.remove();
+        return read;
+      };
+
+      return {
+        // "behind the cards, `pointer-events: none`" (§ Stage).
+        pointer: getComputedStyle(svg).pointerEvents,
+        first: canvas.firstElementChild === svg,
+        wires: Array.from(canvas.querySelectorAll("[data-wire]")).map((path) => {
+          const style = getComputedStyle(path);
+          return {
+            kind: path.getAttribute("data-edge-kind"),
+            sourceId: path.getAttribute("data-edge-source"),
+            targetId: path.getAttribute("data-edge-target"),
+            d: path.getAttribute("d") ?? "",
+            colour: style.stroke,
+            width: style.strokeWidth,
+            dash: style.strokeDasharray,
+            source: box(path.getAttribute("data-edge-source") ?? ""),
+            target: box(path.getAttribute("data-edge-target") ?? ""),
+          };
+        }),
+        olive: resolved("--olive"),
+        rule: resolved("--rule"),
+        merge: stroke("merge"),
+        pass: stroke("pass"),
+      };
+    });
+
+    expect(measured.pointer).toBe("none");
+    expect(measured.first).toBe(true);
+    expect(
+      measured.wires.map((wire) => `${wire.kind}:${wire.sourceId}->${wire.targetId}`).sort(),
+    ).toEqual(declared.sort());
+
+    for (const wire of measured.wires) {
+      // § Stage: "merge edges solid 2px olive, pass edges dashed 2px `--rule`".
+      expect(wire.width).toBe("2px");
+      if (wire.kind === "merge") {
+        expect(wire.colour).toBe(measured.olive);
+        expect(wire.dash === "none" || wire.dash === "").toBe(true);
+      } else {
+        expect(wire.colour).toBe(measured.rule);
+        expect(wire.dash).not.toBe("none");
+      }
+
+      // And the path really starts on the source's right edge and ends on the
+      // target's left, at each card's vertical middle — the assertion 004's
+      // suite never made, and the one that would have caught nine stations laid
+      // out beyond their own map.
+      const start = wire.d.match(/^M(-?[\d.]+) (-?[\d.]+)/);
+      const end = wire.d.match(/(-?[\d.]+) (-?[\d.]+)$/);
+      expect(start, `${wire.d} starts with a move`).not.toBeNull();
+      expect(end, `${wire.d} ends at a point`).not.toBeNull();
+      expect(Number(start![1])).toBeCloseTo(wire.source!.right, 0);
+      expect(Number(start![2])).toBeCloseTo(wire.source!.middle, 0);
+      expect(Number(end![1])).toBeCloseTo(wire.target!.left, 0);
+      expect(Number(end![2])).toBeCloseTo(wire.target!.middle, 0);
+    }
+
+    // FR-012 is a claim about *both* strokes, and this repository's own corpus
+    // declares merge edges and no pass edge — its stories share files, so
+    // `depends_on_merged` is the honest dependency every time. So the pair is
+    // proven over the recorded five-node workgraph in
+    // `tests/unit/DraftStage.test.tsx`, which carries both kinds, and what a
+    // real browser adds is that the two are actually different *here*: a probe
+    // path of each class, measured in this room's live canvas and removed.
+    expect(measured.merge.width).toBe("2px");
+    expect(measured.pass.width).toBe("2px");
+    expect(measured.merge.colour).toBe(measured.olive);
+    expect(measured.pass.colour).toBe(measured.rule);
+    expect(measured.merge.colour).not.toBe(measured.pass.colour);
+    // Solid against dashed: the one distinction a colour-blind reader has.
+    expect(measured.merge.dash === "none" || measured.merge.dash === "").toBe(true);
+    expect(measured.pass.dash).not.toBe("none");
+    expect(measured.pass.dash.length).toBeGreaterThan(0);
+  });
+
+  test("draws no stage for a spec whose graph did not compile", async ({ page, request }) => {
+    const { unstaged } = await corpus(request);
+    // Named rather than silently skipped: whether the corpus holds a spec with
+    // no compiled graph is a fact about the corpus, and this case says which
+    // fact it needed. `tests/unit/DraftStage.test.tsx` proves FR-013 over
+    // constructed graphs and does not depend on one being on disk.
+    test.skip(
+      unstaged === null,
+      "every spec the backend serves compiles a graph, so there is no refusal to render",
+    );
+
+    await page.goto(`/draft/${encodeURIComponent(unstaged as string)}`);
+    await page.waitForSelector("[data-draft-checks]");
+
+    // FR-013: no stage at all — not an empty canvas, not a rank with nothing in
+    // it. An empty stage is a claim about a graph, and there is no graph.
+    await expect(page.locator("[data-draft-stage]")).toHaveCount(0);
+    await expect(page.locator("[data-draft-stage-canvas]")).toHaveCount(0);
+    await expect(page.locator("[data-wires]")).toHaveCount(0);
+    await expect(page.locator("[data-draft-node]")).toHaveCount(0);
+
+    // And the deriver's own refusal is what stands in its place, under the name
+    // of the function that gave it (014 US2, FR-007) — the answer to "why is
+    // there no stage", said by the thing that knows.
+    const derivation = page.locator('[data-check="derive_workgraph"]');
+    await expect(derivation.locator("[data-check-answer]")).toHaveAttribute(
+      "data-check-answer",
+      "refused",
+    );
+    await expect(derivation.locator("[data-check-detail]")).not.toHaveText("");
+
+    // The trio is still read: a spec that will not compile is still a document.
+    await expect(page.locator("[data-draft-trio]")).toHaveCount(1);
+  });
+
+  test("a graph wider than its column travels inside the stage, not the room", async ({
+    page,
+    request,
+  }) => {
+    // The three widths FR-014 sweeps are all wide enough to hold this corpus's
+    // widest graph, so the one horizontal scroll § Stage sanctions is never
+    // reached there — and an exception nothing exercises is an exception nobody
+    // knows is broken. This narrows the viewport until the graph must overflow,
+    // which is the case law (a) excuses and law (b) must still refuse to excuse
+    // for the room itself.
+    const { specDir } = await aStagedSpec(request);
+    await page.setViewportSize({ width: 720, height: 900 });
+    await page.goto(`/draft/${encodeURIComponent(specDir)}`);
+    await page.waitForSelector("[data-draft-stage-canvas]");
+
+    const measured = await page.evaluate(() => {
+      const scroll = document.querySelector("[data-draft-stage-scroll]") as HTMLElement;
+      const style = getComputedStyle(scroll);
+      return {
+        overflows: scroll.scrollWidth > scroll.clientWidth,
+        axis: { x: style.overflowX, y: style.overflowY },
+        right: scroll.getBoundingClientRect().right,
+        viewport: document.documentElement.clientWidth,
+      };
+    });
+
+    // Non-vacuous: if the graph fits, this case proves nothing about scrolling.
+    expect(measured.overflows, "the graph fits at 720px, so nothing scrolls").toBe(true);
+    // § Stage: one axis, the one DESIGN.md names.
+    expect(measured.axis.x).toBe("auto");
+    expect(measured.axis.y).toBe("hidden");
+    // And the scroller itself is on screen — a scrolling ancestor that is
+    // already past the viewport excuses nothing.
+    expect(measured.right).toBeLessThanOrEqual(measured.viewport + 0.5);
+
+    // The four laws still report zero: the graph is outside the stage's box and
+    // inside the scroller the stage contains, which is exactly what law (a)
+    // sanctions and nothing more.
+    const report = await measureLaws(page);
+    expect(report.leaves, "the sweep found no text at all").toBeGreaterThan(10);
+    expect(report.escaped, "text outside a scrolling ancestor").toEqual([]);
+    expect(report.past, "an element past its container").toEqual([]);
+    expect(report.overlapping, "two text leaves overlapping").toEqual([]);
+    expect(report.occluded, "an opaque box painted over text").toEqual([]);
+    expect(report.roomScrollsSideways, "the room scrolls sideways").toBe(false);
+    // The one that bites in *this* room. `roomScrollsSideways` is measured off
+    // `[data-showfloor-root]`, which the drafting table does not carry — its
+    // room has no scroller of its own and the document is what scrolls — so the
+    // sentence "§ Stage sanctions one horizontal scroll and it is the stage's"
+    // is held here by the document's own width, exactly as `desk.spec.ts` holds
+    // it. Without this line the graph could travel and take the page with it.
+    expect(report.documentScrollWidth, "the document is wider than the viewport")
+      .toBeLessThanOrEqual(report.viewport + 1);
+  });
+});
+
+/**
+ * § Layout's four laws over the drafting table, with the stage on the page
+ * (FR-014, and FR-001's half before it).
+ *
+ * **014 US3 makes this sweep measure the stage rather than happening to.** The
+ * sweep already ran at three widths in both themes, over whichever spec the rail
+ * named first — which on this corpus does compile, so a stage was on the page by
+ * luck. Two things change and neither relaxes anything. The spec is now the one
+ * *discovered* to compile to more than one node, so the graph is always there;
+ * and the section carries `data-stage`, which is what puts every one of its
+ * descendants under law (a) — measured against its stage's box, with only the
+ * one horizontal scroller § Stage sanctions excused. Nothing about the room's
+ * other three laws moved.
+ *
+ * The stage is where the four are most worth running: it is the only part of
+ * this room whose width is a function of its *content* rather than of the frame,
+ * so a graph wider than the column is the case that escapes a container, and the
+ * lower widths are where it does it.
+ */
+test.describe("§ Layout's four laws over the drafting table (FR-014, containment)", () => {
   for (const width of WIDTHS) {
     for (const theme of THEMES) {
       test(`reports zero violations at ${width} in ${theme}`, async ({
         page,
         request,
       }) => {
-        const specDir = await aSpecOnDisk(request);
+        const { specDir, nodes } = await aStagedSpec(request);
         await page.setViewportSize({ width, height: 900 });
         await page.emulateMedia({ colorScheme: theme });
         await page.goto(`/draft/${encodeURIComponent(specDir)}`);
         await page.waitForSelector("[data-draft-trio]");
+        await page.waitForSelector("[data-draft-stage-canvas]");
 
         const report = await measureLaws(page);
 
@@ -192,12 +562,26 @@ test.describe("§ Layout's four laws over the drafting table (FR-001, containmen
         // laid it out correctly (001 US1-S1, in its smoke shape).
         expect(report.leaves, "the sweep found no text at all").toBeGreaterThan(10);
         expect(report.painters, "the sweep found nothing painted").toBeGreaterThan(0);
+        // And law (a) sweeps a stage that is really there, with the whole graph
+        // on it: a stage the sweep never found is a law that passed over
+        // nothing.
+        expect(
+          await page.locator("[data-stage]").count(),
+          "law (a) found no stage on the page",
+        ).toBe(1);
+        expect(await stagedCards(page)).toHaveLength(nodes.length);
 
         expect(report.escaped, "text outside a scrolling ancestor").toEqual([]);
         expect(report.past, "an element past its container").toEqual([]);
         expect(report.overlapping, "two text leaves overlapping").toEqual([]);
         expect(report.occluded, "an opaque box painted over text").toEqual([]);
         expect(report.roomScrollsSideways, "the room scrolls sideways").toBe(false);
+        // And the room does not take the page sideways with it: the drafting
+        // table carries no `[data-showfloor-root]`, so the document's width is
+        // where "one horizontal scroll, and it is the stage's" is really held
+        // (the same pair `desk.spec.ts` asserts, for the same reason).
+        expect(report.documentScrollWidth, "the document is wider than the viewport")
+          .toBeLessThanOrEqual(report.viewport + 1);
       });
     }
   }
