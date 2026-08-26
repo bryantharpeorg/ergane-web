@@ -41,6 +41,16 @@
  * equality**, which is a stronger and more falsifiable claim than the growth the
  * scenario asked for. If a future diff makes the Desk grow past the cap, this
  * test fails and says so.
+ *
+ * **One named change, 012 US2 (FR-007).** The § Chips vocabulary sweep computed
+ * a story's expected word from `declared` alone, so a story on a row joined to
+ * *no work graph* was expected to read `undeclared` — which was the pane's
+ * answer to "no graph" and is the rendering FR-007 forbids. The sweep now reads
+ * the same fact the component reads, off the served document: whether the
+ * story's epic was joined to a graph at all. Nothing about the vocabulary, the
+ * tokens, the shape or the two themes moved, and one assertion was added rather
+ * than relaxed — that `undeclared` is still on the floor, on the `skew` scene's
+ * row, where a graph *was* read and does not carry the story.
  */
 
 import { expect, test } from "@playwright/test";
@@ -230,8 +240,21 @@ test.describe("the Desk wears the second world's tokens (FR-002)", () => {
         nodes: { state: string; declared: boolean; awaiting_operator: boolean }[];
       }[];
     };
-    const served = floorDoc.epics.flatMap((epic) => epic.nodes);
+    // 012 US2 named change: each served story carries whether *its epic* was
+    // joined to a work graph at all, because that is what decides whether
+    // `undeclared` is a word this row may say (FR-007). It is read off the
+    // served document — a row with no declared story was joined to no graph —
+    // and not off the component, so a component that started saying
+    // `undeclared` for a graph it never read turns this red.
+    const served = floorDoc.epics.flatMap((epic) => {
+      const graphRead = epic.nodes.some((node) => node.declared);
+      return epic.nodes.map((node) => ({ ...node, graphRead }));
+    });
     expect(served.length).toBeGreaterThan(0);
+    // The recording exercises both sides, stated rather than assumed: some
+    // stories sit on a row with a graph and some on a row without one.
+    expect(served.some((node) => node.graphRead)).toBe(true);
+    expect(served.some((node) => !node.graphRead)).toBe(true);
 
     // § The status ladder › "Eleven node states map onto the ladder and chips",
     // restated here from `DESIGN.md` rather than imported from the component, so
@@ -313,11 +336,19 @@ test.describe("the Desk wears the second world's tokens (FR-002)", () => {
         // "an undeclared node is undeclared": 001's word for a card the
         // workgraph does not declare, unchanged by the change of clothes, and
         // not one of § Chips' six — so it falls to the Unknown Rule.
-        const expectedWord = !node.declared
-          ? "undeclared"
-          : node.awaiting_operator
-            ? "waiting on you"
-            : (ELEVEN[node.state] ?? "unknown");
+        //
+        // **012 US2 narrows it to a row that read a graph** (FR-007, plan D4).
+        // The word is a claim about a graph, and a row joined to none cannot
+        // make it: there `undeclared` would be the pane's answer to "no graph",
+        // which is how a topology nobody declared gets shown as one somebody
+        // did. The floor's own state is what the pane was told, so that is the
+        // word, and the missing graph is named once on the row instead.
+        const expectedWord =
+          !node.declared && node.graphRead
+            ? "undeclared"
+            : node.awaiting_operator
+              ? "waiting on you"
+              : (ELEVEN[node.state] ?? "unknown");
         const expectedTone = TONES[expectedWord] ?? "unknown";
 
         expect(chip.word, `${scheme}: story ${index} (${node.state})`).toBe(expectedWord);
@@ -362,13 +393,28 @@ test.describe("the Desk wears the second world's tokens (FR-002)", () => {
       }
 
       // What the *recorded* floor exercises, stated rather than assumed: its
-      // declared stories have all merged, and the three live epics were captured
-      // before their workgraphs were read, so they are undeclared. Constitution V
-      // forbids inventing a floor that would show more of the table; what the
-      // capture holds is what is asserted, and the vocabulary above is what
-      // guards the rest.
+      // declared stories have all merged, and the scanner's, whose status read
+      // was refused, have no state at all and fall to the Unknown Rule.
+      // Constitution V forbids inventing a floor that would show more of the
+      // table; what the capture holds is what is asserted, and the vocabulary
+      // above is what guards the rest.
+      //
+      // 012 US2 moved which stories supply the second of these: the three live
+      // epics were captured before their workgraphs were read, and they now
+      // wear the floor's own words rather than `undeclared`. The scanner's
+      // refused read is what carries `unknown` here, and the assertion is
+      // unchanged.
       expect(tones, `${scheme}: the floor's merged stories`).toContain("landed");
-      expect(tones, `${scheme}: the floor's undeclared stories`).toContain("unknown");
+      expect(tones, `${scheme}: the floor's stateless stories`).toContain("unknown");
+      // And the word this story exists to keep meaningful is still on the
+      // floor: the `skew` scene's row read a graph and its third story is not
+      // in it, which is the one place `undeclared` may be said (FR-007).
+      const undeclared = await page
+        .locator('.desk [data-story][data-undeclared] [data-chip]')
+        .evaluateAll((nodes) => nodes.map((node) => (node.textContent ?? "").trim()));
+      expect(undeclared, `${scheme}: undeclared is still said where it is true`).toContain(
+        "undeclared",
+      );
 
       // And the epic chips, which are the showfloor document's own word and
       // story count (006 FR-004). The recorded Fixture floor is another

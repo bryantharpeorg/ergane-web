@@ -26,6 +26,14 @@
  * the factory is invented (constitution V). The *ladders* are built with
  * `support/showfloor-builder.ts`, which is this repository's own join of those
  * recordings and is where 005 and 008 already build them.
+ *
+ * **012 US2 adds one describe block at the foot and edits nothing above it.**
+ * The row draws the dependency each story's graph declares, which it could not
+ * do before US1 gave the Desk a graph to read. The corpus it draws from is the
+ * recorded scanner graph already imported here — the one compiled graph under
+ * `fixtures/workgraphs/` that carries *both* edge kinds and two genuinely
+ * edgeless stories, so US2-S1 and US2-S2 are asserted over a recording rather
+ * than over a topology written to make them pass (constitution V).
  */
 
 import { describe, expect, it } from "vitest";
@@ -525,13 +533,25 @@ describe("the ladders are the document's own (US2-S2, FR-005)", () => {
   });
 
   it("keeps the awaited story's own words when the document carries no ladder", () => {
-    // The paged scene: undeclared, VERIFYING, awaited. `undeclared` is 001's
-    // word and it outranks the state's, so the fact the chip cannot carry — that
-    // the factory is waiting on an answer — stays on the marker beside it.
-    const cell = render(FIXTURE_EPICS[2], unjoined).querySelector("[data-story]")!;
-    expect(chipOf(cell)).toBe("undeclared");
+    // The paged scene: VERIFYING and awaited, on a row joined to no graph.
+    //
+    // **012 US2 changes the word this asserts and nothing else about it**
+    // (FR-007, and the naming discipline 006 FR-003 set). It read `undeclared`,
+    // which was 001's word for a card the graph does not declare — but this row
+    // read no graph at all, so that word was the pane's answer to "no graph",
+    // which is the rendering FR-007 forbids and plan D4 names. What the pane
+    // was actually told here is `awaiting_operator`, and that is now the word.
+    // The subject has not moved an inch: the same paged, VERIFYING story of the
+    // same scene, still carrying the fact the chip alone cannot — the marker
+    // beside it — and still reading a word rather than a colour.
+    const container = render(FIXTURE_EPICS[2], unjoined);
+    const cell = container.querySelector("[data-story]")!;
+    expect(chipOf(cell)).toBe("waiting on you");
     expect(cell.hasAttribute("data-paged")).toBe(true);
     expect(cell.getAttribute("data-state")).toBe("VERIFYING");
+    // And the graph the row does not have is named where it belongs: once, on
+    // the row, in words that are not `UNDECLARED`.
+    expect(container.querySelector("article.epic")!.getAttribute("data-graph")).toBe("unread");
   });
 
   it("matches a floor node to the document's story by id and by folded story key", () => {
@@ -681,16 +701,44 @@ describe("the story cell, succeeding the chevron it replaced", () => {
     expect(cell.textContent).toContain("paged");
   });
 
-  it("renders declared=false as undeclared", () => {
+  it("renders declared=false as undeclared, on a row that read a graph", () => {
     // Succeeds "renders declared=false as undeclared". `undeclared` is not one
     // of § Chips' six words, so it falls to the Unknown Rule's italic muted.
-    const cell = withCard(
-      cardOf("us1", { state: "VERIFYING" }, null),
-    ).querySelector("[data-story]")!;
+    //
+    // **012 US2 adds the row's precondition and keeps the subject** (FR-007,
+    // named here the way 006 FR-003 asks). `undeclared` is a claim about a
+    // graph — this story is not in it — and only a row that read one can make
+    // it. The card under test is unchanged; what the row around it now has is
+    // a second, declared story, which is what gives the row a graph to be
+    // missing from. The case where it has none is the next test, and the two
+    // together are the whole of FR-007.
+    const container = render(
+      epicOf("fx-one", "one", "RUNNING", [
+        { ...cardOf("us2", { state: "MERGED" }, "US2"), depends_on: [], depends_on_merged: [] },
+        cardOf("us1", { state: "VERIFYING" }, null),
+      ]),
+      unjoined,
+    );
+    const cell = stories(container)[1];
 
     expect(cell.hasAttribute("data-undeclared")).toBe(true);
     expect(chipOf(cell)).toBe("undeclared");
     expect(cell.querySelector("[data-chip]")?.getAttribute("data-chip-tone")).toBe("unknown");
+  });
+
+  it("never renders undeclared on a row that read no graph (012 FR-007)", () => {
+    // The same card, on a row with nothing declared: the pane cannot know the
+    // story is missing from a graph it never read, so it says what it *was*
+    // told — the floor's own state — and names the missing graph once, on the
+    // row. This is plan D4's line: `UNDECLARED` never becomes the rendering
+    // for "no graph".
+    const container = withCard(cardOf("us1", { state: "VERIFYING" }, null));
+    const cell = container.querySelector("[data-story]")!;
+
+    expect(cell.hasAttribute("data-undeclared")).toBe(true);
+    expect(chipOf(cell)).toBe("verifying");
+    expect(container.textContent).not.toContain("undeclared");
+    expect(container.querySelector("[data-no-graph]")).not.toBeNull();
   });
 
   it("keeps the paged marker when the story is also undeclared", () => {
@@ -703,5 +751,189 @@ describe("the story cell, succeeding the chevron it replaced", () => {
     expect(cell.hasAttribute("data-paged")).toBe(true);
     expect(cell.getAttribute("data-state")).toBe("VERIFYING");
     expect(cell.textContent).toContain("paged");
+  });
+});
+
+/* ── the dependency the graph declares (012 US2, FR-006, FR-007) ─────────── */
+
+/**
+ * Until 012 US1 the Desk's workgraph read failed for every epic it had ever
+ * shown, so a row knew no edge and drew none — which is what the operator meant
+ * by *"it doesn't actually render the graph"*. It has a graph now, and these
+ * are the two things it may say about one story and the one thing it may not.
+ *
+ * The material is `fixtures/workgraphs/077-…json`, already imported above: a
+ * recorded `ergane spec derive` output whose five stories carry a pass edge, a
+ * merge edge, a story with both, and two with none at all. Nothing about the
+ * shape of a graph is invented here (constitution V).
+ */
+describe("the dependency each story's graph declares (US2-S1, US2-S2)", () => {
+  const SCANNER_NODES = (
+    JSON.parse(scannerGraphRaw) as {
+      nodes: {
+        id: string;
+        story_key: string | null;
+        depends_on: string[];
+        depends_on_merged: string[];
+      }[];
+    }
+  ).nodes;
+
+  /** One card as `pane/floor_document.py` joins it from a *declared* graph node. */
+  const declaredCard = (node: (typeof SCANNER_NODES)[number]): NodeCard => ({
+    ...cardOf(node.id, null, node.story_key),
+    depends_on: node.depends_on,
+    depends_on_merged: node.depends_on_merged,
+  });
+
+  const scannerRow = () =>
+    render(
+      epicOf(
+        "077-a-scanner-the-operator-chooses-runs-in-the-loop",
+        "refusal",
+        "unknown",
+        SCANNER_NODES.map(declaredCard),
+      ),
+      unjoined,
+    );
+
+  const depsOf = (cell: Element) =>
+    Array.from(cell.querySelectorAll("[data-dep]")).map((dep) => ({
+      kind: dep.getAttribute("data-dep-kind"),
+      id: dep.getAttribute("data-dep-id"),
+      text: (dep.textContent ?? "").trim(),
+    }));
+
+  it("draws each story's declared dependency, both edge kinds apart (FR-006)", () => {
+    // The premise, measured off the recording rather than assumed: this graph
+    // really does declare edges of both kinds, so a row that drew nothing would
+    // be drawing less than the factory gave it.
+    const declaredEdges = SCANNER_NODES.flatMap((node) => [
+      ...node.depends_on,
+      ...node.depends_on_merged,
+    ]);
+    expect(declaredEdges.length).toBeGreaterThan(0);
+
+    const cells = stories(scannerRow());
+    expect(cells.length).toBe(SCANNER_NODES.length);
+
+    for (const [index, node] of SCANNER_NODES.entries()) {
+      const cell = cells[index];
+      const expected = [
+        ...node.depends_on_merged.map((id) => ({ kind: "merge", id, text: `after ${id}` })),
+        ...node.depends_on.map((id) => ({ kind: "pass", id, text: `once ${id} passes` })),
+      ];
+      expect(depsOf(cell), `${node.id}: the edges its graph declares`).toEqual(expected);
+    }
+  });
+
+  it("says `after us2` for a merge edge and `once us3 passes` for a pass edge", () => {
+    // § Stage tells the two apart in stroke — "merge edges solid 2px olive,
+    // pass edges dashed 2px `--rule`" — and this row has no wires, so it tells
+    // them apart in words (§ Named Rules: never colour alone). us4 is the one
+    // recorded story that carries one of each, so the two readings sit side by
+    // side on one cell and cannot be confused with each other.
+    const us4 = stories(scannerRow())[3];
+    expect(us4.getAttribute("data-story-key")).toBe("US4");
+    expect(us4.getAttribute("data-depends")).toBe("declared");
+    expect(depsOf(us4).map((dep) => dep.text)).toEqual(["after us2", "once us3 passes"]);
+  });
+
+  it("reads UNDECLARED for a story whose graph genuinely declares no edge (FR-007)", () => {
+    // us1 and us2 of the recording are edgeless: nothing waits for anything,
+    // which is the ordinary and permanent shape of a first story. That is what
+    // `UNDECLARED` means and it keeps meaning it.
+    const cells = stories(scannerRow());
+    for (const index of [0, 1]) {
+      const node = SCANNER_NODES[index];
+      expect([...node.depends_on, ...node.depends_on_merged]).toEqual([]);
+      expect(cells[index].getAttribute("data-depends"), node.id).toBe("undeclared");
+      expect(
+        (cells[index].querySelector("[data-dep-none]")?.textContent ?? "").trim(),
+      ).toBe("undeclared");
+      expect(depsOf(cells[index])).toEqual([]);
+    }
+  });
+
+  it("says it on the row, not on each story, when the graph carries the epic at all", () => {
+    // A graph was joined, so the row makes no claim that one was not.
+    const row = scannerRow().querySelector("article.epic")!;
+    expect(row.getAttribute("data-graph")).toBe("read");
+    expect(row.querySelector("[data-no-graph]")).toBeNull();
+  });
+
+  it("never reads UNDECLARED for a graph that could not be read (FR-007)", () => {
+    // The landing scene as the demo really serves it: `epic_status` answered
+    // and the workgraph read did not, so every card is the floor's alone and
+    // both dependency lists are absent rather than empty. This is the case
+    // plan D4 forbids dressing as `UNDECLARED` — a gap in what the pane was
+    // told is not a fact about the work — and the row says so once instead.
+    const cards = [
+      cardOf("us1", recorded(landingRaw).us1, null),
+      cardOf("us2", recorded(landingRaw).us2, null),
+      cardOf("us3", recorded(landingRaw).us3, null),
+    ];
+    expect(cards.every((card) => card.depends_on === null)).toBe(true);
+
+    const container = render(
+      epicOf("fx-landing-f0a0d6", "landing", "COMPLETED", cards),
+      unjoined,
+    );
+    const row = container.querySelector("article.epic")!;
+
+    for (const cell of stories(container)) {
+      expect(cell.getAttribute("data-depends")).toBe("unread");
+      expect(cell.querySelector("[data-dep-none]")).toBeNull();
+      expect(cell.querySelector("[data-depends-edges]")).toBeNull();
+    }
+    // Not one `UNDECLARED` reading anywhere on the row.
+    expect(row.querySelectorAll('[data-depends="undeclared"]').length).toBe(0);
+
+    // And the reason is on the row, once, in words that are not `UNDECLARED`.
+    expect(row.getAttribute("data-graph")).toBe("unread");
+    const note = row.querySelector("[data-no-graph]")!;
+    expect(note).not.toBeNull();
+    expect(note.textContent).toContain("no graph");
+    expect(note.textContent).not.toContain("undeclared");
+  });
+
+  it("keeps the skew story's gap on the story and the declared ones drawn", () => {
+    // The other half of FR-007: the graph *was* read and simply does not
+    // declare us3 (the recorded `skew` scene). us1 and us2 keep the dependency
+    // the graph gave them, us3 makes no dependency claim at all, and the row
+    // does not say it has no graph — because it has one.
+    const container = render(
+      epicOf("fx-landing-f0a0d6", "skew", "COMPLETED", [
+        declaredCard(SCANNER_NODES[2]),
+        declaredCard(SCANNER_NODES[3]),
+        cardOf("us9", recorded(skewRaw).us3, null),
+      ]),
+      unjoined,
+    );
+    const row = container.querySelector("article.epic")!;
+    const cells = stories(container);
+
+    expect(cells[0].getAttribute("data-depends")).toBe("declared");
+    expect(cells[1].getAttribute("data-depends")).toBe("declared");
+    expect(cells[2].getAttribute("data-depends")).toBe("unread");
+    expect(row.getAttribute("data-graph")).toBe("read");
+    expect(row.querySelector("[data-no-graph]")).toBeNull();
+  });
+
+  it("derives no edge of its own: the card's lists are the whole of it", () => {
+    // The row has no dependency table and cannot grow one. A card whose graph
+    // declares an edge to a story that is not on this row still draws that
+    // edge, verbatim, because the graph said so — inventing a *filter* here
+    // would be the same class of derivation as inventing an edge.
+    const cell = stories(
+      render(
+        epicOf("fx-one", "one", "RUNNING", [
+          { ...cardOf("us2", null, "US2"), depends_on: [], depends_on_merged: ["us1"] },
+        ]),
+        unjoined,
+      ),
+    )[0];
+
+    expect(depsOf(cell)).toEqual([{ kind: "merge", id: "us1", text: "after us1" }]);
   });
 });

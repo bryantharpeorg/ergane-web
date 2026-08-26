@@ -228,17 +228,35 @@ test("the Desk renders the fixture floor and issues one verb and no other", asyn
  *    glyph. The Desk is a route this suite already sweeps, so the law holds
  *    here or it does not hold.
  *
- * Laws (a) and (b) come along in the same pass and are not asserted here: (a)
- * measures `[data-stage]` descendants and this room has no stage, and (b) is
- * the Showfloor's sweep, unchanged by this story. The report carries them; the
- * Desk reads the two that are its own.
+ * **012 US2 widens this test and weakens nothing in it** (FR-008, and the
+ * naming discipline 006 FR-003 set). The row grew a line — each story now says
+ * the dependency its graph declares — and that line is text added to the most
+ * crowded cell on the page, which is precisely what these laws exist to watch.
+ * So the sweep grows with it, in two ways and both of them additive:
+ *
+ * 1. **All four laws, not two.** The paragraph this replaces excused (a) and
+ *    (b) as "not the Desk's": (a) because the room has no `[data-stage]`, (b)
+ *    because it read as the Showfloor's. Neither excuse survives a row that
+ *    got wider — (b) is exactly the law that catches a story cell pushed past
+ *    the viewport's right edge, and (a) costs nothing to assert in a room with
+ *    no stage and is what FR-008's "the four layout laws" asks for. Both are
+ *    asserted here now, alongside the room's own horizontal-scroll check.
+ * 2. **Every width the Desk suite sweeps**, which is `desk-world.spec.ts`'s
+ *    1280, 1600 and 2560 rather than this file's former two. A row is a
+ *    wrapping flex, so the width at which it wraps is the width at which a new
+ *    collision would appear, and 2560 is the width the fluid frame was built
+ *    for (006 FR-001).
+ *
+ * The premise is measured, not assumed: the dependency line has to be on the
+ * screen at each width and in each theme, or the sweep would be passing over a
+ * page that does not carry the subject.
  */
 
-test.describe("the layout laws over the Desk (FR-006, 009 FR-005)", () => {
-  test("holds over the whole Desk at 1280 and 1600, in both themes", async ({ page }) => {
+test.describe("the layout laws over the Desk (FR-006, 009 FR-005, 012 FR-008)", () => {
+  test("all four hold over the whole Desk at every width, in both themes", async ({ page }) => {
     for (const scheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: scheme });
-      for (const width of [1280, 1600]) {
+      for (const width of [1280, 1600, 2560]) {
         await page.setViewportSize({ width, height: 1000 });
         await page.goto("/desk");
         // The whole page, not the part that loads first: the floor's rows and
@@ -248,6 +266,17 @@ test.describe("the layout laws over the Desk (FR-006, 009 FR-005)", () => {
         await page.waitForSelector("section.spend table");
 
         const where = `${width} in ${scheme}`;
+
+        // 012 US2's subject, on the screen before anything is measured: the
+        // Fixture floor's polled epic declares a merge edge and its second
+        // story draws it, so this is the row's new text and not a selector
+        // that would match an empty page.
+        const declared = page.locator('[data-story][data-depends="declared"] [data-dep]');
+        expect(await declared.count(), `${where}: the row draws a declared edge`)
+          .toBeGreaterThan(0);
+        expect(await page.locator('[data-story][data-depends="undeclared"]').count(),
+          `${where}: and an edgeless story reads UNDECLARED`).toBeGreaterThan(0);
+
         const report = await measureLaws(page);
 
         // A sweep over nothing passes for the wrong reason — and law (d) over
@@ -256,8 +285,22 @@ test.describe("the layout laws over the Desk (FR-006, 009 FR-005)", () => {
         expect(report.swept, `${where}: the Desk rendered text`).toBeGreaterThan(40);
         expect(report.leaves, `${where}: the Desk has text leaves`).toBeGreaterThan(20);
         expect(report.painters, `${where}: the Desk paints backgrounds`).toBeGreaterThan(5);
+        // (a) every stage descendant inside its stage's box — vacuous in a room
+        // with no stage, and asserted so that it stops being vacuous the day
+        // one arrives.
+        expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
+        // (b) no text past the viewport's right edge outside a scroller — the
+        // law a wider story cell would break first.
+        expect(report.past, `${where}: text past the viewport`).toEqual([]);
+        // (c) no two text leaves overlap.
         expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+        // (d) no opaque box paints over text it does not own.
         expect(report.occluded, `${where}: a box paints over text it does not own`).toEqual([]);
+        // § Stage sanctions one horizontal scroll and it is the stage's; this
+        // room has none, so the Desk may not scroll sideways at any width.
+        expect(report.roomScrollsSideways, `${where}: the Desk scrolls sideways`).toBe(false);
+        expect(report.documentScrollWidth, `${where}: the document is no wider than the frame`)
+          .toBeLessThanOrEqual(report.viewport + 1);
       }
     }
   });

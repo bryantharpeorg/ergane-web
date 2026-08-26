@@ -29,6 +29,17 @@ operator is owed the difference between a graph that is missing and one that is
 broken.  The fallback lives here rather than in `LiveReader` on purpose: the
 seam should keep meaning "the path the factory would write", and what to do
 when it is silent is a policy of the assembly that owns degradation.
+
+**And a graph is joined only when it is about this epic's stories** (012 US2).
+A graph found under the right name can still be about the wrong work — the
+archive is compiled once and committed, and the stories under it can be renamed
+— so the join asks one question first: does any story the graph declares answer
+to a name the floor also names?  If none does, the mismatch is named in
+`degraded` and the graph is joined nowhere, because a dependency read off it
+would be one story's edge drawn on another story's row.  A *partial* difference
+is not that: a story the floor names and the graph does not is the skew case
+the pane has rendered since 001, and a story the graph declares and the floor
+has not started is work not yet dispatched.
 """
 
 import json
@@ -104,6 +115,64 @@ def _read_workgraph(reader: "Reader", spec_dir: str, archive_root: Path | None) 
         except OSError:
             # No archive either.  The seam's failure is the one worth naming.
             raise first from None
+
+
+def _story_names(node: dict) -> set[str]:
+    """Every spelling one graph node answers to, case-folded.
+
+    The two seams spell one story two ways — `us1` on the floor, `US1` in the
+    graph — and `EpicRow.storyForCard` already folds them together on the other
+    side of the wire.  A comparison that folded only one of them would call a
+    match a mismatch.
+    """
+    names = set()
+    for spelling in (node.get("id"), node.get("story_key")):
+        if isinstance(spelling, str) and spelling:
+            names.add(spelling.casefold())
+    return names
+
+
+def _graph_mismatch(workgraph_dict: dict, status_nodes: dict) -> str | None:
+    """The sentence naming a graph that is about some other epic's stories, else `None`.
+
+    The spec's edge case (012 US2): *"An archive whose node ids do not match the
+    story keys the spec declares: the mismatch is named in `degraded`, and the
+    row does not invent a topology from the half it recognises."*  The archive
+    is the source that can drift — it is compiled once and committed, and a
+    spec's stories can be renamed under it — but this check does not ask which
+    source answered, because a graph about other stories does the same harm
+    whichever door it came through.
+
+    **Only a *total* disjunction is a mismatch, and that is the whole of the
+    rule.**  A partial one is ordinary and is already rendered: a story the
+    floor names and the graph does not is the skew case, which `_node_card`
+    marks `declared: false`; a story the graph declares and the floor has not
+    started is a story not yet dispatched.  Either can happen on a graph that is
+    exactly right.  What cannot happen on a right graph is *no* story in common
+    — and a topology drawn from that would be one story's dependency lent to
+    another story's row, which is the fabrication this corpus has already paid
+    for once (plan D4).
+
+    A floor that named no stories at all — a refused `epic_status`, which the
+    Fixture floor's scanner scene records — is not a disjunction to measure.
+    There is nothing to disagree with, and the refusal is already in `degraded`
+    under its own read.
+    """
+    graph_names: set[str] = set()
+    for node in workgraph_dict.get("nodes", []):
+        graph_names |= _story_names(node)
+    floor_names = {key.casefold() for key in status_nodes if isinstance(key, str) and key}
+
+    if not graph_names or not floor_names:
+        return None
+    if graph_names & floor_names:
+        return None
+
+    return (
+        f"the graph declares {sorted(graph_names)} and the floor names "
+        f"{sorted(floor_names)}; no story is common to both, so the graph is not "
+        "joined and no dependency is drawn from it"
+    )
 
 
 async def assemble_floor_document(reader: "Reader", *, reference_instant: str | None = None) -> dict:
@@ -226,9 +295,23 @@ async def _assemble_epic(
 
     workgraph_dict = workgraph if isinstance(workgraph, dict) else None
 
-    declared_nodes: list[dict] = []
+    # A graph that turns out to be about some other epic's stories is named
+    # here and joined nowhere (012 US2, spec Edge Cases).  `joined_graph` is
+    # what the row's dependencies are read from; `workgraph_dict` still answers
+    # for the seam string below, because *where the graph was read from* is a
+    # fact even when what it held cannot be joined.
+    joined_graph = workgraph_dict
     if workgraph_dict is not None:
-        for node in workgraph_dict.get("nodes", []):
+        mismatch = _graph_mismatch(workgraph_dict, status_nodes)
+        if mismatch is not None:
+            degraded.append(
+                _degraded_entry("epics", "mismatch", "workgraph", mismatch, ref.epic_id)
+            )
+            joined_graph = None
+
+    declared_nodes: list[dict] = []
+    if joined_graph is not None:
+        for node in joined_graph.get("nodes", []):
             node_id = node.get("id")
             if node_id is None:
                 continue
@@ -236,7 +319,7 @@ async def _assemble_epic(
             declared_nodes.append(_node_card(node_id, node, live, declared_flag=True))
 
     # nodes named by status but absent from workgraph
-    workgraph_ids = {n.get("id") for n in workgraph_dict.get("nodes", [])} if workgraph_dict else set()
+    workgraph_ids = {n.get("id") for n in joined_graph.get("nodes", [])} if joined_graph else set()
     for node_id, live in status_nodes.items():
         if node_id not in workgraph_ids:
             declared_nodes.append(_node_card(node_id, None, live, declared_flag=False))
