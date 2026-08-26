@@ -40,6 +40,13 @@ class QueryRefused(Exception):
         super().__init__(f"{read}: {detail}")
 
 
+#: The evidence read's name, spelt once and used by every degraded note the
+#: gate-run section writes.  D-020 adds `node_history` to constitution II's list
+#: of borrowed seams; this repository calls the read by the seam's own name so a
+#: note in the section says which function could not answer (013 FR-002).
+EVIDENCE_READ = "node_history"
+
+
 @dataclasses.dataclass(frozen=True)
 class EpicRef:
     epic_id: str
@@ -134,6 +141,22 @@ class Reader(Protocol):
         the factory's word, passed through verbatim.  A press never reaches this
         read — a signal returns nothing, so an Escalation's fate arrives here or
         not at all (FR-010, FR-012).
+        """
+        ...
+
+    def node_history(self, epic_id: str, node_id: str) -> list[dict]:
+        """Return every recorded verification of one node, oldest attempt first.
+
+        `factory.verify.store.node_history` over `connect_readonly`, and nothing
+        else (013 FR-001, D-020).  Each entry is one `VerificationResult`
+        carried as a plain document — the gates that ran, the loop summary the
+        attempt ran under, the output check and the judge's per-scenario
+        findings — the way `read_question` carries a `QuestionRecord`.
+
+        An empty list is an answer: this node has no recorded verification.  A
+        store that cannot be opened is `TransportFailed` and a store that
+        answered with an error is `QueryRefused` — 001's two modes, and neither
+        is ever an empty history in disguise (constitution III).
         """
         ...
 
@@ -280,15 +303,14 @@ class LiveReader:
             self._store = attention_store.open_store(self.attention_db)
         return self._store
 
-    async def settle_question(self, correlation_id: str, text: str, identity: str) -> str:
-        """`CallbackBridge.handle_relay`, and nothing else, ever (FR-006).
+    def _verification_db(self) -> Path:
+        """Where the factory keeps its evidence store, asked of ergane.
 
-        The questions store is resolved the way `ergane answer` resolves it —
-        through ergane's own `resolve_env_path` over its modern and legacy
-        variable names — so a deployment that moved its runtime root moved this
-        with it.  The adapter is named explicitly rather than left to the
-        configured default, so constructing the bridge resolves no other
-        transport's config.
+        One resolver for the three reads that need it — the Question settlement,
+        the Question record, and 013's node history — through ergane's own
+        `resolve_env_path` over its modern and legacy variable names, exactly as
+        `ergane answer` resolves it.  A deployment that moved its runtime root
+        moved all three with it, and no path is spelt in this repository.
         """
         from factory.activities.verify_activities import DEFAULT_VERIFICATION_DB_PATH
         from factory.env import (
@@ -296,17 +318,29 @@ class LiveReader:
             FACTORY_VERIFICATION_DB_PATH_ENV,
             resolve_env_path,
         )
+
+        return resolve_env_path(
+            ERGANE_VERIFICATION_DB_PATH_ENV,
+            FACTORY_VERIFICATION_DB_PATH_ENV,
+            DEFAULT_VERIFICATION_DB_PATH,
+        )
+
+    async def settle_question(self, correlation_id: str, text: str, identity: str) -> str:
+        """`CallbackBridge.handle_relay`, and nothing else, ever (FR-006).
+
+        The questions store is resolved by `_verification_db` above — ergane's
+        own chain, the way `ergane answer` resolves it — so a deployment that
+        moved its runtime root moved this with it.  The adapter is named
+        explicitly rather than left to the configured default, so constructing
+        the bridge resolves no other transport's config.
+        """
         from factory.notify.adapter import InboundRelay, resolve_adapter
         from factory.notify.service import CallbackBridge
         from factory.notify.webhook import WEBHOOK_ADAPTER
 
         client = await self._open_client()
         bridge = CallbackBridge(
-            db_path=resolve_env_path(
-                ERGANE_VERIFICATION_DB_PATH_ENV,
-                FACTORY_VERIFICATION_DB_PATH_ENV,
-                DEFAULT_VERIFICATION_DB_PATH,
-            ),
+            db_path=self._verification_db(),
             client=client,
             adapter=resolve_adapter(WEBHOOK_ADAPTER),
         )
@@ -342,19 +376,9 @@ class LiveReader:
         connection is read-only by construction — the factory's stores are the
         factory's, and the pane only ever looks.
         """
-        from factory.activities.verify_activities import DEFAULT_VERIFICATION_DB_PATH
-        from factory.env import (
-            ERGANE_VERIFICATION_DB_PATH_ENV,
-            FACTORY_VERIFICATION_DB_PATH_ENV,
-            resolve_env_path,
-        )
         from factory.verify import store as verify_store
 
-        path = resolve_env_path(
-            ERGANE_VERIFICATION_DB_PATH_ENV,
-            FACTORY_VERIFICATION_DB_PATH_ENV,
-            DEFAULT_VERIFICATION_DB_PATH,
-        )
+        path = self._verification_db()
         try:
             conn = verify_store.connect_readonly(path)
         except (sqlite3.OperationalError, OSError) as exc:
@@ -406,6 +430,45 @@ class LiveReader:
             if entry.get("escalation_id") == correlation_id:
                 return entry
         return None
+
+    def node_history(self, epic_id: str, node_id: str) -> list[dict]:
+        """`node_history` over `connect_readonly`, and no SQL of our own (FR-001).
+
+        D-020 put this function on constitution II's list, so the whole of the
+        pane's evidence read is one call to it: this repository writes no query,
+        names no column and knows no table.  What comes back is the seam's own
+        `VerificationResult` list, flattened by `_plain` into the plain document
+        the assembly carries — the same treatment `open_escalations` and
+        `read_question` already give ergane's dataclasses.
+
+        Nothing about *when* a row was written is inferred here: the store keeps
+        one row per `(epic, node, attempt, form)` and a re-dispatch overwrites
+        it, which is a limit the section states rather than a gap this read can
+        close (013 D3).
+        """
+        from factory.verify import store as verify_store
+
+        path = self._verification_db()
+        try:
+            conn = verify_store.connect_readonly(path)
+        except (sqlite3.OperationalError, OSError) as exc:
+            # The store is named in the detail because the section's job is to
+            # say *what could not be learned* (FR-002), and sqlite's own words
+            # for a missing store are "unable to open database file" — which
+            # names neither the store nor the deployment that moved it.
+            raise TransportFailed(EVIDENCE_READ, f"{path}: {exc}") from exc
+        try:
+            rows = verify_store.node_history(conn, epic_id, node_id)
+        except sqlite3.Error as exc:
+            # The store answered, and what it answered was a refusal — a store
+            # whose schema predates the columns this read wants, most often.
+            # 001's second mode, and a different sentence in the section than a
+            # store that could not be opened at all (constitution III).
+            raise QueryRefused(EVIDENCE_READ, str(exc)) from exc
+        finally:
+            conn.close()
+
+        return [self._plain(row) for row in rows]
 
     def list_findings(self) -> list[dict]:
         from factory.cli.nouns import build
@@ -480,6 +543,9 @@ class UnconfiguredReader:
 
     async def read_escalation_fate(self, correlation_id: str) -> dict | None:
         raise TransportFailed("escalation_status", "no live reader is configured in this build")
+
+    def node_history(self, epic_id: str, node_id: str) -> list[dict]:
+        raise TransportFailed(EVIDENCE_READ, "no live reader is configured in this build")
 
     def list_findings(self) -> list[dict]:
         raise TransportFailed("list_findings", "no live reader is configured in this build")
