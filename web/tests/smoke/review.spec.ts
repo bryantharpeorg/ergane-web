@@ -91,6 +91,36 @@ async function measured(
   );
 }
 
+/**
+ * Wait until the framed room has actually fetched and drawn its own document.
+ *
+ * **Measured, not assumed** (2026-08-26): a framed `/` answers 65 characters of
+ * "Reading the floor…" for roughly a second, then 5,409 characters of Desk, and
+ * the sweep goes from 14 text elements to 306 across that boundary. A test that
+ * asserted a floor without waiting for it would be asserting the clock.
+ *
+ * This is also why the room has a **Measure again** control at all: the sweep
+ * that runs at the frame's `load` measures a room that is still arriving, and
+ * the honest answer is to show the figures with their floors and let the
+ * operator ask again — not to guess at a settling delay in production code.
+ */
+async function filled(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const element = document.querySelector("iframe[data-render]") as HTMLIFrameElement | null;
+    const framed = element === null ? null : element.contentDocument;
+    return framed !== null && (framed.body.textContent ?? "").trim().length > 1000;
+  });
+}
+
+/** The framed document's own viewport width, whatever a scrollbar left of it. */
+async function framedViewport(page: Page): Promise<{ frame: number; viewport: number }> {
+  return page.evaluate(() => {
+    const element = document.querySelector("iframe[data-render]") as HTMLIFrameElement;
+    const framed = element.contentDocument as Document;
+    return { frame: element.clientWidth, viewport: framed.documentElement.clientWidth };
+  });
+}
+
 /** Every figure the readout renders, keyed by the measure it names. */
 async function figures(page: Page): Promise<Record<string, string>> {
   return page.evaluate(() => {
@@ -126,17 +156,21 @@ test.describe("the frame renders a changed screen at a chosen width and theme (F
     expect(await frame.getAttribute("src")).toBe(epic.framed[0]);
 
     // Same origin, and really rendered: the parent document can read inside it,
-    // which is the whole of D-023's substitution.
+    // which is the whole of D-023's substitution. Waited for rather than caught
+    // on the way past — a frame this test asked about before it had loaded one
+    // reported an empty document and failed on the clock, twice in three full
+    // suite runs on 2026-08-26.
+    await filled(page);
     const inside = await page.evaluate(() => {
       const element = document.querySelector("iframe[data-render]") as HTMLIFrameElement;
-      const framed = element.contentDocument;
+      const framed = element.contentDocument as Document;
       return {
-        origin: framed === null ? null : framed.location.origin,
-        text: framed === null ? "" : (framed.body.textContent ?? "").trim().length,
+        origin: framed.location.origin,
+        text: (framed.body.textContent ?? "").trim().length,
       };
     });
     expect(inside.origin).toBe(new URL(page.url()).origin);
-    expect(inside.text, "the framed room rendered something").toBeGreaterThan(20);
+    expect(inside.text, "the framed room rendered its own document").toBeGreaterThan(1000);
   });
 
   test("resizes the framed viewport to the chosen width, and dresses it in the chosen theme", async ({
@@ -146,6 +180,9 @@ test.describe("the frame renders a changed screen at a chosen width and theme (F
     const epic = await reviewable(page);
     await page.goto(`/review/${epic.specDir}`);
     await measured(page, { route: epic.framed[0], width: 1280, theme: "light" });
+    // The frame does not reload for a width or a theme, so once it has filled
+    // it stays filled for the whole sweep below.
+    await filled(page);
 
     for (const width of WIDTHS) {
       await page.locator(`[data-pick="width"] [data-option="${width}"]`).click();
@@ -154,32 +191,33 @@ test.describe("the frame renders a changed screen at a chosen width and theme (F
         await measured(page, { route: epic.framed[0], width, theme });
         const where = `${width} in ${theme}`;
 
-        const inside = await page.evaluate(() => {
+        const boxes = await framedViewport(page);
+        const dressed = await page.evaluate(() => {
           const element = document.querySelector("iframe[data-render]") as HTMLIFrameElement;
           const framed = element.contentDocument as Document;
-          const root = framed.documentElement;
-          return {
-            viewport: root.clientWidth,
-            theme: root.getAttribute("data-theme"),
-            // What the framed document actually resolved its ground to. The
-            // attribute is the instruction; this is the render.
-            ground: (framed.defaultView as Window).getComputedStyle(framed.body)
-              .backgroundColor,
-          };
+          return framed.documentElement.getAttribute("data-theme");
         });
 
-        // The frame's own viewport *is* the width the operator chose — which is
-        // what makes a measurement taken inside it a measurement at that width.
-        expect(inside.viewport, `${where}: the framed viewport is the chosen width`).toBe(
-          width,
-        );
-        expect(inside.theme, `${where}: the frame wears the chosen theme`).toBe(theme);
+        // The frame *is* the width the operator chose, which is what makes a
+        // measurement taken inside it a measurement at that width.
+        expect(boxes.frame, `${where}: the frame is the chosen width`).toBe(width);
+        expect(dressed, `${where}: the frame wears the chosen theme`).toBe(theme);
 
+        // And the readout says both, separately and on purpose: a framed room
+        // tall enough to scroll leaves its own viewport a classic scrollbar
+        // narrower than the frame around it, and that difference is a figure
+        // the operator should see rather than one the room should hide.
         const figured = await figures(page);
-        expect(figured.viewport, `${where}: the readout agrees`).toBe(String(width));
-        expect(figured.chosen, `${where}: and so does the frame's own box`).toBe(
+        expect(figured.chosen, `${where}: the readout names the frame's box`).toBe(
           String(width),
         );
+        expect(figured.viewport, `${where}: and the viewport it measured inside it`).toBe(
+          String(boxes.viewport),
+        );
+        expect(
+          Number(figured.viewport),
+          `${where}: which is the frame's width, less at most a scrollbar`,
+        ).toBeGreaterThan(width - 40);
       }
     }
   });
@@ -193,6 +231,7 @@ test.describe("the frame renders a changed screen at a chosen width and theme (F
     const epic = await reviewable(page);
     await page.goto(`/review/${epic.specDir}`);
     await measured(page, { route: epic.framed[0], width: 1280, theme: "light" });
+    await filled(page);
 
     const grounds = await page.evaluate(() => {
       const element = document.querySelector("iframe[data-render]") as HTMLIFrameElement;
@@ -240,14 +279,19 @@ test.describe("the four layout laws are measured inside the frame (FR-008)", () 
     await measured(page, { route, width: 1600, theme: "light" });
     // The framed room fetches its own document after it loads, so the sweep at
     // load measured a room still arriving. This is what the control is for.
+    await filled(page);
     await page.locator("[data-remeasure]").click();
     const roomsFigures = await figures(page);
 
-    // The same route, at the same width, rendered as the page rather than in a
-    // frame, and swept by the harness the gates use.
+    // The same route, at the same width and height, rendered as the page rather
+    // than in a frame, and swept by the harness the gates use. The height
+    // matters as much as the width: the frame is 720px tall, and a document
+    // that scrolls has a narrower viewport than one that does not.
     await page.setViewportSize({ width: 1600, height: 720 });
     await page.goto(route);
-    await page.waitForSelector("#room");
+    await page.waitForFunction(
+      () => (document.body.textContent ?? "").trim().length > 1000,
+    );
     const direct = await measureLaws(page);
 
     expect(roomsFigures.viewport, "same viewport").toBe(String(direct.viewport));
@@ -268,6 +312,7 @@ test.describe("the four layout laws are measured inside the frame (FR-008)", () 
     const epic = await reviewable(page);
     await page.goto(`/review/${epic.specDir}`);
     await measured(page, { route: epic.framed[0], width: 1280, theme: "light" });
+    await filled(page);
     await page.locator("[data-remeasure]").click();
 
     const figured = await figures(page);
@@ -354,8 +399,12 @@ test.describe("the review room holds the four layout laws (FR-011)", () => {
         await page.waitForSelector('[data-track="what-changed"] .rv-story');
         await page.waitForSelector('[data-track="the-thing-itself"] iframe[data-render]');
         await measured(page, { route: epic.framed[0], width: 1280, theme: "light" });
-        // And the readout has to be full: an unmeasured room is a room with
-        // four fewer rows on it, which is not the page FR-011 is about.
+        // And the readout has to be full, over a frame that really filled: an
+        // unmeasured room is a room with four fewer rows on it, and a room whose
+        // figures are of a loading screen carries less text than the one the
+        // operator actually reads. FR-011 is about the fuller page.
+        await filled(page);
+        await page.locator("[data-remeasure]").click();
         await page.waitForSelector('[data-laws="measured"] [data-law="d"]');
 
         const where = `${width} in ${scheme}`;
@@ -399,6 +448,7 @@ test.describe("the review room holds the four layout laws (FR-011)", () => {
       await page.setViewportSize({ width: 1280, height: 1000 });
       await page.goto(`/review/${epic.specDir}`);
       await measured(page, { route: epic.framed[0], width: 1280, theme: "light" });
+      await filled(page);
 
       await page.locator('[data-pick="width"] [data-option="2560"]').click();
       await page.locator('[data-pick="theme"] [data-option="dark"]').click();

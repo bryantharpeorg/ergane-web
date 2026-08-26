@@ -27,6 +27,15 @@
  * rendered nothing is the empty pass every law in this repository is written
  * against — the same floors `desk.spec.ts` asserts, put where the operator can
  * see them rather than left to the suite.
+ *
+ * They are also what makes the room's one soft edge legible. A room fetches its
+ * own document *after* it loads — measured 2026-08-26, a framed `/` answers 65
+ * characters of "Reading the floor…" for about a second and then 5,409 of Desk,
+ * and the sweep goes from 14 text elements to 306 across that line. So the sweep
+ * that runs at the frame's `load` is a sweep of a room still arriving. The room
+ * does not guess at a settling delay and does not poll: it says which frame the
+ * figures are of, shows the floors that make a thin one obvious, and offers the
+ * operator the control to ask again.
  */
 
 import type { LawReport } from "../layoutLaws";
@@ -151,7 +160,8 @@ export default function LawReadout({
       <p className="rv-laws-at micro">
         measured on <span className="num">{at.route}</span> at{" "}
         <span className="num">{at.width}px</span> in{" "}
-        <span className="num">{at.theme}</span>
+        <span className="num">{at.theme}</span> — as the frame stood when the
+        sweep ran
       </p>
 
       {report === null ? (
