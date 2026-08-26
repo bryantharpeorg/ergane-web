@@ -46,6 +46,30 @@
  * § Motion is deliberately absent: the pane's one authored motion is the stage's
  * active stop pulsing, and forty inline rails breathing at once is not "calm at
  * rest" (§ Overview). `desk-world.spec.ts`'s motion sweep holds unchanged.
+ *
+ * ── 012 US2: the row draws the graph it now has ────────────────────────────
+ *
+ * Until US1 the Desk's workgraph read failed for every epic it had ever shown,
+ * so the row knew no edge and had nothing to draw. It has one now, and each
+ * story says what it waits for: `after us1` for the content dependency a merge
+ * edge is, `once us1 passes` for the ordering-only one a pass edge is — the two
+ * kinds the Showfloor's `Legend` tells apart in stroke and this row, which has
+ * no wires, has to tell apart in words (FR-006).
+ *
+ * **`UNDECLARED` means one thing here and never the other** (FR-007, plan D4).
+ * It is the reading of a story the graph *declares* and gives no edge, which is
+ * an ordinary and permanent fact about a first story. It is never the reading
+ * of a story no graph declared: that is a gap in what the pane was told, not a
+ * fact about the work, and the row says so somewhere else — once on the row
+ * when no story on it is declared (`data-no-graph`), and in the cell's own chip
+ * when the graph was read and skipped this story. Repurposing `UNDECLARED` as
+ * the fallback for "no graph" is how a fabricated topology gets back in, and
+ * this corpus has already paid for that once.
+ *
+ * Nothing here is positioned and nothing here is a chip: the dependency is a
+ * § Typography `micro` line, the step `.epic-state` beside it already wears,
+ * flowed in the story cell like everything else on this row (plan D2). No
+ * colour, face or radius § Chips does not already name is minted.
  */
 
 import type { EpicEntry, NodeCard } from "../api/floorDocument";
@@ -148,6 +172,62 @@ export function terminalReasons(entry: RailEntry | null): string | null {
     .join(" · ");
 }
 
+/** One declared dependency, in the document's own two kinds. */
+export interface StoryEdge {
+  /** `merge` is `depends_on_merged`; `pass` is `depends_on` — `Wires`' words. */
+  kind: "merge" | "pass";
+  /** The node id the graph names, verbatim; the row never renames a story. */
+  id: string;
+}
+
+/**
+ * What this row may say about one story's dependency, and it is three things
+ * and not two (012 FR-006, FR-007).
+ *
+ * * `declared` — the graph declares at least one edge into this story, and
+ *   `edges` carries them, each keeping the kind the graph gave it.
+ * * `undeclared` — the graph declares this story and gives it no edge. This is
+ *   the ordinary shape of a first story and it is a fact about the work.
+ * * `unread` — no graph declared this story at all, so the pane has been told
+ *   nothing about what it waits for. **Never `undeclared`**: the two are one
+ *   word apart on screen and a world apart in meaning, and collapsing them is
+ *   how a topology the factory never declared gets rendered as one it did
+ *   (plan D4).
+ *
+ * The distinction is the document's, not this file's guess at one:
+ * `pane/floor_document.py` joins a declared node's own `depends_on` /
+ * `depends_on_merged` — `[]` where the graph gave none — and leaves both
+ * `null` on a card the graph did not declare.
+ */
+export type DependsReading = "declared" | "undeclared" | "unread";
+
+export function dependsOn(card: NodeCard): {
+  reading: DependsReading;
+  edges: StoryEdge[];
+} {
+  if (!card.declared) return { reading: "unread", edges: [] };
+
+  const edges: StoryEdge[] = [
+    ...(card.depends_on_merged ?? []).map((id): StoryEdge => ({ kind: "merge", id })),
+    ...(card.depends_on ?? []).map((id): StoryEdge => ({ kind: "pass", id })),
+  ];
+  return { reading: edges.length === 0 ? "undeclared" : "declared", edges };
+}
+
+/**
+ * The words for one edge, which the Showfloor says in stroke and this row must
+ * say in text (§ Stage: "merge edges solid 2px olive, pass edges dashed 2px
+ * `--rule`"; § Named Rules: state is never carried by colour alone).
+ *
+ * `Stage.edgesOf` names what the two kinds *are* — a merge edge is a content
+ * dependency, the predecessor's code in the dependent's base; a pass edge is an
+ * ordering-only one, the predecessor having reached a verdict — and these are
+ * those two sentences at the length a row can carry.
+ */
+function edgeText(edge: StoryEdge): string {
+  return edge.kind === "merge" ? `after ${edge.id}` : `once ${edge.id} passes`;
+}
+
 /** The chip a story cell wears, and where its word came from. */
 function cellChip(card: NodeCard, story: ShowfloorStory | null): Chip & { source: string } {
   if (story !== null) return { ...storyChip(story.ladder), source: "document" };
@@ -218,6 +298,11 @@ function StoryCell({ card, story, answered }: StoryCellProps) {
         ? "the showfloor document carries no ladder for this story"
         : undefined;
 
+  // 012 FR-006: what this story waits for, from the graph and from nowhere
+  // else. A story no graph declared gets no marker here at all — the row says
+  // that once, above, and `UNDECLARED` is not the pane's word for it (FR-007).
+  const depends = dependsOn(card);
+
   return (
     <span
       className="story"
@@ -226,6 +311,7 @@ function StoryCell({ card, story, answered }: StoryCellProps) {
       data-state={card.state}
       data-paged={paged || undefined}
       data-undeclared={!card.declared || undefined}
+      data-depends={depends.reading}
       data-ladder-source={ladder !== null ? "document" : answered ? "none" : "absent"}
       title={title}
     >
@@ -252,6 +338,25 @@ function StoryCell({ card, story, answered }: StoryCellProps) {
           paged
         </span>
       )}
+      {depends.reading === "declared" && (
+        <span className="deps micro" data-depends-edges>
+          {depends.edges.map((edge) => (
+            <span
+              key={`${edge.kind}:${edge.id}`}
+              data-dep
+              data-dep-kind={edge.kind}
+              data-dep-id={edge.id}
+            >
+              {edgeText(edge)}
+            </span>
+          ))}
+        </span>
+      )}
+      {depends.reading === "undeclared" && (
+        <span className="deps micro" data-depends-edges>
+          <span data-dep-none>undeclared</span>
+        </span>
+      )}
     </span>
   );
 }
@@ -272,6 +377,13 @@ export default function EpicRow({ epic, showfloor = null }: EpicRowProps) {
   const chip: Chip =
     entry === null ? { word: "unknown", tone: "unknown", count: null } : railChip(entry);
   const terminal = terminalReasons(entry);
+  // 012 FR-007: whether *this epic* has a graph behind it at all. A row where
+  // no card is declared was joined to no graph — the read failed, or what it
+  // found was about other stories (`pane/floor_document.py`'s mismatch) — and
+  // the honest sentence is that one, said once on the row. Saying `UNDECLARED`
+  // beside each story instead would dress a gap in the pane's knowledge as a
+  // fact about the work, which is the defect this spec exists to remove.
+  const graphRead = cards.some((card) => card.declared);
 
   return (
     <article
@@ -279,6 +391,7 @@ export default function EpicRow({ epic, showfloor = null }: EpicRowProps) {
       data-epic-id={epic.epic_id}
       data-scene={epic.scene ?? undefined}
       data-ladders={entry === null ? "absent" : "document"}
+      data-graph={graphRead ? "read" : "unread"}
       // FR-007: a terminal story's reason is reachable on the row itself, not
       // only inside the cell that froze.
       title={terminal ?? undefined}
@@ -314,6 +427,12 @@ export default function EpicRow({ epic, showfloor = null }: EpicRowProps) {
         {entry === null && (
           <span className="epic-note" data-no-ladders>
             no ladder: the showfloor document carries no entry for this epic
+          </span>
+        )}
+        {!graphRead && (
+          <span className="epic-note" data-no-graph>
+            no graph: no work graph was joined for this epic, so no dependency is
+            known
           </span>
         )}
       </div>

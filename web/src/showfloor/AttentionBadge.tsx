@@ -35,8 +35,16 @@ interface AttentionBadgeProps {
   degraded: DegradedEntry[];
 }
 
-/** 001's two degraded modes, said in words (constitution III). */
-const MODE_WORDS: Record<DegradedEntry["mode"], string> = {
+/**
+ * 001's two degraded modes, said in words (constitution III).
+ *
+ * Partial on purpose: the modes 012 added — `unparseable` and `mismatch` — are
+ * facts about a *work graph*, and only the `epics` section can carry one. This
+ * badge reads the `attention` section alone, so a word for either here would be
+ * a sentence about a state this element cannot be in. The `?? failed.mode`
+ * below is what keeps that honest rather than blank if the set ever widens.
+ */
+const MODE_WORDS: Partial<Record<DegradedEntry["mode"], string>> = {
   transport: "transport failure: the read could not be made",
   refusal: "query refusal: the factory declined to answer",
 };

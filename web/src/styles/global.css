@@ -513,6 +513,13 @@ a {
 .story { display: inline-flex; align-items: center; gap: 0.45rem; max-width: 100%; }
 .story .skey { font-size: var(--t-tag); color: var(--faint); text-transform: uppercase; }
 .story .paged-label { color: var(--gold); }
+/* 012 FR-006: what a story waits for, in the § Typography `micro` step
+   `.epic-state` already wears — flowed beside the chip, never positioned, and
+   `--faint` because it is provenance and not state (§ Typography's "tertiary,
+   provenance"). Two edges wrap as two flow items rather than sliding over the
+   story beside them; nothing here paints a background, so it has nothing to
+   paint over. */
+.story .deps { display: inline-flex; flex-wrap: wrap; gap: 0.1rem 0.5rem; color: var(--faint); }
 /* Said once per row, in the Unknown Rule's clothing, because it is an unknown:
    the document carries no entry for this epic, so there is no ladder to draw. */
 .epic-note { font-size: var(--t-tag); font-style: italic; color: var(--muted); }
