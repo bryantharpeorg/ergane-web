@@ -62,6 +62,10 @@ OUTSIDE = Path(os.sep + "ergane-web-no-such-place") / "runtime-root"
 #: Set in the child run, so the child does not spawn a suite of its own.
 CHILD = "PANE_HERMETIC_CHILD"
 
+#: How long the child suite may take before this test calls it wedged.  The
+#: parent's own run is seconds; ten minutes is not a budget, it is a backstop.
+CHILD_TIMEOUT_S = 600
+
 #: How this file is named in a violation report, which is where the plants
 #: below must be attributed.
 HERE = str(Path(__file__).resolve().relative_to(ROOT)) + ":"
@@ -274,6 +278,9 @@ def test_the_whole_suite_agrees_with_itself_whatever_runtime_root_it_inherits(
         env=child_environment(tmp_path, runtime_root),
         capture_output=True,
         text=True,
+        # Generous, and there so a child that wedges fails this test instead of
+        # hanging the gate that runs it.
+        timeout=CHILD_TIMEOUT_S,
     )
 
     assert completed.returncode == 0, (
