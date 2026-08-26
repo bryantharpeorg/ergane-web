@@ -23,10 +23,12 @@ same `ergane spec derive` output under `docs/dags/<dir>.json` — and the Desk
 reads it there when the seam is silent, the way the Showfloor has since 002.  A
 read the archive satisfies is not a degradation and says nothing; when neither
 source answers it is the *seam's* failure that is reported, because the seam is
-where the graph belongs.  The fallback lives here rather than in `LiveReader`
-on purpose: the seam should keep meaning "the path the factory would write",
-and what to do when it is silent is a policy of the assembly that owns
-degradation.
+where the graph belongs; and an archive that is found and will not parse is
+reported as `unparseable`, never as the `transport` an absent file reads — the
+operator is owed the difference between a graph that is missing and one that is
+broken.  The fallback lives here rather than in `LiveReader` on purpose: the
+seam should keep meaning "the path the factory would write", and what to do
+when it is silent is a policy of the assembly that owns degradation.
 """
 
 import json
@@ -63,14 +65,28 @@ def _archive_root(reader: "Reader") -> Path | None:
     return None if specs_root is None else archive_root_for(specs_root)
 
 
+#: An archive that is *there* and will not parse, either as bytes or as JSON.
+#: Both are "exists and will not parse", which FR-005 separates from "absent".
+UNPARSEABLE_ARCHIVE = (json.JSONDecodeError, UnicodeDecodeError)
+
+
 def _read_workgraph(reader: "Reader", spec_dir: str, archive_root: Path | None) -> dict:
     """The seam's graph, else the archived one: `_BoundReads.workgraph`'s rule.
 
-    An archive that is absent re-raises the *seam's* failure, because the seam
-    is where the graph belongs.  An archive that is present and will not parse
-    raises its own `JSONDecodeError`, which the caller names `unparseable` — a
-    file that exists and will not parse is a different failure from one that is
-    not there (012 FR-003, FR-005).
+    Three outcomes, and the third is the one that is easy to get wrong:
+
+    * the seam answers — the archive is never opened at all (FR-004);
+    * the seam is silent and the archive answers — that graph is returned, and
+      the caller has nothing to report, because it is not a degradation
+      (FR-001, FR-002);
+    * the seam is silent and the archive is **absent** — the seam's own failure
+      is re-raised, not the archive's, because the seam is where the graph
+      belongs (FR-003).
+
+    An archive that is present and will not parse is none of those: it travels
+    up as itself, so that `_assemble_epic` names it `unparseable` rather than
+    `transport`.  A file that exists and is malformed is a different fact from
+    a file that is not there, and the operator is owed the difference (FR-005).
     """
     try:
         return reader.workgraph(spec_dir)
@@ -80,7 +96,13 @@ def _read_workgraph(reader: "Reader", spec_dir: str, archive_root: Path | None) 
         archived = archive_root / f"{spec_dir}.json"
         try:
             return json.loads(archived.read_text(encoding="utf-8"))
+        except UNPARSEABLE_ARCHIVE:
+            # The archive is there.  Do NOT collapse this into the seam's
+            # failure below: that would report `transport` for a file that was
+            # found, which is precisely the confusion FR-005 forbids.
+            raise
         except OSError:
+            # No archive either.  The seam's failure is the one worth naming.
             raise first from None
 
 
@@ -184,8 +206,11 @@ async def _assemble_epic(
     except (TransportFailed, QueryRefused) as exc:
         degraded.append(_degraded_entry("epics", _exc_mode(exc), exc.read, exc.detail, ref.epic_id))
         workgraph = exc
-    except json.JSONDecodeError as exc:
-        # 001 R-002 lets decode errors propagate; 002 names the failure at the seam.
+    except UNPARSEABLE_ARCHIVE as exc:
+        # 001 R-002 lets decode errors propagate; 002 names the failure at the
+        # seam.  012 FR-005 extends the same naming to the archive behind it:
+        # a graph that was found and will not parse reads `unparseable`, never
+        # the `transport` an absent file reads.
         degraded.append(_degraded_entry("epics", "unparseable", "workgraph", str(exc), ref.epic_id))
         workgraph = exc
     except Exception as exc:

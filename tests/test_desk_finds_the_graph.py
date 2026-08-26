@@ -7,8 +7,8 @@ red-bordered notice about a file that was never going to exist.  The graph was
 on disk the whole time, under the archive `CLAUDE.md` names and
 `pane/showfloor.py` has read since 002: seam first, archive second.
 
-Four claims, one per acceptance scenario, all made over a corpus this file
-builds under its own `tmp_path`:
+One claim per acceptance scenario, all made over a corpus this file builds
+under its own `tmp_path`:
 
 * **US1-S1** — with nothing at the seam and a graph in the archive, the epic
   carries the archived graph and `degraded` is empty, so the notice the
@@ -18,7 +18,10 @@ builds under its own `tmp_path`:
 * **US1-S3** — a seam read that succeeds is the whole read: the archive holds a
   different graph and none of it reaches the document (FR-004).
 * **US1-S4** — an archive that exists and will not parse reads `unparseable`,
-  which is a different fact from a file that is absent (FR-005).
+  which is a different fact from a file that is absent (FR-005).  Twice, for
+  the two stops between bytes on disk and a graph: the decode to text and the
+  parse to JSON.  Only the second raises `JSONDecodeError`, and neither raises
+  the `OSError` an absent file raises, which is what keeps them apart.
 
 **Nothing here pins the live corpus** (008 US1, and this spec's plan trap).  The
 spec directory is a name no repository uses, the graphs are cut from the
@@ -211,6 +214,9 @@ def test_an_unparseable_archive_reads_unparseable(tmp_path):
     archived = archived_path(corpus.specs_root)
     archived.parent.mkdir(parents=True, exist_ok=True)
     archived.write_text("{ this is not a compiled graph", encoding="utf-8")
+    # The seam is silent, so the archive is the read that fails: there is no
+    # other source that could be the one being classified below.
+    assert not seam_path(corpus.specs_root).exists()
 
     document = assemble(corpus.specs_root)
     entries = workgraph_entries(document)
@@ -220,8 +226,38 @@ def test_an_unparseable_archive_reads_unparseable(tmp_path):
     assert entry["mode"] == "unparseable"
     assert entry["section"] == "epics"
     assert entry["epic_id"] == SPEC_DIR
-    # The two failures are told apart, which is the whole of FR-005.
+    # The two failures are told apart, which is the whole of FR-005: the mode
+    # an *absent* archive produces is `transport` (the test above), and this
+    # one -- same absent seam, but a graph that is on disk -- must not be it.
     assert entry["mode"] != "transport"
+
+    # And it does not crash the assembly on the way: every other section of the
+    # document is still there, with the epic present and carrying no graph.
+    assert epic_of(document)["nodes"] == []
+    assert document["health"]["data"] == []
+
+
+def test_an_archive_that_is_not_utf8_also_reads_unparseable(tmp_path):
+    """FR-005 again, by the other way a found file refuses to parse.
+
+    `json.loads` is not the only stop between bytes on disk and a graph: the
+    decode to text comes first, and a `UnicodeDecodeError` is a `ValueError`
+    and not an `OSError`, so it does not travel the absent-file path.  It is
+    the same fact -- the archive was found and will not parse -- and it is owed
+    the same word.
+    """
+    corpus = corpus_for(tmp_path)
+    archived = archived_path(corpus.specs_root)
+    archived.parent.mkdir(parents=True, exist_ok=True)
+    archived.write_bytes(b"\xff\xfe\x00 not text at all")
+    assert not seam_path(corpus.specs_root).exists()
+
+    document = assemble(corpus.specs_root)
+    entries = workgraph_entries(document)
+
+    assert len(entries) == 1
+    assert entries[0]["mode"] == "unparseable"
+    assert entries[0]["epic_id"] == SPEC_DIR
 
 
 # --- the derivation itself --------------------------------------------------
