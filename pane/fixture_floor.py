@@ -33,6 +33,7 @@ from pane import attention_store
 from pane.attention_store import StoredItem
 from pane.landing import CHANGED_FILES_READ, LANDING_READ, LandingFact
 from pane.readers import EVIDENCE_READ, EpicRef, FloorRead, TransportFailed
+from pane.revision import CONTAINS_READ, SERVED_REVISION_READ, ServedRevision
 
 
 # The recorded deliveries the demo floor is seeded from, in the order the
@@ -135,6 +136,18 @@ def _payload(path: Path, *, read: str) -> Any:
     except json.JSONDecodeError as exc:
         raise TransportFailed(read, f"{path}: will not parse ({exc})") from exc
     return payload
+
+
+def _or_none(value: Any) -> str | None:
+    """A recorded string, or the Unknown Rule for one the document left empty.
+
+    A field a recording did not carry is unknown; it is never an empty string
+    rendered as if the branch had answered with one (constitution III).
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _replayed_landings(
@@ -460,6 +473,72 @@ class FixtureReader:
                 CHANGED_FILES_READ, f"{path}: not a list of changed paths"
             )
         return sorted({str(entry).strip() for entry in recorded if str(entry).strip()})
+
+    # --- the revision this floor was captured from (011 US2) ---------------
+
+    def served_revision(self) -> ServedRevision:
+        """The revision the recorded floor was serving, from `revision/served.json`.
+
+        **A demo floor answers this from the recording and not from the host**
+        (016 FR-002, FR-003).  The first instinct is the other way: the revision
+        a service is serving is a fact about the process, so surely it must be
+        read live or not at all.  It must not.  016's two requirements are
+        unconditional — under `PANE_DEMO=1` no room spawns a subprocess, and
+        every room answers the same in a checkout with no history as in a full
+        one — and a demo floor is a recording of a floor with its header on.  The
+        honest answer is the revision that floor was captured from, recorded like
+        every other document here and carrying its provenance in the envelope
+        beside it.
+
+        The live half is untouched (011 FR-009): a `LiveReader` has a real
+        checkout under it, offers no recording, and `ReviewReaders.from_reader`
+        binds it to `pane.revision.read_served_revision`.
+        """
+        self._check_fail("epics", SERVED_REVISION_READ)
+        path = self.root / "revision" / "served.json"
+        recorded = _payload(path, read=SERVED_REVISION_READ)
+        if not isinstance(recorded, dict) or not recorded.get("revision"):
+            raise TransportFailed(
+                SERVED_REVISION_READ, f"{path}: not a served revision"
+            )
+        return ServedRevision(
+            revision=str(recorded["revision"]),
+            branch=_or_none(recorded.get("branch")),
+            committed_at=_or_none(recorded.get("committed_at")),
+            subject=_or_none(recorded.get("subject")),
+        )
+
+    def revision_contains(self, revision: str, commit: str) -> bool:
+        """Whether the recording places `commit` inside `revision`.
+
+        The recording holds both answers by name — `carries` and `omits` — and a
+        commit in neither is a read nobody made, which comes back as one.  A
+        recording that answered `False` for every commit it had not been asked
+        about would be inventing FR-010's alarm, and that alarm is worth nothing
+        the first time it fires on a fact nobody established.
+
+        `revision` is checked rather than assumed: a recording answers for the
+        revision it was captured at, and a caller asking about another one is
+        asking a question this document does not hold.
+        """
+        self._check_fail("epics", CONTAINS_READ)
+        path = self.root / "revision" / "served.json"
+        recorded = _payload(path, read=CONTAINS_READ)
+        if not isinstance(recorded, dict):
+            raise TransportFailed(CONTAINS_READ, f"{path}: not a served revision")
+        if str(recorded.get("revision")) != revision:
+            raise TransportFailed(
+                CONTAINS_READ,
+                f"{path}: recorded for {recorded.get('revision')}, not {revision}",
+            )
+        if commit in {str(entry) for entry in recorded.get("carries", [])}:
+            return True
+        if commit in {str(entry) for entry in recorded.get("omits", [])}:
+            return False
+        raise TransportFailed(
+            CONTAINS_READ,
+            f"{path}: no recorded answer for {commit} (fixtures/README.md)",
+        )
 
     def list_findings(self) -> list[dict]:
         self._check_fail("health", "list_findings")

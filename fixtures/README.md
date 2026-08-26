@@ -94,6 +94,36 @@ renders a killed epic has to say those two things differently.
 Sweep note: the credential sweep must anchor secret-looking prefixes on a word boundary —
 `the-desk-sees-the-floor` contains the substring `sk-sees`.
 
+### The revision this floor was captured from (011 US2)
+
+`revision/served.json` is the review room's header (FR-009, FR-010): the revision the
+service is serving, and — for every landing commit `landing/landing-facts.json` names —
+whether that revision already carries it.
+
+It is recorded rather than read live, and that is the deliberate half. The revision a
+service is serving is a fact about the *process*, so the instinct is that a demo floor
+must reach real git for it or say nothing. It must not: 016 FR-002 and FR-003 are
+unconditional, and under `PANE_DEMO=1` no room spawns a subprocess and every room
+answers the same in a checkout with no history as in a full one. A demo floor is a
+recording of a floor with its header on. The live rooms are untouched — a `LiveReader`
+has a real checkout under it and reads real git (`pane/revision.py`).
+
+Two lists, both by name. `carries` is the landings that revision already holds and
+`omits` is the landings it does not; a commit in neither is a read nobody made and the
+demo floor reports it as one. Collapsing them would let the recording invent FR-010's
+alarm, and that alarm is worth nothing the first time it fires on a fact nobody
+established.
+
+```bash
+$PY scripts/record-fixtures.py revision "$PWD" \
+    fixtures/landing/landing-facts.json fixtures/revision/served.json
+```
+
+It reads the commits the landing document names and is captured off the landing branch
+by default rather than off whichever branch the recorder was standing on, so the header
+and the body come from the same day. Re-record it with the landing document, never
+alone.
+
 ### Not recorded yet: what a landing commit changed (016)
 
 The review room reads a second git-backed fact beside the landing: the file list of

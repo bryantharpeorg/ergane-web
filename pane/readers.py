@@ -175,20 +175,32 @@ class Reader(Protocol):
 
 @runtime_checkable
 class RecordedGitReads(Protocol):
-    """A reader that has recordings of the two reads git would otherwise answer.
+    """A reader that has recordings of the reads git would otherwise answer.
 
-    Neither read is on the `Reader` protocol, and that is deliberate: both are
-    made *by the pane*, over the checkout it serves, rather than asked of the
-    factory — `landing_facts` walks the landing branch and `changed_files` reads
-    one commit's file list, both through `pane/landing.py` over ergane's own git
-    helper (constitution II).  A reader either has a recording of them or it does
-    not, so this is a capability a caller asks about and never a method a live
-    reader has to grow a stub for.
+    None of them is on the `Reader` protocol, and that is deliberate: every one
+    is made *by the pane*, over the checkout it serves, rather than asked of the
+    factory — `landing_facts` walks the landing branch, `changed_files` reads one
+    commit's file list, and the two revision reads ask what this checkout is on
+    and what that revision carries, all through ergane's own git helper
+    (constitution II).  A reader either has a recording of them or it does not,
+    so this is a capability a caller asks about and never a method a live reader
+    has to grow a stub for.
 
     016 is why it exists.  Every other document a room reads in demo mode comes
-    from `fixtures/`; these two reached real git in **both** modes, so a room's
+    from `fixtures/`; these reached real git in **both** modes, so a room's
     answer depended on the git history of the machine running it — and a shallow
     checkout made the review room refuse every epic on a healthy floor.
+
+    **011 US2 added the last two, and it added them here rather than exempting
+    them.**  The served revision is a fact about the *process* and not about the
+    factory's work, so the first instinct is that a demo floor must read it live
+    or say nothing.  It must not: 016 FR-002 and FR-003 are unconditional — under
+    `PANE_DEMO=1` no room spawns a subprocess, and every room answers the same in
+    a checkout with no history as in a full one.  A demo floor is a recording of
+    a floor, header and all; the honest thing is to record the revision that
+    floor was captured from, which is what `fixtures/revision/served.json` holds,
+    and to leave the live read for the live reader that has a real checkout under
+    it.
     """
 
     def landing_facts(self, spec_dir: str) -> dict[str, Any]:
@@ -197,6 +209,14 @@ class RecordedGitReads(Protocol):
 
     def changed_files(self, commit: str) -> list[str]:
         """Return the paths one landing commit changed, from a recording."""
+        ...
+
+    def served_revision(self) -> Any:
+        """Return the `ServedRevision` this recorded floor was captured from."""
+        ...
+
+    def revision_contains(self, revision: str, commit: str) -> bool:
+        """Return whether the recording places `commit` inside `revision`."""
         ...
 
 

@@ -21,6 +21,17 @@ D3) — and it is guarded by `tests/test_route_manifest.py` and
 serves appears in it (FR-005).  A manifest that can rot in silence is worth
 nothing.
 
+**The room says which revision the service is serving** (011 US2, FR-009 and
+FR-010).  Everything above is a fact about the *branch*; the room the operator is
+looking at is served by *this process*, and the two can differ.  So every
+answer — the document and the refusal alike — carries a `served` block naming
+the revision this service is on and whether that revision already contains the
+epic's landings, with the stories it does not carry named.  `pane/revision.py`
+holds the reads and the reasoning; what matters here is that `contains_epic` has
+three values and the third is `None`, because "this revision does not contain
+the epic" and "I could not tell" are different sentences and only one of them is
+an alarm.
+
 **A partially landed epic is refused, by name** (FR-004, plan D4).  A review of
 half an epic produces notes about a surface that is about to change and leaves
 the operator unable to say which half they looked at, so the room does not
@@ -44,6 +55,7 @@ if TYPE_CHECKING:
 
 from pane.landing import LandingFact, read_changed_files
 from pane.readers import QueryRefused, TransportFailed
+from pane.revision import ServedRevision, read_served_revision, revision_contains
 from pane.showfloor import StoryHeading, parse_spec_name, parse_story_headings
 
 #: The committed manifest, beside the code it describes.  A deployment that
@@ -246,7 +258,11 @@ class EpicNotLanded(Exception):
     """
 
     def __init__(
-        self, spec_dir: str, unmerged: list[dict], landing_branch: str | None
+        self,
+        spec_dir: str,
+        unmerged: list[dict],
+        landing_branch: str | None,
+        served: dict | None = None,
     ) -> None:
         named = ", ".join(story["story_key"] for story in unmerged)
         super().__init__(
@@ -257,6 +273,11 @@ class EpicNotLanded(Exception):
         self.spec_dir = spec_dir
         self.unmerged = unmerged
         self.landing_branch = landing_branch
+        #: The served-revision header, which FR-009 says is on *every* render.
+        #: A refusal is a render: the operator is looking at this room, and the
+        #: revision the service is serving is as true of the refusal screen as
+        #: of the document behind it.
+        self.served = served
 
     def as_document(self) -> dict:
         return {
@@ -264,6 +285,7 @@ class EpicNotLanded(Exception):
             "spec_dir": self.spec_dir,
             "landing_branch": self.landing_branch,
             "unmerged": list(self.unmerged),
+            "served": self.served,
             "detail": str(self),
         }
 
@@ -293,6 +315,15 @@ class ReviewReaders:
     #: The manifest, loaded once by a caller that serves many requests.  `None`
     #: loads the committed one per assembly.
     manifest: RouteManifest | None = None
+    #: The revision this service is serving (FR-009).  `None` is a build that
+    #: has no way to ask — the header then reads unknown rather than inventing a
+    #: revision, and it is never confused with a read that was made and failed.
+    served_revision: Callable[[], ServedRevision] | None = None
+    #: Whether a revision carries a landing commit (FR-010), asked once per
+    #: story.  Paired with the read above: a room that knew which revision it was
+    #: serving and could not place a commit in it has lost half the answer, and
+    #: says which half.
+    revision_contains: Callable[[str, str], bool] | None = None
 
     @classmethod
     def from_reader(
@@ -325,6 +356,16 @@ class ReviewReaders:
         rebuilt: where a compiled graph lives (the seam first, this repository's
         archive second) is one fact with one answer, and a second binding here
         would be a second answer waiting to disagree with it.
+
+        **The two revision reads take the same swap** (011 US2, FR-009).  They
+        were the one place it was tempting not to: the revision a service is
+        serving is a fact about *this process* rather than about the factory's
+        work, so the instinct is that it must reach real git or say nothing.  It
+        must not.  016 FR-002 and FR-003 are unconditional — under `PANE_DEMO=1`
+        no room spawns a subprocess and every room answers the same in a checkout
+        with no history — and a demo floor is a recording of a floor, header
+        included.  So a recorded reader answers from `fixtures/revision/`, and a
+        live reader, which has a real checkout under it, reads real git.
         """
         from pane.config import DEFAULT_LANDING_BRANCH
         from pane.landing import reader_for
@@ -350,6 +391,16 @@ class ReviewReaders:
             workgraph=showfloor.workgraph,
             landing_branch=branch,
             manifest=manifest,
+            served_revision=(
+                recorded.served_revision
+                if recorded is not None
+                else lambda: read_served_revision(repo)
+            ),
+            revision_contains=(
+                recorded.revision_contains
+                if recorded is not None
+                else lambda revision, commit: revision_contains(repo, revision, commit)
+            ),
         )
 
 
@@ -383,6 +434,8 @@ def assemble_review(
     manifest = _manifest(readers, notes)
     facts, landing_read = _landing_facts(spec_dir, readers, notes)
 
+    served = _served_revision(story_keys, headings, facts, landing_read, readers)
+
     if landing_read:
         unmerged = [
             {"story_key": key, "title": _title(key, headings)}
@@ -390,7 +443,7 @@ def assemble_review(
             if not (key in facts and facts[key].on_branch)
         ]
         if unmerged:
-            raise EpicNotLanded(spec_dir, unmerged, readers.landing_branch)
+            raise EpicNotLanded(spec_dir, unmerged, readers.landing_branch, served)
 
     stories = [
         _assemble_story(key, headings, facts.get(key), manifest, readers)
@@ -402,10 +455,126 @@ def assemble_review(
         "name": name,
         "landing_branch": readers.landing_branch,
         "story_source": story_source,
+        "served": served,
         "stories": stories,
         "routes": _reached_routes(stories, manifest),
         "notes": notes,
     }
+
+
+def _served_revision(
+    story_keys: list[str],
+    headings: dict[str, StoryHeading],
+    facts: dict[str, LandingFact],
+    landing_read: bool,
+    readers: ReviewReaders,
+) -> dict:
+    """The revision this service is serving, and whether it carries this epic.
+
+    FR-009 and FR-010, and the whole of what the room can honestly say about the
+    question the operator cannot otherwise ask: *is what I am looking at built
+    from the work I came to review?*  The room renders the running service.  If
+    the service is not serving the epic under review, every note taken in it is
+    about a different surface, and the operator has no way to notice from the
+    screen itself.
+
+    **Three answers, and none of them is another** (constitution III).
+    `contains_epic` is `True` when every one of the epic's landings is already in
+    the served revision, `False` when at least one is not — and `missing` names
+    which, because a mismatch stated without its particulars is a warning the
+    operator cannot act on — and **`None` when the question could not be
+    asked**.  A checkout cloned shallow cannot place a commit it does not have,
+    and a room that reported `False` on the strength of a read nobody completed
+    would spend FR-010's alarm on a fact it had not established.  The alarm has
+    to be believed the one time it is real.
+    """
+    notes: list[dict] = []
+
+    if readers.served_revision is None:
+        # A build with no way to ask.  Not a failure, and so not a note: it is
+        # the Unknown Rule on every field, which is what `unknown` carries.
+        return {
+            "revision": None,
+            "short_revision": None,
+            "branch": None,
+            "committed_at": None,
+            "subject": None,
+            "contains_epic": None,
+            "missing": [],
+            "unknown": ["revision", "branch", "committed_at", "subject"],
+            "notes": notes,
+        }
+
+    try:
+        served: ServedRevision | None = readers.served_revision()
+    except (TransportFailed, QueryRefused) as exc:
+        notes.append({"read": exc.read, "mode": _mode(exc), "detail": exc.detail})
+        served = None
+
+    contains, missing = _contains_epic(
+        served, story_keys, headings, facts, landing_read, readers, notes
+    )
+
+    return {
+        "revision": None if served is None else served.revision,
+        "short_revision": None if served is None else served.short_revision,
+        "branch": None if served is None else served.branch,
+        "committed_at": None if served is None else served.committed_at,
+        "subject": None if served is None else served.subject,
+        "contains_epic": contains,
+        "missing": missing,
+        "unknown": [
+            field
+            for field, value in (
+                ("revision", None if served is None else served.revision),
+                ("branch", None if served is None else served.branch),
+                ("committed_at", None if served is None else served.committed_at),
+                ("subject", None if served is None else served.subject),
+            )
+            if value is None
+        ],
+        "notes": notes,
+    }
+
+
+def _contains_epic(
+    served: ServedRevision | None,
+    story_keys: list[str],
+    headings: dict[str, StoryHeading],
+    facts: dict[str, LandingFact],
+    landing_read: bool,
+    readers: ReviewReaders,
+    notes: list[dict],
+) -> tuple[bool | None, list[dict]]:
+    """Whether the served revision carries every story, and which it does not.
+
+    A story the branch carries nothing for is missing from the served revision by
+    construction — there is no commit for it to contain — and it is reported that
+    way rather than skipped, because this function also answers for the refusal
+    screen, where *not landed* is exactly the condition.
+    """
+    if served is None or not landing_read or readers.revision_contains is None:
+        return None, []
+
+    missing: list[dict] = []
+    for story_key in story_keys:
+        fact = facts.get(story_key)
+        if fact is None or not fact.on_branch:
+            missing.append(
+                {"story_key": story_key, "title": _title(story_key, headings)}
+            )
+            continue
+        try:
+            carried = readers.revision_contains(served.revision, fact.commit)
+        except (TransportFailed, QueryRefused) as exc:
+            notes.append({"read": exc.read, "mode": _mode(exc), "detail": exc.detail})
+            return None, []
+        if not carried:
+            missing.append(
+                {"story_key": story_key, "title": _title(story_key, headings)}
+            )
+
+    return not missing, missing
 
 
 def _assemble_story(

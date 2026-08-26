@@ -55,6 +55,7 @@ from pathlib import Path
 from pane.landing import LandingFact, LandingReader, read_changed_files
 from pane.readers import TransportFailed
 from pane.review import ReviewReaders
+from pane.revision import read_served_revision, revision_contains
 from pane.showfloor import (
     ShowfloorReaders,
     assemble_showfloor,
@@ -306,6 +307,13 @@ class Corpus:
             "changed_files": lambda commit: read_changed_files(self.repo, commit),
             "workgraph": self.workgraph,
             "landing_branch": branch,
+            # 011 US2: the header's two reads, bound the same way — over the
+            # repository the test built, through the production functions. A
+            # stand-in here would leave the one thing FR-009 asserts untested.
+            "served_revision": lambda: read_served_revision(self.repo),
+            "revision_contains": (
+                lambda revision, commit: revision_contains(self.repo, revision, commit)
+            ),
         }
         fields.update(overrides)
         return ReviewReaders(**fields)

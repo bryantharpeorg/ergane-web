@@ -21,6 +21,8 @@ Verbs:
   landing <repo> <out> [branch]       every spec's landings via pane.landing.read_landing_facts
   changed-files <repo> <landing.json> <out_dir>
                                       one document per landing commit via read_changed_files
+  revision <repo> <landing.json> <out> [rev]
+                                      the served revision and what it carries, via pane.revision
 """
 from __future__ import annotations
 
@@ -292,6 +294,66 @@ def changed_files(repo: str, landing_facts: str, out_dir: str) -> None:
         )
 
 
+def revision(repo: str, landing_facts: str, out: str, rev: str = "dev") -> None:
+    """The revision the checkout is on, and which landings it already carries.
+
+    The review room's header (011 FR-009, FR-010).  Two facts, both git's: what
+    `HEAD` resolves to with the metadata git holds about it, and — for every
+    landing commit the recording beside this one names — whether that revision
+    already carries it.
+
+    `rev` defaults to the landing branch and not to `HEAD`: the recorder runs
+    from whatever branch the operator is standing on, and a demo floor whose
+    header named a node's working branch would be a recording of the recorder
+    rather than of the floor.  The rest of `fixtures/` is captured off the
+    landing branch, and this document has to be captured off the same one or the
+    two are a header and a body from different days.
+
+    **Both answers are recorded by name.**  `carries` and `omits` are separate
+    lists rather than one list and an absence, because the demo floor must be
+    able to tell "this revision does not carry that landing" from "nobody asked
+    about that landing": the first is FR-010's alarm and the second is a read
+    that was never made, and a recording that collapsed them would spend the
+    alarm on a fact nobody established.
+    """
+    _pane_on_the_path()
+    from pane.revision import read_served_revision, revision_contains
+
+    checkout = Path(repo).resolve()
+    served = read_served_revision(checkout, rev)
+    recorded = json.loads(Path(landing_facts).read_text())
+    commits = sorted(
+        {fact["commit"] for facts in recorded.values() for fact in facts.values()}
+    )
+
+    carries: list[str] = []
+    omits: list[str] = []
+    for commit in commits:
+        target = carries if revision_contains(checkout, served.revision, commit) else omits
+        target.append(commit)
+
+    write(
+        Path(out),
+        {
+            "revision": served.revision,
+            "branch": served.branch,
+            "committed_at": served.committed_at,
+            "subject": served.subject,
+            "carries": carries,
+            "omits": omits,
+        },
+        seam="pane.revision.read_served_revision and revision_contains over "
+             "factory.workgraph.worktree._git",
+        source=f"{checkout} on {rev} at {served.revision}, read with no network",
+        notes="The revision this checkout was serving when the recording was taken, and "
+              "which of the landing commits beside it that revision already carries. "
+              "Recorded from the same checkout as the landing document, so the two stay "
+              "in step; re-record both together after a promotion. A commit in neither "
+              "list is a read nobody made and the demo floor reports it as one, never as "
+              "a revision that omits it.",
+    )
+
+
 def _head(repo: Path, branch: str) -> str:
     """The head the recording was taken at, for the envelope's `source` line."""
     from factory.workgraph.landed import _resolve_default_head
@@ -301,7 +363,7 @@ def _head(repo: Path, branch: str) -> str:
 
 VERBS = {"floor": floor, "epic": epic, "watch": watch, "escalations": escalations,
          "rollup": rollup, "findings": findings, "questions": questions, "refusal": refusal,
-         "landing": landing, "changed-files": changed_files}
+         "landing": landing, "changed-files": changed_files, "revision": revision}
 
 
 def main(argv: list[str]) -> int:
