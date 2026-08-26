@@ -19,6 +19,14 @@ export const DESK_PATH = "/desk";
 export const SHOWFLOOR_PATH = "/showfloor";
 export const REVIEW_PATH = "/review";
 
+/**
+ * The drafting table (014 US1). It is the one room with no bare form: a
+ * Showfloor with no selection is still a room, but a drafting table with no
+ * spec is a table with nothing on it, so `/draft` alone names no room and the
+ * spec directory is part of the address.
+ */
+export const DRAFT_PATH = "/draft";
+
 /** The deep link for one spec's stage. */
 export function showfloorPathFor(specDir: string): string {
   return `${SHOWFLOOR_PATH}/${encodeURIComponent(specDir)}`;
@@ -70,6 +78,38 @@ function isUnder(pathname: string, root: string): boolean {
 
 function segmentAfter(pathname: string, root: string): string | null {
   const rest = pathname.slice(root.length).replace(/^\//, "").replace(/\/$/, "");
+  if (rest === "") return null;
+  try {
+    return decodeURIComponent(rest);
+  } catch {
+    // A malformed escape is not a directory either; it is a miss with its own
+    // spelling, and it is shown as the operator typed it.
+    return rest;
+  }
+}
+
+/** The deep link for one spec's drafting table. */
+export function draftPathFor(specDir: string): string {
+  return `${DRAFT_PATH}/${encodeURIComponent(specDir)}`;
+}
+
+/** Whether a path is the drafting table, with or without a spec named. */
+export function isDraftPath(pathname: string): boolean {
+  return pathname === DRAFT_PATH || pathname.startsWith(`${DRAFT_PATH}/`);
+}
+
+/**
+ * The spec directory a drafting-table path asks for, or null when it names none.
+ *
+ * Read the same way `specDirFromPath` reads the Showfloor's, and deliberately so
+ * — one grammar for a spec in a URL, not two. What it is *not* is a resolver: a
+ * segment with further slashes in it is returned whole, and the backend refuses
+ * it as a name that is not a directory name (014 plan D5). The browser never
+ * decides what is inside the specs root.
+ */
+export function specDirFromDraftPath(pathname: string): string | null {
+  if (!isDraftPath(pathname)) return null;
+  const rest = pathname.slice(DRAFT_PATH.length).replace(/^\//, "").replace(/\/$/, "");
   if (rest === "") return null;
   try {
     return decodeURIComponent(rest);
