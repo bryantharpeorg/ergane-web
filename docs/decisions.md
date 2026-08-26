@@ -693,3 +693,52 @@ disagree. Filed as PR-2.
 
 **Why an entry at all.** Constitution II is a closed list by design, and adding to it is the
 operator's act, not a node's. This entry is what makes spec 013 legal.
+
+## D-021 · Constitution I admits writes by test, not by list (decided 2026-08-25)
+
+**Raised by** the operator, 2026-08-25 ~10:30 PM CT, asked directly whether to hold principle I's
+one-verb line or amend it so the two human-in-the-loop rooms — 010 (an idea becomes a spec) and 011
+(the work comes back for review) — can be refined at all. The answer was to amend, with guarded
+writes.
+
+**What was wrong with the old shape.** Principle I forbade a *list*: "no pause buttons, no dispatch
+forms, no spec editing." A list cannot distinguish a write that is dangerous from a write that is
+merely a write, and it cannot express the one thing that actually governs safety here — whether the
+write rides a seam ergane exports. So the principle refused a spec-authoring room on the same grounds
+it refuses a kill button, which is not a distinction anybody would defend on the merits.
+
+**Decided.** Principle I becomes a test with six clauses (seam, named, scoped, confirmed, reported,
+consequence stated) over four named grooming writes: Create a spec draft, Commission its trio, Save
+an edit to the trio, Declare it `ready` or `deferred`. Answer is unchanged. Dispatch, kill, pause,
+reset, any write outside `specs/`, and any write to a factory store stay forbidden by name.
+
+**Clause 1 refuses all four verbs today, and that is the point.** `ergane spec` exports `list`,
+`validate`, `derive` and `landed`, and every one is read-only; `SpecState`'s own docstring
+(`factory/roadmap/models.py:66`) says intent is *declared* by the operator and progress is *observed*,
+which assumes a human with a text editor. There is no `spec new` and no `spec ready`. So this
+amendment grants no capability on the day it lands. It changes what has to happen *next*: with the
+old principle, building the grooming room required amending the constitution **and** waiting for a
+seam; with this one, it requires only the seam. Filed to the ergane agent as **PR-7** in the
+platform-requirements section of the feedback log.
+
+**Why a test and not a longer list.** The failure mode a list produces is exactly what D-005 forbids:
+faced with a refusal and a real need, an implementer re-derives the logic locally — a pane that flips
+`state: ready` by writing two characters into markdown is re-implementing the roadmap's readiness
+rules in a second language, in a second repository, guaranteed to drift. Clause 1 makes that
+impossible to reach by accident, because there is nothing to ride.
+
+**The clause that is doing the safety work after clause 1 is clause 6.** Declaring a spec `ready` is
+the most expensive act in the product — the roadmap dispatches within 300 seconds, spending tokens,
+opening pull requests and moving the landing branch. Today that act is performed by editing two
+characters in a file, with no confirmation, no audit row and no precondition check; on 2026-08-25 a
+flip of spec 013 was silently lost inside a multi-file pull request because of it (#58, redone as
+#60). A control that states the consequence before it fires is strictly better than the `sed` it
+replaces.
+
+**Interim behaviour, and it is not a placeholder.** Until a seam exists, a room that needs one of the
+four verbs **composes the change and hands the operator the file to save**, writing nothing itself.
+That is 011's Option C, and for a review room — whose output is a draft by nature — it may turn out
+to be the right permanent answer rather than a stopgap.
+
+**Supersedes** the second sentence of D-001's rule. D-001 otherwise stands: a requirement that needs
+a write this principle does not name is still a defect in the requirement.

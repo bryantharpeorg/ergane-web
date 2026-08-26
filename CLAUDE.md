@@ -8,9 +8,11 @@ The **operator pane** for [Ergane](https://github.com/bryantharpeorg/ergane), an
 software factory — and a target repository of that same factory (D-003). The pane is a
 minimal web front end with two rooms: the **Desk** (read the floor at a glance: epics,
 attention items, findings, spend) and the **Showfloor** (each epic's work graph staged as
-a state-lit DAG). It has exactly one verb, **Answer**, and it never replaces the CLI.
+a state-lit DAG). Today it has exactly one verb, **Answer**, and it never replaces the
+CLI. D-021 admits four further *grooming* writes by test rather than by list, and every
+one is refused today for want of an ergane authoring seam — see constitution I.
 
-Start with `CONTEXT.md` (the conceptual model), then `docs/decisions.md` (D-001…D-011,
+Start with `CONTEXT.md` (the conceptual model), then `docs/decisions.md` (D-001…D-021,
 the binding design decisions), then `specs/`. `docs/greenfield-log.md` is the append-only
 record of how the repository came to be.
 
@@ -24,12 +26,14 @@ factory-owned `HOME`, no Docker, and no access to the operator's filesystem.
 **The constitution governs, not this file.** `.specify/memory/constitution.md` is injected
 into every node's prompt via the `standards` key in `ergane.yaml`. This file is
 orientation; the constitution is binding. Where they disagree, the constitution wins.
-Its seven principles in one line each: one verb (Answer) and nothing else writes; the pane
+Its eight principles in one line each: writes are admitted by a six-clause test and only
+Answer passes it today (D-021); the pane
 rides ergane's library seams, never shells the CLI and never re-implements the floor;
 degradation is honest and explicit (a dead factory is shown, not hidden); every claim in a
 spec is provable from the diff, headless; fixtures are recorded from a real floor, never
 invented; one token guards every route and no credential reaches a page, an event, a log
-or a fixture; dependencies come from the approved roster — ask before adding one.
+or a fixture; dependencies come from the approved roster — ask before adding one; the pane
+is built to `DESIGN.md`.
 
 ## Two package worlds, four gates
 

@@ -8,7 +8,9 @@ state and whose landings flow visibly to done. The **Desk** is the working room:
 what is waiting on the operator first, then the floor's detail, health, and spend to
 date. The pane renders state and carries exactly one verb — **Answer**, for the
 Questions and Escalations the factory routes to its operator. Everything else an
-operator does still belongs to the `ergane` CLI.
+operator does still belongs to the `ergane` CLI. (D-021 admits four grooming writes by
+test rather than by list; clause 1 refuses all four today, because `ergane spec` exports
+nothing that writes.)
 
 ## Running and gating
 
@@ -160,7 +162,7 @@ word inside one epic's workgraph.)
   Answer, Attention item, Fixture floor). Factory-side words are defined in
   [ergane's `CONTEXT.md`](https://github.com/bryantharpeorg/ergane/blob/HEAD/CONTEXT.md)
   and win on any conflict.
-- `docs/decisions.md` — the immutable decision log (D-001…D-011).
+- `docs/decisions.md` — the immutable decision log (D-001…D-021).
 - `.specify/memory/constitution.md` — the standards every node building this repo
   obeys.
 - `ergane.yaml` — the gates, ladder and landing-branch declaration (`dev`, D-011);
