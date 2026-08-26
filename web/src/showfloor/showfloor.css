@@ -387,12 +387,18 @@
   min-width: 0;
 }
 
-/* "When nothing is selected it explains the room in two sentences" — beneath
-   the stage since D-016, not in a column of its own. The measure stays at
-   `34rem` because the sentences are still prose and a stage-wide line of body
-   text is not readable; what changed is that the room no longer pays `26rem`
-   of grid for it. */
-.showfloor .detail-empty {
+/* The band beneath the stage, and the two paragraphs that can occupy it.
+
+   D-016 moved the room's two sentences out of a column of their own and under
+   the graph; D-019 gave that band to the spec's own goal and retired the
+   explainer to the case where no spec is selected at all. **One rule dresses
+   both**, deliberately: what changed is which paragraph occupies the band, not
+   how a paragraph under a graph reads, and FR-012's "identical text" would be a
+   thin guarantee if the two wore different clothes. The measure stays at
+   `34rem` because both are prose and a stage-wide line of body text is not
+   readable. */
+.showfloor .detail-empty,
+.showfloor .spec-goal {
   margin: 0;
   font-size: var(--t-small);
   line-height: 1.5;
@@ -403,7 +409,8 @@
 /* Its place in the stage column: the same `1.4rem` step the legend row takes
    below it, so the graph, the explanation and the legend read as three things
    and not as one block (§ Layout's spacing rhythm). */
-.showfloor .stage > .detail-empty {
+.showfloor .stage > .detail-empty,
+.showfloor .stage > .spec-goal {
   margin: 1.4rem 0 0;
 }
 

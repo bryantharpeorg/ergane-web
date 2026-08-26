@@ -110,6 +110,10 @@ export function storyOf(id: string, title: string, ladder: Ladder): ShowfloorSto
 export function entryOf(overrides: Partial<RailEntry> & { spec_dir: string }): RailEntry {
   return {
     name: overrides.spec_dir.split("-").slice(1).join(" "),
+    // 009 US4: the spec's own goal, empty by default. `""` is the assembler's
+    // word for a spec that states none, and it is the case the band must not
+    // render — so the builder's default is the harder of the two.
+    intent: "",
     state: "draft",
     chip: null,
     stories_landed: 0,

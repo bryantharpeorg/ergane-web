@@ -64,6 +64,27 @@ const CORPUS: RailEntry[] = [
   draftEntry("006-the-desk-matches-the-stage"),
 ];
 
+/**
+ * The spec's own goal, as `parse_spec_intent` lifts it (009 US4).
+ *
+ * One paragraph, whitespace-collapsed — the shape the assembler emits, not a
+ * sentence written to be convenient. `GOAL_LESS` is the other answer the same
+ * field carries: a spec whose body states no goal, which is the case the band
+ * must not render at all (FR-011).
+ */
+const GOAL =
+  "The Showfloor becomes a master–detail: a rail of every spec with its status, " +
+  "and one epic staged at a time.";
+
+/** The same floor, every entry carrying a goal for the band to hold. */
+const WITH_GOALS: RailEntry[] = CORPUS.map((entry) => ({
+  ...entry,
+  intent: `${GOAL} (${entry.spec_dir})`,
+}));
+
+/** One spec, and it states no goal — the band is not rendered for it. */
+const GOAL_LESS: RailEntry[] = [CORPUS[1]];
+
 function documentOf(rail: RailEntry[]): ShowfloorDocument {
   return { reference_instant: null, specs_root: "specs", rail, degraded: [] };
 }
@@ -400,10 +421,16 @@ describe("the badge follows floor events (003's guarantee, on the new frame)", (
  * The measured half is `tests/smoke/showfloor.spec.ts`: jsdom computes no
  * cascade, so what `data-selection="none"` *resolves to* is a Playwright
  * assertion. What is provable here is the half a stylesheet cannot fix — that
- * the grid carries the state at all, that the room's two sentences are mounted
- * beneath the stage and above the legend rather than inside the track that is
- * about to collapse, and that a pick changes an attribute instead of rebuilding
- * the room (D-016 clauses a and b; plan D2).
+ * the grid carries the state at all, that the band beneath the stage is mounted
+ * there and above the legend rather than inside the track that is about to
+ * collapse, and that a pick changes an attribute instead of rebuilding the room
+ * (D-016 clauses a and b; plan D2).
+ *
+ * **009 US4 changed who occupies that band, not where it is.** D-019 gave it to
+ * the spec's own goal, which does not depend on the selection, and retired the
+ * room's two sentences to the case where no spec is selected at all. So the
+ * mounting-point case below now measures `[data-spec-goal]`, and every
+ * assertion about the room explainer moved to the describe that follows.
  */
 describe("the released detail track (008 US2, FR-004 … FR-006)", () => {
   const cols = (container: HTMLElement) =>
@@ -417,24 +444,24 @@ describe("the released detail track (008 US2, FR-004 … FR-006)", () => {
     document.body.removeChild(container);
   });
 
-  it("mounts the room's two sentences beneath the stage, above the legend", async () => {
-    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", CORPUS);
+  it("mounts the band beneath the stage, above the legend", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", WITH_GOALS);
 
-    const empty = container.querySelector("[data-detail-empty]")!;
+    const band = container.querySelector("[data-spec-goal]")!;
     const stage = container.querySelector("[data-stage]")!;
     const legend = container.querySelector("[data-legend]")!;
     const pane = container.querySelector("[data-detail]")!;
 
-    expect(empty).not.toBeNull();
+    expect(band).not.toBeNull();
     // Inside the stage column — so FR-014's law (a) measures it — and out of
     // the track it used to hold open.
-    expect(stage.contains(empty)).toBe(true);
-    expect(pane.contains(empty)).toBe(false);
+    expect(stage.contains(band)).toBe(true);
+    expect(pane.contains(band)).toBe(false);
     expect((pane.textContent ?? "").trim()).toBe("");
 
     // Above the legend row, in document order: `DOCUMENT_POSITION_FOLLOWING`
     // is the DOM's own word for "comes after me".
-    expect(empty.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(band.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     document.body.removeChild(container);
   });
@@ -453,7 +480,8 @@ describe("the released detail track (008 US2, FR-004 … FR-006)", () => {
     });
 
     expect(grid.getAttribute("data-selection")).toBe("story");
-    // FR-006: the explanation leaves the stage as the pane fills.
+    // 009 FR-012: the band does *not* empty on a pick — that was the layout
+    // jump D-019 names. The room's own explainer was never here to leave.
     expect(container.querySelector("[data-detail-empty]")).toBeNull();
     expect(container.querySelector("[data-detail-title]")).not.toBeNull();
 
@@ -463,6 +491,113 @@ describe("the released detail track (008 US2, FR-004 … FR-006)", () => {
     // the wires were measured against.
     expect(cols(container)).toBe(grid);
     expect(container.querySelector("[data-detail]")).toBe(pane);
+
+    document.body.removeChild(container);
+  });
+});
+
+/**
+ * 009 US4 — the band under the stage says what the spec is for (FR-010 … FR-013).
+ *
+ * D-019 in one paragraph: the band D-016 gave to the room's own explainer now
+ * holds the *spec's* goal, because the goal is true of the graph whether or not
+ * a story is picked, and the explainer emptying itself on a click read as a
+ * glitch. The two do not stack — two explanations under one graph is noise —
+ * and the explainer retires to the case where there is no spec to explain.
+ *
+ * jsdom's half is which element is mounted where and what it says; the measured
+ * half (a visible box, beneath the graph, above the legend, in both themes)
+ * is `tests/smoke/showfloor.spec.ts`.
+ */
+describe("the spec's goal takes the band (009 US4, FR-010 … FR-013)", () => {
+  const goal = (container: HTMLElement) =>
+    container.querySelector("[data-spec-goal]") as HTMLElement | null;
+
+  it("renders the entry's own intent, verbatim, with no story selected", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", WITH_GOALS);
+
+    expect(container.querySelector("[data-showfloor-cols]")!.getAttribute("data-selection")).toBe(
+      "none",
+    );
+    expect(goal(container)!.textContent).toBe(`${GOAL} (002-the-showfloor-stages-an-epic)`);
+
+    document.body.removeChild(container);
+  });
+
+  it("reads identically once a story is picked (FR-012)", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", WITH_GOALS);
+
+    const before = goal(container)!.textContent;
+    const card = container.querySelector("[data-node-card]") as HTMLButtonElement;
+
+    await act(async () => {
+      card.click();
+      await Promise.resolve();
+    });
+
+    // The pick landed…
+    expect(container.querySelector("[data-showfloor-cols]")!.getAttribute("data-selection")).toBe(
+      "story",
+    );
+    expect(container.querySelector("[data-detail-title]")).not.toBeNull();
+
+    // …and the band did not empty, which is the layout jump D-019 names.
+    expect(goal(container)).not.toBeNull();
+    expect(goal(container)!.textContent).toBe(before);
+
+    document.body.removeChild(container);
+  });
+
+  it("follows the rail: each spec's band is that spec's goal", async () => {
+    const container = await renderAt("/showfloor/004-the-pane-fits-the-screen", WITH_GOALS);
+
+    expect(goal(container)!.textContent).toBe(`${GOAL} (004-the-pane-fits-the-screen)`);
+
+    document.body.removeChild(container);
+  });
+
+  it("renders no band at all for a spec that states no goal (FR-011)", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", GOAL_LESS);
+
+    // Not an empty bordered strip and not the explainer standing in for it:
+    // nothing. An empty band is furniture standing in for an answer.
+    expect(goal(container)).toBeNull();
+    expect(container.querySelector("[data-detail-empty]")).toBeNull();
+
+    // The stage and the legend are still there, so what is absent is the band
+    // and not the room around it.
+    expect(container.querySelector("[data-stage]")).not.toBeNull();
+    expect(container.querySelector("[data-legend]")).not.toBeNull();
+
+    document.body.removeChild(container);
+  });
+
+  it("gives the band to the room's own explainer when no spec is selected (FR-013)", async () => {
+    const container = await renderAt("/showfloor", []);
+
+    const empty = container.querySelector("[data-detail-empty]")!;
+    const stage = container.querySelector("[data-stage]")!;
+    const legend = container.querySelector("[data-legend]")!;
+
+    expect(empty).not.toBeNull();
+    expect(stage.contains(empty)).toBe(true);
+    expect(empty.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // Two sentences, still — the words did not change, only when they are said.
+    const words = (empty.textContent ?? "").replace(/\s+/g, " ").trim();
+    expect(words.split(". ").length).toBe(2);
+
+    // And it never stacks with a goal, because there is no spec to have one.
+    expect(goal(container)).toBeNull();
+
+    document.body.removeChild(container);
+  });
+
+  it("never stacks the two explanations (D-019)", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", WITH_GOALS);
+
+    expect(goal(container)).not.toBeNull();
+    expect(container.querySelector("[data-detail-empty]")).toBeNull();
 
     document.body.removeChild(container);
   });
