@@ -103,12 +103,21 @@ async function measured(
  * that runs at the frame's `load` measures a room that is still arriving, and
  * the honest answer is to show the figures with their floors and let the
  * operator ask again — not to guess at a settling delay in production code.
+ *
+ * Every step of the walk down to the text is optional, and that is the point.
+ * A frame that is mid-navigation answers a `contentDocument` whose parser has
+ * not yet reached `<body>`, so `document.body` is `null` for a tick — and a
+ * predicate that *throws* on that tick does not poll again, it fails the wait
+ * outright. This is a real race, not a theoretical one: it is what turned two
+ * of these tests red under seven parallel workers on 2026-08-26 while both
+ * passed alone. The wait must read a not-yet-parsed frame as "not filled" and
+ * come back, which is exactly what the optional chain does.
  */
 async function filled(page: Page): Promise<void> {
   await page.waitForFunction(() => {
     const element = document.querySelector("iframe[data-render]") as HTMLIFrameElement | null;
-    const framed = element === null ? null : element.contentDocument;
-    return framed !== null && (framed.body.textContent ?? "").trim().length > 1000;
+    const text = element?.contentDocument?.body?.textContent;
+    return (text ?? "").trim().length > 1000;
   });
 }
 
