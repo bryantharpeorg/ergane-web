@@ -18,7 +18,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import Review from "../../src/review/Review";
-import type { ReviewDocument, ReviewStory } from "../../src/api/reviewDocument";
+import type {
+  ReviewDocument,
+  ReviewStory,
+  ServedRevision,
+} from "../../src/api/reviewDocument";
 
 const containers: HTMLElement[] = [];
 
@@ -56,6 +60,25 @@ function story(overrides: Partial<ReviewStory> = {}): ReviewStory {
   };
 }
 
+/**
+ * The served revision, as the assembler emits it (011 US2, FR-009).
+ *
+ * The carried case by default, so a test that is not about the revision does
+ * not have to say anything about it — the mismatch is the interesting condition
+ * and it is asked for by name.
+ */
+function served(overrides: Partial<ServedRevision> = {}): ServedRevision {
+  return {
+    revision: "0a0dea35b54fbdb5385312b3edc99ca7ccec53a4",
+    short_revision: "0a0dea35b54f",
+    branch: "dev",
+    contains_epic: true,
+    missing: [],
+    unplaced: [],
+    ...overrides,
+  };
+}
+
 function review(overrides: Partial<ReviewDocument> = {}): ReviewDocument {
   return {
     spec_dir: "001-the-desk-sees-the-floor",
@@ -67,6 +90,7 @@ function review(overrides: Partial<ReviewDocument> = {}): ReviewDocument {
       { path: "/", kind: "room", name: "The Desk", stories: ["US1"] },
       { path: "/desk", kind: "room", name: "The Desk", stories: ["US1"] },
     ],
+    served: served(),
     notes: [],
     ...overrides,
   };
@@ -262,5 +286,74 @@ describe("the room refuses half an epic and names the stories (FR-004)", () => {
     expect(degraded.getAttribute("data-mode")).toBe("transport");
     expect(degraded.textContent).toContain("GET /api/review/001-the-desk-sees-the-floor");
     expect(degraded.textContent).toContain("503");
+  });
+});
+
+/**
+ * The wiring US2 adds to the room (011 US2: FR-007, FR-009, FR-010).
+ *
+ * The pieces are asserted in `TheThingItself.test.tsx`; what is asserted here is
+ * that the room mounts them, and mounts them where `DESIGN.md` § The review room
+ * puts them — the served revision at the top of the view, the mismatch band
+ * above the frame, the two tracks side by side.
+ */
+describe("the room mounts the second track and the served-revision header", () => {
+  it("puts the served revision at the top of the view, above the room", async () => {
+    const container = open("/review/001-the-desk-sees-the-floor", 200, review());
+    await act(async () => {});
+
+    const stamp = container.querySelector("[data-served]") as HTMLElement;
+    expect(stamp).not.toBeNull();
+    expect(stamp.textContent).toContain("0a0dea35b54f");
+
+    // Above the room, not inside it: a header, never a footnote.
+    const room = container.querySelector("#room") as HTMLElement;
+    expect(room.contains(stamp)).toBe(false);
+    expect(
+      stamp.compareDocumentPosition(room) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("renders the thing-itself track beside the what-changed track", async () => {
+    const container = open("/review/001-the-desk-sees-the-floor", 200, review());
+    await act(async () => {});
+
+    const tracks = container.querySelector("[data-tracks]") as HTMLElement;
+    expect(tracks.querySelector('[data-track="what-changed"]')).not.toBeNull();
+    expect(tracks.querySelector('[data-track="the-thing-itself"]')).not.toBeNull();
+    expect(tracks.querySelector("iframe[data-render]")).not.toBeNull();
+  });
+
+  it("puts the mismatch band above the frame, where it cannot be scrolled past", async () => {
+    const container = open(
+      "/review/001-the-desk-sees-the-floor",
+      200,
+      review({ served: served({ contains_epic: false, missing: ["US3"] }) }),
+    );
+    await act(async () => {});
+
+    const band = container.querySelector("[data-mismatch]") as HTMLElement;
+    const tracks = container.querySelector("[data-tracks]") as HTMLElement;
+    expect(band).not.toBeNull();
+    expect(
+      band.compareDocumentPosition(tracks) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("renders no band and no track for an epic the branch does not carry whole", async () => {
+    // The refusal is US1's and US2 does not soften it: there is no frame to put
+    // a revision beside when the room is refusing to review at all.
+    const container = open("/review/011-half-landed", 409, {
+      error: "the epic is not fully landed",
+      spec_dir: "011-half-landed",
+      landing_branch: "dev",
+      unmerged: [{ story_key: "US2", title: "The second" }],
+      detail: "011-half-landed is not fully landed: US2 has not merged to dev",
+    });
+    await act(async () => {});
+
+    expect(container.querySelector("[data-refusal]")).not.toBeNull();
+    expect(container.querySelector("[data-mismatch]")).toBeNull();
+    expect(container.querySelector("iframe[data-render]")).toBeNull();
   });
 });

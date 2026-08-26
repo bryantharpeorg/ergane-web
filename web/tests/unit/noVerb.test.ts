@@ -269,12 +269,34 @@ describe("the Showfloor has no verb at all (constitution I, FR-017)", () => {
  * turns it red, which is the point: D-023's safety argument is that this room
  * spawns nothing and writes nothing, and an argument nothing enforces is a
  * sentence in a decision log.
+ *
+ * **011 US2 tightens this rather than loosening it, in three places.**
+ *
+ * 1. The room now renders controls — a route, a width and a theme the operator
+ *    picks (FR-007) — so "there are no controls here" stops being the guarantee
+ *    and the Showfloor's shape replaces it: **exactly one file may render one,
+ *    it must be a `<button>`, and no file in the room may reach a write.** A
+ *    control that *selects* is not the verb constitution I is about, which is
+ *    what reaches the factory; 005 US4 settled that for the node card and this
+ *    is the same reading.
+ * 2. The room now renders a **frame**, which is the whole of D-023's
+ *    substitution, so the frame gets its own assertions: one of them, sourced
+ *    from a value and never from a URL literal, and no attribute that relaxes
+ *    what a frame may do. "A frame is same-origin or the sweep cannot read it"
+ *    is the plan's named trap, and this is what holds it.
+ * 3. The four layout laws are asserted to have **one implementation** (plan
+ *    D2). A second copy in this room would be a second answer to the question
+ *    the gates already answer, and the two would disagree the first time either
+ *    was edited.
  */
 const reviewFiles = import.meta.glob("../../src/review/**/*.{ts,tsx}", {
   query: "?raw",
   import: "default",
   eager: true,
 }) as Record<string, string>;
+
+/** The one file in the review room permitted to render a control (011 US2). */
+const REVIEW_SELECTOR = "review/TheThingItself.tsx";
 
 describe("the review room writes nothing (011 FR-014, constitution I)", () => {
   it("sweeps a room that is really there", () => {
@@ -289,6 +311,66 @@ describe("the review room writes nothing (011 FR-014, constitution I)", () => {
     for (const [path, source] of Object.entries(reviewFiles)) {
       for (const control of ["<form", "<input", "<select", "<textarea", "onSubmit"]) {
         expect(code(source), `${path} must not render ${control}`).not.toContain(control);
+      }
+    }
+  });
+
+  it("renders a control in exactly one file, and every one of them is a button", () => {
+    for (const [path, source] of Object.entries(reviewFiles)) {
+      if (path.endsWith(REVIEW_SELECTOR)) continue;
+      expect(code(source), `${path} must not render a control`).not.toContain("<button");
+      expect(code(source), `${path} must not carry a click handler`).not.toContain("onClick");
+    }
+
+    const picker = code(
+      reviewFiles[
+        Object.keys(reviewFiles).find((path) => path.endsWith(REVIEW_SELECTOR)) as string
+      ],
+    );
+    expect(picker).toBeDefined();
+    expect(picker).toContain("<button");
+    // Every one of them, not just the first: a control with no explicit type is
+    // a submit button, and a submit button is a form the room does not have.
+    expect([...picker.matchAll(/<button/g)]).toHaveLength(
+      [...picker.matchAll(/type="button"/g)].length,
+    );
+  });
+
+  it("renders one same-origin frame, from a path its own document named (D-023)", () => {
+    const framing = Object.entries(reviewFiles).filter(([, raw]) =>
+      code(raw).includes("<iframe"),
+    );
+    // One frame. A second is a second thing to prove harmless, and the plan's
+    // named trap is that a room which reaches a URL of its own has reintroduced
+    // every question D-023 closed.
+    expect(framing.map(([path]) => path)).toHaveLength(1);
+
+    const [path, raw] = framing[0];
+    const source = code(raw);
+    // Sourced from a value, never a literal: the value is a route the room's own
+    // document listed, so no operator-typed string and no origin can reach it.
+    expect(source, `${path} must source its frame from a value`).toContain("src={route}");
+    for (const escape of ["http:", "srcdoc", "allow-", "sandbox=", "document.domain"]) {
+      expect(source, `${path} must not carry ${escape}`).not.toContain(escape);
+    }
+  });
+
+  it("runs the four layout laws it does not own a second copy of (plan D2)", () => {
+    // The measurement is `web/src/layoutLaws.ts`'s, which is what the smoke
+    // gates evaluate in the page. A room that carried its own would be giving
+    // the operator numbers the gates never produced.
+    const measuring = Object.entries(reviewFiles).filter(([, raw]) =>
+      code(raw).includes("measureLawsIn"),
+    );
+    expect(measuring.map(([path]) => path)).toHaveLength(1);
+    expect(code(measuring[0][1])).toContain('from "../layoutLaws"');
+
+    // And nothing in the room re-derives one. These are the names the four laws
+    // are measured through; a second implementation cannot avoid them.
+    for (const [path, raw] of Object.entries(reviewFiles)) {
+      for (const primitive of ["getBoundingClientRect", "elementsFromPoint", "createRange"]) {
+        expect(code(raw), `${path} must not measure with ${primitive} of its own`)
+          .not.toContain(primitive);
       }
     }
   });
