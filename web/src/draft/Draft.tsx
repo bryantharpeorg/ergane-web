@@ -4,6 +4,7 @@ import Masthead from "../Masthead";
 import Checks from "./Checks";
 import DocumentColumn from "./DocumentColumn";
 import DraftNote from "./DraftNote";
+import DraftStage from "./DraftStage";
 import ReadStamp from "./ReadStamp";
 import { specDirFromDraftPath } from "../routes";
 
@@ -31,8 +32,14 @@ import { specDirFromDraftPath } from "../routes";
  *
  * **And it totals nothing.** US2 adds `Checks`, which is a list of what each
  * exported checker said under that checker's own name, and the one thing this
- * room never renders is a composite verdict over them (FR-009). US3 adds the
- * stage.
+ * room never renders is a composite verdict over them (FR-009).
+ *
+ * **US3 adds the stage, and it is the reason the room exists.** `DraftStage`
+ * draws the compiled Work Graph with the Showfloor's own assets in the unlit
+ * form — the node set, the edges and the personas the factory will actually
+ * dispatch, on screen before the operator flips the spec `ready` and finds out
+ * (FR-011). It draws nothing at all when the graph did not compile (FR-013),
+ * and the deriver's own refusal stands one section above it, saying why.
  */
 function Frame({ children }: { children: ReactNode }): JSX.Element {
   return (
@@ -137,6 +144,12 @@ export default function Draft(): JSX.Element {
             answer to "what will run" is what the operator opened the room for
             (014's Context). */}
         <Checks checks={doc.checks} verdictUnavailable={doc.verdict_unavailable} />
+        {/* Under the checks and above the trio: the deriver's answer is what
+            decides whether there is a stage at all, so an operator who finds no
+            stage has just read the refusal that explains it (FR-013). And it is
+            above the documents because "what will run" is what the operator
+            opened this room for — the trio is the evidence behind it. */}
+        <DraftStage graph={doc.graph} />
         {/* FR-004: no trio at all when the directory could not be read. Three
             empty columns is what a sketch looks like, and this is not a sketch
             — it is a spec that is not there. */}

@@ -1095,6 +1095,71 @@ a {
   overflow-wrap: break-word;
 }
 
+/* ── The unlit stage (014 US3, DESIGN.md § The drafting table) ─────────────
+   "The pre-dispatch stage is unlit. A compiled Work Graph draws with the
+   Showfloor's stage assets and the same two edge strokes, with every node in
+   the unlit form."
+
+   The *assets* are in `showfloor/showfloor.css`, one declaration worn by both
+   rooms — the canvas, the ranks, the two strokes and the card. What is below is
+   only this room's furniture around them: the section it sits in, its name, the
+   sentence that says the graph has not run, and the edge key. Nothing here
+   restates a figure DESIGN.md gives the stage, because restating one is how the
+   two rooms would come to draw two different cards. */
+.draft-stage {
+  border-top: 1px solid var(--hairline);
+  padding-top: 0.7rem;
+  margin: 0 0 1.6rem;
+  /* The stage is the size of its graph, and the room is the size of the frame:
+     a graph wider than the column travels inside `.dag-scroll`, so this box
+     must be allowed to be narrower than its content (§ Layout's containment
+     law, and the one horizontal scroll § Stage sanctions). */
+  min-width: 0;
+}
+
+/* The same micro uppercase the checks section's name wears: these are the two
+   things the room says about the spec as a whole, and a second heading size
+   would make one of them look like the more important claim. */
+.draft-stage-name {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  margin: 0 0 0.6rem;
+}
+
+/* What the operator is looking at, and what it is not: no node carries a run
+   state because none has run (FR-011). Body-adjacent rather than micro, for the
+   reason `.draft-checks-statement` is — an operator who skims past it will read
+   an unlit card as a card whose run has not started, which is a different claim
+   about a different thing. */
+.draft-stage-statement {
+  font-size: var(--t-small);
+  color: var(--muted);
+  max-width: 68ch;
+  margin: 0 0 1rem;
+}
+
+.draft-stage-statement .num {
+  font-family: var(--mono);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* § Named Rules: state is never carried by colour alone, and a wire has nowhere
+   to write its word. The Showfloor's own `.legend` is not reused here — its four
+   ladder fills describe a run that has not happened — so the edge key stands
+   alone, under the stage, once. */
+.draft-stage-legend {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  margin: 0.7rem 0 0;
+}
+
 @media (max-width: 900px) {
   .draft { padding: 0 1rem 1.4rem; }
 }

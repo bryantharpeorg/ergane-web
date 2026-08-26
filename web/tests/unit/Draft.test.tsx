@@ -30,9 +30,17 @@
  * * **US2-S5** — a check that could not run says which input it wanted, and
  *   wears the third answer rather than a refusal (FR-010).
  *
+ * **014 US3** adds the room's half of the stage:
+ *
+ * * **US3-S1** — the compiled graph's nodes are drawn, unlit, inside the room
+ *   (FR-011). What the stage draws is `tests/unit/DraftStage.test.tsx`.
+ * * **US3-S3** — a document whose graph did not compile draws no stage at all,
+ *   and the deriver's refusal is what stands in its place (FR-013).
+ *
  * **Nothing here pins the live corpus** (008 US1). The spec directory is a name
  * no repository uses and every document's text is written by the test that
- * asserts it.
+ * asserts it; the one graph is a recorded artefact from another repository's
+ * floor, not a directory on this one's disk (constitution V).
  */
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
@@ -44,7 +52,11 @@ import type {
   DraftCheckState,
   DraftDocument,
   DraftDocumentEntry,
+  DraftGraph,
 } from "../../src/api/draftDocument";
+
+/** A recorded `workgraph.json`, for the stage half (014 US3, constitution V). */
+import twoNodeRaw from "../../../fixtures/workgraphs/002-expense-notes.json?raw";
 
 /** A directory name no repository uses. */
 const SPEC_DIR = "920-a-constructed-draft";
@@ -686,6 +698,84 @@ describe("no composite verdict anywhere in the view (US2-S4, FR-009, SC-003)", (
     expect(statement).not.toBeNull();
     expect(statement?.textContent).toContain("ergane spec validate");
     expect(statement?.textContent).toBe(UNAVAILABLE);
+    document.body.removeChild(c);
+  });
+});
+
+/**
+ * The room's half of US3: whether there is a stage on the page at all.
+ *
+ * What the stage *draws* is `tests/unit/DraftStage.test.tsx`, over recorded
+ * workgraphs. What is asserted here is the wiring — that the room hands the
+ * document's own graph to the stage and draws none when the document carries
+ * none — because FR-013 is a claim about the whole view and not about a
+ * component nobody mounted.
+ */
+describe("the graph draws what will run (US3-S1, US3-S3)", () => {
+  /** The recorded two-node artefact, in the shape the document carries it. */
+  const graph = JSON.parse(twoNodeRaw) as DraftGraph;
+
+  it("draws the compiled graph's nodes, unlit, in the room", async () => {
+    const c = await renderDraft(buildDoc({ graph }));
+
+    expect(c.querySelector("[data-draft-stage]")).not.toBeNull();
+    expect(
+      [...c.querySelectorAll("[data-draft-node]")].map((card) =>
+        card.getAttribute("data-story-id"),
+      ),
+    ).toEqual(["us1", "us2"]);
+    // Unlit in the room as well as in the component: the Showfloor's clothing
+    // reaches no node here, because none of them has run (FR-011).
+    expect(c.querySelectorAll("[data-ladder]").length).toBe(0);
+    expect(c.querySelectorAll("[data-draft-node] [data-chip]").length).toBe(0);
+    document.body.removeChild(c);
+  });
+
+  it("draws no stage when the graph did not compile (FR-013)", async () => {
+    // The document a refused derivation produces: the deriver's own message is
+    // on the page under its own name, and `graph` is null.
+    const c = await renderDraft(
+      buildDoc({
+        graph: null,
+        checks: [
+          check("derive_workgraph", "refused", {
+            detail: "US2 declares `depends_on: [US9]`, which no story declares",
+          }),
+          check("check_prompt_assembly", "not_run", {
+            not_run_because: "the work graph did not compile",
+          }),
+          check("check_slice_coverage", "not_run", {
+            not_run_because: "the work graph did not compile",
+          }),
+        ],
+      }),
+    );
+
+    // No stage, and no part of one: an empty stage is a claim about a graph.
+    for (const part of ["[data-draft-stage]", "[data-draft-stage-canvas]", "[data-wires]"]) {
+      expect(c.querySelectorAll(part).length, `${part} was drawn`).toBe(0);
+    }
+    // And the reason is on screen, in the deriver's own words — which is the
+    // answer to "why is there no stage", said by the thing that knows.
+    expect(c.querySelector('[data-check="derive_workgraph"]')?.textContent).toContain(
+      "which no story declares",
+    );
+    document.body.removeChild(c);
+  });
+
+  it("draws no stage for the trio the corpus mostly has — a sketch", async () => {
+    // Most of this corpus is a `spec.md` with no Work Graph in it, so `graph`
+    // is null on most renders. That is the common case, not the error case, and
+    // it produces no stage and no note (FR-002, FR-013 together).
+    const c = await renderDraft(
+      buildDoc({
+        graph: null,
+        documents: [present("spec.md", "# a sketch"), absent("plan.md"), absent("tasks.md")],
+      }),
+    );
+
+    expect(c.querySelector("[data-draft-stage]")).toBeNull();
+    expect(c.querySelector(".degraded")).toBeNull();
     document.body.removeChild(c);
   });
 });

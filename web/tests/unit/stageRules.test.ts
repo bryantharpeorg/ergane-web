@@ -58,10 +58,34 @@ function rules(css: string): Rule[] {
 }
 
 const all = rules(showfloorCss);
+
+/** The selectors one rule is written for, a comma list split back apart. */
+function selectorsOf(rule: Rule): string[] {
+  return rule.selector.split(",").map((one) => one.trim());
+}
+
+/**
+ * Everything the sheet declares for one selector, wherever it declares it.
+ *
+ * **014 US3 widened this and did not weaken it.** Every assertion below is the
+ * one it always was — the figures are still DESIGN.md's and are still read off
+ * the selector DESIGN.md's rule is written for. What changed underneath is that
+ * a stage rule is now written for *two* rooms (`.showfloor .node, .draft .node`),
+ * because the drafting table stages a compiled Work Graph with the same assets
+ * and a copied rule would be a second declaration of one design. An exact-string
+ * lookup could not see a selector inside a list, and splitting the list is what
+ * lets it.
+ *
+ * Joining every matching rule rather than taking the first is the other half:
+ * the Showfloor's four control resets moved into a rule of their own in that
+ * diff (its card is a `<button>`; the drafting table's is not), so what
+ * `.showfloor .node` declares is now spread over two rules and this reads both.
+ * The lookup still fails loudly when nothing declares the selector at all.
+ */
 const find = (selector: string): Rule => {
-  const rule = all.find((candidate) => candidate.selector === selector);
-  expect(rule, `${selector} is declared`).toBeDefined();
-  return rule!;
+  const matching = all.filter((candidate) => selectorsOf(candidate).includes(selector));
+  expect(matching.length, `${selector} is declared`).toBeGreaterThan(0);
+  return { selector, declarations: matching.map((rule) => rule.declarations).join("\n") };
 };
 
 /** The stage, its canvas, and everything the canvas holds. */
@@ -188,6 +212,87 @@ describe("the figures are DESIGN.md's", () => {
     const gate = showfloorCss.indexOf("@media (prefers-reduced-motion: no-preference)");
     expect(gate).toBeGreaterThan(-1);
     expect(showfloorCss.indexOf("animation:")).toBeGreaterThan(gate);
+  });
+});
+
+/**
+ * The stage assets are worn by two rooms, from one declaration (014 US3).
+ *
+ * `DESIGN.md` § The drafting table: "A compiled Work Graph draws with the
+ * Showfloor's stage assets and the same two edge strokes, with every node in the
+ * unlit form." The drafting table therefore wears these rules — and the way it
+ * must *not* wear them is by copying them, which is how two rooms come to draw
+ * two different cards after one of them is corrected.
+ *
+ * The second half is the one worth a test of its own. **The run's clothing is
+ * not shared.** The chip, the ladder and its fills, the selection outline, the
+ * focus ring and the control resets all describe work that has happened; a graph
+ * that has not dispatched has none of it, and DESIGN.md forbids inventing a
+ * glyph for the absence: "Do not add a twelfth glyph for 'not yet': that is the
+ * absence of state, not a state." A rule that quietly grew a `.draft` selector
+ * would put a run's clothing on a node that has never run.
+ */
+describe("the drafting table shares the stage's assets, not the run's clothing", () => {
+  /** Every rule in this sheet the drafting table is also written for. */
+  const shared = all.filter((rule) =>
+    selectorsOf(rule).some((one) => one.startsWith(".draft ")),
+  );
+
+  it("shares the canvas, the ranks, the two strokes and the card", () => {
+    const draftSelectors = shared.flatMap(selectorsOf).filter((one) => one.startsWith(".draft "));
+    for (const asset of [
+      ".draft .dag-scroll",
+      ".draft .dag",
+      ".draft .dag .wires",
+      ".draft .dag .wire",
+      ".draft .dag .wire.merge",
+      ".draft .dag .wire.pass",
+      ".draft .ranks",
+      ".draft .rank",
+      ".draft .node",
+      ".draft .node .nid",
+      ".draft .node .ntitle",
+      ".draft .node .nsub",
+    ]) {
+      expect(draftSelectors, `${asset} draws with the Showfloor's own rule`).toContain(asset);
+    }
+  });
+
+  it("declares each of them once, for both rooms, rather than twice", () => {
+    // The whole point: every rule the drafting table wears also names the
+    // Showfloor, so there is one declaration of one design and one place to
+    // change it. A `.draft` rule standing alone would be the copy.
+    for (const rule of shared) {
+      expect(
+        selectorsOf(rule).some((one) => one.startsWith(".showfloor ")),
+        `${rule.selector} is the drafting table's own copy of a stage rule`,
+      ).toBe(true);
+    }
+    expect(shared.length).toBeGreaterThan(10);
+  });
+
+  it("dresses no node of an undispatched graph in a run's clothing", () => {
+    // Each of these describes work that has happened. None may reach a room
+    // whose graph has not run.
+    for (const run of [".chip", ".ladder", ".node.sel", ".node:focus-visible", ".metric"]) {
+      const leaked = shared.filter((rule) =>
+        selectorsOf(rule).some((one) => one.startsWith(".draft ") && one.includes(run)),
+      );
+      expect(
+        leaked.map((rule) => rule.selector),
+        `${run} is a run's clothing and the unlit stage must not wear it`,
+      ).toEqual([]);
+    }
+
+    // And the control resets are the Showfloor's alone: its card is a
+    // `<button>` because a pick fills its detail pane, and a `cursor: pointer`
+    // in a room with no selection advertises a verb it does not have.
+    for (const rule of shared) {
+      expect(
+        /cursor\s*:\s*pointer/.test(rule.declarations),
+        `${rule.selector} makes an unlit card look like a control`,
+      ).toBe(false);
+    }
   });
 });
 
