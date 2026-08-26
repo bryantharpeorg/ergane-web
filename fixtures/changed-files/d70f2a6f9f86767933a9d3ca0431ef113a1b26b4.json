@@ -1,0 +1,5 @@
+[
+  "pane/floor_document.py",
+  "pane/stage.py",
+  "tests/test_stage.py"
+]

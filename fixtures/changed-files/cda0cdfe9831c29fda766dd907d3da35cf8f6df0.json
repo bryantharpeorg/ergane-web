@@ -1,0 +1,10 @@
+[
+  "web/src/showfloor/EpicStage.tsx",
+  "web/src/showfloor/layout.ts",
+  "web/src/showfloor/showfloor.css",
+  "web/tests/smoke/showfloor.spec.ts",
+  "web/tests/unit/EpicStage.test.tsx",
+  "web/tests/unit/layoutStage.test.ts",
+  "web/tests/unit/stageRules.test.ts",
+  "web/tests/unit/support/xyflow-double.tsx"
+]

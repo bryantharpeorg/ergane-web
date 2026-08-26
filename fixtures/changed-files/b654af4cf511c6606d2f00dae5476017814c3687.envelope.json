@@ -1,0 +1,8 @@
+{
+  "captured_at": "2026-08-26T21:43:30+00:00",
+  "seam": "pane.landing.read_changed_files over factory.workgraph.worktree._git",
+  "source": "/home/tharpeboxadmin/.local/state/ergane/runtime/worktrees/011-the-work-comes-back-for-review/us2, commit b654af4cf511c6606d2f00dae5476017814c3687",
+  "host": "tharpebox",
+  "ergane_version": "0.2.0",
+  "notes": "The paths b654af4cf511c6606d2f00dae5476017814c3687 changed, sorted and unique, as the review room reads them. Recorded from the same branch as the landing document beside it; a commit no recording names is a read nobody made."
+}

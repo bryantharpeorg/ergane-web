@@ -1,0 +1,6 @@
+[
+  "web/src/desk/SpendStrip.tsx",
+  "web/src/styles/global.css",
+  "web/tests/smoke/desk.spec.ts",
+  "web/tests/unit/SpendStrip.test.tsx"
+]

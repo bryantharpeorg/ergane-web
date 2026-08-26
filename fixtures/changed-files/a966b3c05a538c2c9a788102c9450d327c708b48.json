@@ -1,0 +1,7 @@
+[
+  "tests/conftest.py",
+  "tests/hermetic.py",
+  "tests/test_readonly_sweep.py",
+  "tests/test_reads_no_host_state.py",
+  "tests/test_scaffold.py"
+]

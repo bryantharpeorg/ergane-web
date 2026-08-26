@@ -1,0 +1,14 @@
+[
+  ".gitignore",
+  "pane/app.py",
+  "pane/checks.py",
+  "pane/draft.py",
+  "route-manifest.json",
+  "tests/test_draft_checks.py",
+  "web/src/api/draftDocument.ts",
+  "web/src/draft/Checks.tsx",
+  "web/src/draft/Draft.tsx",
+  "web/src/styles/global.css",
+  "web/tests/smoke/draft.spec.ts",
+  "web/tests/unit/Draft.test.tsx"
+]

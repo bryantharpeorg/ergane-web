@@ -1,0 +1,16 @@
+[
+  "docs/decisions.md",
+  "specs/006-the-desk-matches-the-stage/spec.md",
+  "web/playwright.config.ts",
+  "web/src/App.tsx",
+  "web/src/desk/Desk.tsx",
+  "web/src/desk/MilestoneBar.tsx",
+  "web/src/desk/NodeChevron.tsx",
+  "web/src/main.tsx",
+  "web/src/styles/global.css",
+  "web/src/styles/tokens.css",
+  "web/tests/smoke/desk-world.spec.ts",
+  "web/tests/unit/RulingLine.test.tsx",
+  "web/tests/unit/deskWorld.test.ts",
+  "web/tests/unit/tokens2.test.ts"
+]

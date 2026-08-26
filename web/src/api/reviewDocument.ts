@@ -56,6 +56,37 @@ export interface ReviewStory {
   notes: ReviewNote[];
 }
 
+/** One story a served revision does not carry, as the header names it. */
+export interface MissingStory {
+  story_key: string;
+  title: string;
+}
+
+/**
+ * The revision this service is serving, and whether it carries the epic (011
+ * US2, FR-009/FR-010).
+ *
+ * **`contains_epic` has three values and the third is `null`.** `true` is a
+ * service serving the work under review; `false` is a mismatch, with `missing`
+ * naming the stories the revision does not carry; `null` is a question the
+ * backend could not ask — a shallow checkout cannot place a commit it does not
+ * have. The room renders the three differently, because an alarm raised over a
+ * read nobody made is an alarm nobody will believe the once it is real.
+ */
+export interface ServedRevision {
+  revision: string | null;
+  /** The same revision cut once, server-side, so two renderings cannot differ. */
+  short_revision: string | null;
+  branch: string | null;
+  committed_at: string | null;
+  subject: string | null;
+  contains_epic: boolean | null;
+  missing: MissingStory[];
+  /** The facts the checkout did not supply, named rather than defaulted. */
+  unknown: string[];
+  notes: ReviewNote[];
+}
+
 /** One route the epic reaches, and the stories that reach it. */
 export interface ReviewRoute {
   path: string;
@@ -71,6 +102,8 @@ export interface ReviewDocument {
   landing_branch: string | null;
   /** `workgraph` or `spec.md` — where the story identity was read. */
   story_source: string;
+  /** The header FR-009 says is on every render, refusal included. */
+  served: ServedRevision;
   stories: ReviewStory[];
   routes: ReviewRoute[];
   notes: ReviewNote[];
@@ -88,6 +121,11 @@ export interface ReviewRefusal {
   spec_dir: string;
   landing_branch: string | null;
   unmerged: UnmergedStory[];
+  /**
+   * A refusal is a render, so it carries the header too (FR-009's "any
+   * render"). `null` only for a backend older than 011 US2.
+   */
+  served: ServedRevision | null;
   detail: string;
 }
 

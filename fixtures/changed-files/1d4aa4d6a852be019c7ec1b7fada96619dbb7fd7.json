@@ -1,0 +1,13 @@
+[
+  "tests/test_showfloor_attention.py",
+  "web/src/showfloor/AttentionBadge.tsx",
+  "web/src/showfloor/EpicStage.tsx",
+  "web/src/showfloor/Showfloor.tsx",
+  "web/src/showfloor/showfloor.css",
+  "web/tests/smoke/showfloor.spec.ts",
+  "web/tests/unit/AttentionBadge.test.tsx",
+  "web/tests/unit/EpicStage.test.tsx",
+  "web/tests/unit/Showfloor.test.tsx",
+  "web/tests/unit/support/event-source-double.ts",
+  "web/tests/unit/support/xyflow-double.tsx"
+]

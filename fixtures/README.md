@@ -124,22 +124,30 @@ by default rather than off whichever branch the recorder was standing on, so the
 and the body come from the same day. Re-record it with the landing document, never
 alone.
 
-### Not recorded yet: what a landing commit changed (016)
+### What a landing commit changed (016, recorded for 011 US2)
 
 The review room reads a second git-backed fact beside the landing: the file list of
 each landing commit, `pane.landing.read_changed_files` over ergane's own `_git`.
 `FixtureReader.changed_files` looks for `changed-files/<commit>.json` — one recorded
-answer per landing commit — and **no such document exists**. Until one is captured the
-read takes the missing-document rule above and comes back naming the path it looked
-for, which each story's note then says in words rather than a file list nobody landed.
-That is deliberate for the reason the gate run below is: a hand-written change list is
-a pane that renders the fixture and not the factory (constitution V).
+answer per landing commit.
+
+**Recorded 2026-08-26, off the same branch and the same commits as the landing
+document beside it.** 016 landed the replay path and left the documents uncaptured; 011
+US2 needed them, because the review room's centre track renders a *changed route* in a
+frame, and a demo floor whose change lists were all degraded reads offered no route to
+render — an element that can never fill, which is the first thing `DESIGN.md` § Don't
+names. Every one is the live seam's own answer over commits already on the branch;
+nothing here was written by hand (constitution V).
+
+A commit no document names is still a read nobody made, and comes back as one under the
+missing-document rule above — never an empty change list, which is the silent-empty
+answer this repository has been bitten by before.
 
 Both git reads had to leave real git for a room to answer the same in a checkout with
 no history as in a full one (016 FR-003) — a landing replayed from here while the file
 list still read the host would have left the same defect in half.
 
-Recording one is a command, and the rows come back with no source touched:
+Re-recording is a command, and the rows come back with no source touched:
 
 ```bash
 $PY scripts/record-fixtures.py changed-files "$PWD" \

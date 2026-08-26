@@ -1,0 +1,12 @@
+[
+  "web/src/draft/Draft.tsx",
+  "web/src/draft/DraftStage.tsx",
+  "web/src/showfloor/Legend.tsx",
+  "web/src/showfloor/Stage.tsx",
+  "web/src/showfloor/showfloor.css",
+  "web/src/styles/global.css",
+  "web/tests/smoke/draft.spec.ts",
+  "web/tests/unit/Draft.test.tsx",
+  "web/tests/unit/DraftStage.test.tsx",
+  "web/tests/unit/stageRules.test.ts"
+]

@@ -1,0 +1,7 @@
+[
+  "pane/app.py",
+  "pane/events.py",
+  "pane/showfloor.py",
+  "tests/test_events.py",
+  "tests/test_showfloor_document.py"
+]

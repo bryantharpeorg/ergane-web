@@ -1,0 +1,6 @@
+[
+  "tests/corpus.py",
+  "tests/test_no_test_pins_live_corpus.py",
+  "tests/test_showfloor_document.py",
+  "web/tests/smoke/showfloor.spec.ts"
+]

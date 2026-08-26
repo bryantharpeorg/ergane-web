@@ -1,0 +1,8 @@
+[
+  "web/src/desk/AttentionItem.tsx",
+  "web/src/desk/AttentionStrip.tsx",
+  "web/src/desk/timeLeft.ts",
+  "web/src/styles/global.css",
+  "web/tests/smoke/desk.spec.ts",
+  "web/tests/unit/AttentionStrip.test.tsx"
+]

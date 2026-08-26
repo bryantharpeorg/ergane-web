@@ -1,0 +1,22 @@
+[
+  "README.md",
+  "pane/__init__.py",
+  "pane/app.py",
+  "pyproject.toml",
+  "tests/test_scaffold.py",
+  "uv.lock",
+  "web/index.html",
+  "web/package-lock.json",
+  "web/package.json",
+  "web/playwright.config.ts",
+  "web/src/App.tsx",
+  "web/src/main.tsx",
+  "web/src/styles/global.css",
+  "web/src/styles/tokens.css",
+  "web/src/vite-env.d.ts",
+  "web/tests/smoke/shell.spec.ts",
+  "web/tests/unit/App.test.tsx",
+  "web/tests/unit/tokens.test.ts",
+  "web/tsconfig.json",
+  "web/vite.config.ts"
+]

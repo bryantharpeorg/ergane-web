@@ -5,10 +5,18 @@
  * A colour or a face this file named for itself would be the defect
  * constitution VIII calls one.
  *
- * US1 builds the left track. The centre (the thing itself) and the right (the
- * notes) are US2's and US3's, and nothing is reserved for them here: § Don't
- * opens with "don't render an element that can never fill", and an empty column
- * held open for work that has not landed is exactly that.
+ * US1 built the left track and US2 adds the centre: the served-revision header,
+ * the mismatch band, the frame and the measured numbers beside it. The right
+ * track (the notes) is US3's and nothing is reserved for it here: § Don't opens
+ * with "don't render an element that can never fill", and an empty column held
+ * open for work that has not landed is exactly that.
+ *
+ * **The room measures the four laws, so it may not exempt itself from one.**
+ * `measureLawsIn` excuses text past the viewport when a scrolling ancestor holds
+ * it, which means every `overflow-x: auto` in this file is an exemption from law
+ * (b). Exactly one is written: the frame's scroller, which is the § Stage
+ * sanction in this room's shape. The left track scrolls on `overflow-y: auto`
+ * with `overflow-x: hidden` for that reason and no other.
  */
 
 .review {
@@ -244,4 +252,331 @@
 .rv-unmerged .num {
   color: var(--gold);
   margin-right: 0.5rem;
+}
+
+/* ── The served-revision header (011 US2, FR-009) ──────────────────────────
+   § The review room: "the served revision is a header, not a footnote. Micro
+   uppercase over a hairline at the top of the view, always present." Over the
+   hairline, above the room, on the document and on the refusal alike. */
+.rv-served {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 1.6rem;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--t-tag);
+  color: var(--muted);
+  min-width: 0;
+}
+
+.rv-served-label {
+  margin: 0;
+}
+
+.rv-served-sha {
+  color: var(--ink);
+}
+
+.rv-served-branch {
+  color: var(--accent);
+}
+
+.rv-served-subject,
+.rv-served-when {
+  color: var(--faint);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* The verdict in words beside the fact, never a colour on its own
+   (§ Don't — state is never carried by colour alone). */
+.rv-contains[data-contains="yes"] {
+  color: var(--olive);
+  font-weight: 600;
+}
+
+.rv-contains[data-contains="no"] {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.rv-served-note {
+  color: var(--gold);
+}
+
+/* ── The mismatch band (FR-010) ────────────────────────────────────────────
+   § The review room: "a full-width band above the frame in the room's warning
+   face -- not a chip, not a tooltip." Gold, because nothing has failed: the
+   operator has something to do before the screens below are worth reading. */
+.rv-mismatch {
+  background: var(--gold-w);
+  border: 1px solid var(--gold);
+  border-left-width: 4px;
+  border-radius: 2px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.rv-mismatch .lead {
+  font-weight: 600;
+  font-size: var(--t-body);
+  color: var(--ink);
+  margin: 0;
+}
+
+.rv-mismatch p {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.rv-missing {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: var(--t-small);
+}
+
+.rv-missing .num {
+  color: var(--gold);
+  margin-right: 0.5rem;
+}
+
+/* ── The two tracks (011 US2) ──────────────────────────────────────────────
+   § The review room: "the frame is furniture, and it is the widest thing on
+   screen. The rendered route gets the room's centre and the operator's chosen
+   width; the two side tracks hold at a fixed measure and scroll
+   independently."
+
+   The left track scrolls on `overflow-y: auto` with `overflow-x: hidden` and
+   not `auto`, deliberately. A scroller on the horizontal axis is an *exemption*
+   from law (b) -- `measureLawsIn` excuses text past the viewport when a
+   scrolling ancestor holds it -- and a room that measures the four laws must
+   not hand itself an exemption from one of them to make a column fit. */
+.rv-tracks {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  gap: 1.4rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.rv-changed {
+  max-height: 78vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.4rem;
+}
+
+.rv-thing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+/* ── The controls ──────────────────────────────────────────────────────────
+   Buttons, not a form: the review room takes no verb, and every control here
+   changes what is on screen and nothing on disk (constitution I, FR-014). */
+.rv-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 1.4rem;
+  min-width: 0;
+}
+
+.rv-control {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.rv-control-label {
+  margin-right: 0.2rem;
+}
+
+.rv-pick {
+  font-family: var(--sans);
+  font-size: var(--t-tag);
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+}
+
+.rv-pick.num {
+  font-family: var(--mono);
+}
+
+.rv-pick:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+/* Selected in three ways at once, because § Don't forbids state carried by
+   colour alone: the wash, the accent rule, and the weight. */
+.rv-pick[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-w);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── The frame and the numbers beside it ───────────────────────────────────*/
+.rv-thing-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* The one horizontal scroller this room sanctions, and it is the frame's: a
+   2560px render inside a 1280px room scrolls here rather than taking the
+   document sideways with it. */
+.rv-frame-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* `content-box`, against the global `border-box`, and deliberately: the width
+   the operator picked has to be the width the *document inside* is laid out at.
+   Under `border-box` the rule around the frame eats two pixels of it, and the
+   room would then report a measurement of 1278 under a control labelled 1280 —
+   a number about the furniture rather than about the render. */
+.rv-render {
+  display: block;
+  box-sizing: content-box;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+.rv-measured {
+  flex: 0 0 19rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.8rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+.rv-measured-head {
+  font-size: var(--t-title);
+  font-weight: 600;
+  margin: 0;
+}
+
+.rv-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-top: 1px solid var(--hairline);
+  padding-top: 0.5rem;
+}
+
+/* § The review room: "numerals right-aligned tabular mono, the unit always
+   present, the law named beside the figure." */
+.rv-figure,
+.rv-law {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.rv-figure-label,
+.rv-law-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rv-law-name {
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+.rv-figure-value,
+.rv-law-figure {
+  margin-left: auto;
+  font-size: var(--t-small);
+  color: var(--ink);
+  text-align: right;
+}
+
+.rv-laws {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-top: 1px solid var(--hairline);
+  padding-top: 0.5rem;
+}
+
+/* A violation is shown with its own measured particulars, never as a count
+   alone: `235px of graph hidden at 1280` is what made the manual reviews worth
+   automating. */
+.rv-law[data-violations="0"] .rv-law-figure {
+  color: var(--olive);
+}
+
+.rv-law:not([data-violations="0"]) .rv-law-name,
+.rv-law:not([data-violations="0"]) .rv-law-figure {
+  color: var(--alarm);
+  font-weight: 600;
+}
+
+.rv-law-findings {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: var(--t-chip);
+  color: var(--alarm);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.rv-measured-foot {
+  margin: 0;
+}
+
+/* Below the widths this room is swept at, the tracks stack rather than
+   squeezing the frame into a column narrower than its own scrollbar. */
+@media (max-width: 68rem) {
+  .rv-tracks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rv-changed {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .rv-thing-body {
+    flex-direction: column;
+  }
+
+  .rv-measured {
+    flex: 1 1 auto;
+    width: 100%;
+  }
 }

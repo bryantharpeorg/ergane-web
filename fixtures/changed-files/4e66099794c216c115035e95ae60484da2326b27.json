@@ -1,0 +1,11 @@
+[
+  "fixtures/README.md",
+  "pane/app.py",
+  "pane/config.py",
+  "pane/fixture_floor.py",
+  "pane/floor_document.py",
+  "pane/readers.py",
+  "tests/test_credential_sweep.py",
+  "tests/test_fixture_loader.py",
+  "tests/test_fixture_shapes.py"
+]
