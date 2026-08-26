@@ -42,7 +42,12 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pane.readers import Reader
 
-from pane.landing import LandingFact, read_changed_files
+from pane.landing import (
+    LandingFact,
+    commit_contained,
+    read_changed_files,
+    read_served_revision,
+)
 from pane.readers import QueryRefused, TransportFailed
 from pane.showfloor import StoryHeading, parse_spec_name, parse_story_headings
 
@@ -293,6 +298,15 @@ class ReviewReaders:
     #: The manifest, loaded once by a caller that serves many requests.  `None`
     #: loads the committed one per assembly.
     manifest: RouteManifest | None = None
+    #: `() -> (revision, dirty)` for the checkout the service runs from (011
+    #: FR-009).  `None` is a build with no such read bound at all, which is a
+    #: different thing from a read that answered `unknown` — and both render as
+    #: a revision nobody can name, because neither is a claim about the tree.
+    served_revision: Callable[[], tuple[str | None, bool | None]] | None = None
+    #: `(revision, commit) -> bool`: does the served revision hold that landing
+    #: (011 FR-010)?  Injected for the reason every other read here is — every
+    #: failure shape is then drivable from a committed test with no repository.
+    contains: Callable[[str, str], bool] | None = None
 
     @classmethod
     def from_reader(
@@ -331,6 +345,18 @@ class ReviewReaders:
             workgraph=showfloor.workgraph,
             landing_branch=branch,
             manifest=manifest,
+            # The served revision is the *checkout's*, not the branch's, and the
+            # difference is the whole of FR-010: the branch is where the epic
+            # landed and the checkout is what this process is serving, and a
+            # deployment started from a pinned SHA has them disagree.  Read
+            # fresh on every assembly rather than memoised the way the landing
+            # scan is — the roadmap hard-resets the operator's checkout every
+            # tick (N50), so a cached revision is the exact lie FR-009 exists to
+            # prevent, and it is two git commands rather than a history walk.
+            served_revision=lambda: read_served_revision(repo),
+            contains=lambda revision, commit: commit_contained(
+                repo, revision, commit
+            ),
         )
 
 
@@ -385,8 +411,91 @@ def assemble_review(
         "story_source": story_source,
         "stories": stories,
         "routes": _reached_routes(stories, manifest),
+        "served": _served(stories, readers),
         "notes": notes,
     }
+
+
+def _served(stories: list[dict], readers: ReviewReaders) -> dict:
+    """The revision the service is serving, and whether it holds this epic.
+
+    FR-009 and FR-010, and the reason both are requirements rather than niceties
+    is that this room reviews the *running service*.  It builds no branch: what
+    the operator sees in the frame is whatever this process is serving, so if
+    that is not the tree the epic landed in, the screens are about something
+    else and so is every note taken beside them.
+
+    **Three answers, and none of the three may be rendered as another.**
+    `contains_epic` is `True` when every landing is reachable from the served
+    revision, `False` when at least one is not — `missing` names those, with
+    their SHAs, because "the revision is wrong" is not actionable without "wrong
+    by what" — and `None` when the question could not be asked at all.  A `None`
+    read as a mismatch sends the operator after a deployment that is fine; a
+    mismatch read as unknown lets them review the wrong thing in silence
+    (constitution III).
+
+    `unplaced` is the other half of that honesty.  A story whose landing the
+    branch could not supply has no commit to ask containment about, so a
+    document with any unplaced story cannot claim the revision holds the epic —
+    but a landing that is *definitely* absent is still a mismatch, and is
+    reported as one, because a partial answer that already contains a "no" is a
+    no.
+    """
+    revision, dirty = (
+        (None, None) if readers.served_revision is None else readers.served_revision()
+    )
+    served: dict[str, Any] = {
+        "revision": revision,
+        # Cut once, server-side, for the reason a landing SHA is: two renderings
+        # of one revision can disagree about length, and the operator compares
+        # these two spellings by eye.
+        "short_revision": None if revision is None else revision[:12],
+        "dirty": dirty,
+        "contains_epic": None,
+        "missing": [],
+        "unplaced": [],
+        "notes": [],
+    }
+
+    served["unplaced"] = [
+        story["story_key"] for story in stories if story["commit"] is None
+    ]
+    placed = [
+        (story["story_key"], story["commit"])
+        for story in stories
+        if story["commit"] is not None
+    ]
+    if revision is None or readers.contains is None or not placed:
+        return served
+
+    missing: list[dict] = []
+    for story_key, commit in placed:
+        try:
+            held = readers.contains(revision, commit)
+        except (TransportFailed, QueryRefused) as exc:
+            served["notes"].append(
+                {"read": exc.read, "mode": _mode(exc), "detail": exc.detail}
+            )
+            # The walk stops at the first read that could not be made: the
+            # answer is already unknown, and asking again once per story would
+            # spend a subprocess apiece to say so four times.
+            served["missing"] = []
+            return served
+        if not held:
+            missing.append(
+                {
+                    "story_key": story_key,
+                    "commit": commit,
+                    "short_commit": commit[:12],
+                }
+            )
+
+    served["missing"] = missing
+    if missing:
+        served["contains_epic"] = False
+    elif not served["unplaced"]:
+        served["contains_epic"] = True
+    return served
 
 
 def _assemble_story(

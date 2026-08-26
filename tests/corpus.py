@@ -52,7 +52,13 @@ import subprocess
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from pane.landing import LandingFact, LandingReader, read_changed_files
+from pane.landing import (
+    LandingFact,
+    LandingReader,
+    commit_contained,
+    read_changed_files,
+    read_served_revision,
+)
 from pane.readers import TransportFailed
 from pane.review import ReviewReaders
 from pane.showfloor import (
@@ -298,6 +304,12 @@ class Corpus:
         and the manifest is the committed one — so what a test asserts about a
         route is what an operator would be shown, not a mapping written to make
         an assertion pass.
+
+        **011 US2 binds two more of the same kind.**  The served revision and
+        the containment question are read out of the *same* repository, which is
+        what makes the pair of revisions FR-010 needs constructible: a test moves
+        the checkout behind its own branch and the two reads then disagree, over
+        real git, exactly as a deployment started from a pinned SHA does.
         """
         if self.repo is None:
             raise AssertionError("this corpus was not built inside a repository")
@@ -306,6 +318,10 @@ class Corpus:
             "changed_files": lambda commit: read_changed_files(self.repo, commit),
             "workgraph": self.workgraph,
             "landing_branch": branch,
+            "served_revision": lambda: read_served_revision(self.repo),
+            "contains": lambda revision, commit: commit_contained(
+                self.repo, revision, commit
+            ),
         }
         fields.update(overrides)
         return ReviewReaders(**fields)
