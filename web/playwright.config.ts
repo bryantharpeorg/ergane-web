@@ -108,6 +108,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // 011 US2: the review room. Its own project, on the shared demo backend
+      // like the Desk's and the Showfloor's, because the room reads the same
+      // fixture floor and writes nothing at all (FR-014).
+      name: "review",
+      testMatch: /review\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       // 005 US2: `shell.spec.ts` matched no project and so was collected by no
       // gate — the defect 001 US1-S1 exists to prevent, found while replacing
       // the first world's assertions in it. Same backend as the Desk's.
