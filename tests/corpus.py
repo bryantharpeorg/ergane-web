@@ -52,8 +52,9 @@ import subprocess
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from pane.landing import LandingFact, LandingReader
+from pane.landing import LandingFact, LandingReader, read_changed_files
 from pane.readers import TransportFailed
+from pane.review import ReviewReaders
 from pane.showfloor import (
     ShowfloorReaders,
     assemble_showfloor,
@@ -280,6 +281,35 @@ class Corpus:
             landing_branch=branch,
         )
 
+    def landing_facts(self, spec_dir: str, branch: str = "dev") -> dict[str, LandingFact]:
+        """What the branch this corpus was built on carries for one spec.
+
+        The production read over a repository the test built, so a test can say
+        *what landed* without re-deriving a commit hash it would have to invent.
+        """
+        if self.repo is None:
+            raise AssertionError("this corpus was not built inside a repository")
+        return LandingReader(self.repo, branch).facts(spec_dir)
+
+    def review_readers(self, branch: str = "dev", **overrides) -> "ReviewReaders":
+        """The review room's reads, bound to this corpus (011 US1).
+
+        Both git reads are the production ones over a repository the test built,
+        and the manifest is the committed one — so what a test asserts about a
+        route is what an operator would be shown, not a mapping written to make
+        an assertion pass.
+        """
+        if self.repo is None:
+            raise AssertionError("this corpus was not built inside a repository")
+        fields = {
+            "landing_facts": LandingReader(self.repo, branch).facts,
+            "changed_files": lambda commit: read_changed_files(self.repo, commit),
+            "workgraph": self.workgraph,
+            "landing_branch": branch,
+        }
+        fields.update(overrides)
+        return ReviewReaders(**fields)
+
     # --- the document
 
     def assemble(self, **overrides) -> dict:
@@ -380,6 +410,7 @@ def build_landed_repository(
     tmp_path: Path,
     *fixtures: SpecFixture,
     landings: dict[str, Sequence[str]] | None = None,
+    files_by_story: dict[str, Sequence[str]] | None = None,
     branch: str = "dev",
     first_pr: int = 41,
 ) -> Corpus:
@@ -389,6 +420,15 @@ def build_landed_repository(
     no remote — so the read resolves the local branch and touches no network.
     The frontmatter is whatever the fixtures declare: the point of this builder
     is that the branch and the attestation can be made to disagree.
+
+    **011 adds the fourth condition: what a landing commit touched.**  The review
+    room reads each landing's changed-file list and resolves it against the
+    committed route manifest, so a test needs commits that changed *named* paths
+    — `files_by_story` is `{"<spec-dir>:<STORY>": [path, …]}` and a landing not
+    named there touches the marker file this builder has always written.  The
+    paths are the repository's own spellings on purpose: what the resolution
+    then asserts is the committed manifest's answer, never a fixture's idea of
+    one.
     """
     repo = tmp_path / "repo"
     repo.mkdir(parents=True, exist_ok=True)
@@ -402,11 +442,13 @@ def build_landed_repository(
     pr = first_pr
     for spec_dir, story_keys in (landings or {}).items():
         for story_key in story_keys:
-            landed = repo / "landings" / spec_dir
-            landed.mkdir(parents=True, exist_ok=True)
-            (landed / f"{story_key.lower()}.txt").write_text(
-                f"{story_key} of {spec_dir}\n", encoding="utf-8"
+            touched = (files_by_story or {}).get(
+                f"{spec_dir}:{story_key}", [f"landings/{spec_dir}/{story_key.lower()}.txt"]
             )
+            for relative in touched:
+                target = repo / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(f"{story_key} of {spec_dir}\n", encoding="utf-8")
             git(repo, "add", "--all")
             git(repo, "commit", "--quiet", "-m", landing_subject(spec_dir, story_key, pr))
             pr += 1
