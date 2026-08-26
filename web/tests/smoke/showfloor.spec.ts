@@ -44,6 +44,12 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { measureLaws } from "./support/laws";
+// 013 US3: the gate run's records, built through the one definition of the
+// document contract this repository keeps, rather than a second one written
+// here. See the block at the foot of this file for why the room has to be
+// handed them at all.
+import { attemptOf, evidenceOf, gateOf } from "../unit/support/showfloor-builder";
+import type { AttemptRecord, StoryEvidence } from "../../src/api/showfloorDocument";
 
 interface RailEntry {
   spec_dir: string;
@@ -2688,5 +2694,729 @@ test.describe("the scroll wears the room's clothes (FR-009, FR-010, FR-011)", ()
     expect(fitted, "fitting stages were measured at every width, in both themes").toBe(
       staged.length * US2_WIDTHS.length * SCHEMES.length,
     );
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   013 US3 — the gate run is honest at every width (FR-009, FR-010).
+
+   US2 drew the section; this is where it is measured. Two things had to be
+   settled before a single law could be applied to it, and both are recorded
+   here because either one, got wrong, is a sweep that passes over nothing.
+
+   ── 1. the section has to be in the viewport to be measured at all ───────
+
+   `[data-showfloor-root]` is `position: fixed; inset: 0; overflow: auto`, so it
+   is a clipping ancestor of everything in the room — and `support/laws.ts`
+   applies every clipping ancestor before it compares a box (005 US4: "two runs
+   of text that cannot both be seen have not collided"). A leaf below the fold
+   clips away to nothing and is dropped from all four laws. Law (d) is stricter
+   still: it asks the browser for its own hit stack through `elementsFromPoint`,
+   which answers nothing at all for a point outside the viewport.
+
+   The gate run is the last section of the pane before the `implements` row,
+   beneath a title, six ladder stops and a facts grid. At the `height: 1000`
+   this file sweeps at, it is off the bottom of the screen — so the two sweeps
+   above ("the four layout laws", "the laws hold with the pane full") have never
+   measured it. Not because they are wrong: it was not on the screen when they
+   looked.
+
+   **And the way to fix that is not to scroll.** Scrolling the room and
+   re-measuring turns law (d) red on `header.mast`, which is `position: sticky;
+   top: 0` over an opaque `--surface` — a sticky bar painting over what scrolls
+   beneath it is what sticky *is*, and it is not D-018's defect of a box
+   standing on readable text at rest. The only way to sweep a scrolled room
+   would be to exempt that painter, and a law with an exemption written into it
+   to make a new test pass is worth less than the test is worth. So the room is
+   given the height its content needs instead, the widths and themes stay
+   exactly the ones the suite sweeps, and every pass asserts the section is
+   **wholly inside the viewport** — which is the assertion that the laws really
+   did see all of it rather than a clipped top edge of it.
+
+   ── 2. the fixture floor cannot fill the section ─────────────────────────
+
+   `FixtureReader.node_history` looks for `verification/<epic_id>/<node_id>.json`
+   and no such document is recorded (`fixtures/README.md`: the evidence store is
+   written on the operator's host by a real build, and constitution V forbids
+   inventing one). So on this floor the section renders in its degraded form for
+   every story. That is a real rendering, it carries the longest unbroken run of
+   text the pane ever has to wrap — an absolute store path with no space in it —
+   and it is swept first, with the section's presence asserted so the pass
+   cannot be a vacuous one.
+
+   The *timeline* form — bands, gate rows, a long command, a fold and the `<pre>`
+   behind it — reaches no width unless it is handed to the room. It is handed to
+   the room the way 009 FR-011 hands it a spec that states no goal: a route
+   double over `/api/showfloor` serving the **document contract**, grafted onto
+   this floor's own rail entry so everything around it is still the real room.
+   The records are built through `tests/unit/support/showfloor-builder.ts`, so
+   there is one definition of that contract in this repository and not a second
+   one written here. Nothing *from the factory* is invented: what a `GateResult`
+   holds is proved against ergane's own writer in `tests/test_evidence_section.py`,
+   and the commands below are this repository's own four gates out of `ergane.yaml`.
+
+   The values are deliberately the hardest shapes the contract allows — the
+   longest command declared here, an unbroken absolute path inside a tail, a gate
+   whose every column the store left null. A layout law is about geometry, and
+   the geometry it has to survive is the extreme and not the typical.
+   ───────────────────────────────────────────────────────────────────────── */
+
+
+/**
+ * Every width the suite sweeps, which is the union of its two sets.
+ *
+ * `WIDTHS` is 1280/1600 and `US2_WIDTHS` adds 2560 (D-016's 3008, capped by the
+ * 96rem frame). US3-S1 says "every width … the suite already sweeps", so this
+ * takes the union rather than either half: the wide end is where the pane's
+ * track is roomiest, and the narrow end is where a fold and an unbroken command
+ * are dangerous.
+ */
+const GATE_WIDTHS = US2_WIDTHS;
+
+/**
+ * A viewport tall enough to lay the whole pane out at once.
+ *
+ * Not a scroll and not a shortcut — see the block header. Height is not one of
+ * the things US3-S1 sweeps, and giving the room more of it changes no
+ * horizontal layout at all; what it changes is how much of the room the four
+ * laws are able to see, which is the whole point. Every pass asserts the
+ * section fits inside it, so a section that outgrew this number would fail
+ * loudly rather than quietly go back to being half-measured.
+ */
+const TALL = 2400;
+
+/** What the section is, where it sits, and how much of it is on the screen. */
+interface SectionBox {
+  present: boolean;
+  visible: boolean;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  paneLeft: number;
+  paneRight: number;
+  viewportHeight: number;
+  attempts: number;
+  gates: number;
+  bands: number;
+  folds: number;
+  openFolds: number;
+}
+
+async function sectionBox(page: Page): Promise<SectionBox> {
+  return page.evaluate(() => {
+    const section = document.querySelector("[data-gate-run]");
+    const pane = document.querySelector("aside.detail");
+    const folds = Array.from(document.querySelectorAll("[data-gate-tail]"))
+      .map((pre) => pre.closest("details"))
+      .filter((fold): fold is HTMLDetailsElement => fold !== null);
+    const counts = {
+      attempts: document.querySelectorAll("[data-gate-attempt]").length,
+      gates: document.querySelectorAll("[data-gate]").length,
+      bands: document.querySelectorAll("[data-gate-band]").length,
+      folds: folds.length,
+      openFolds: folds.filter((fold) => fold.open).length,
+      viewportHeight: document.documentElement.clientHeight,
+    };
+    if (section === null || pane === null) {
+      return {
+        present: false,
+        visible: false,
+        height: 0,
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        paneLeft: 0,
+        paneRight: 0,
+        ...counts,
+      };
+    }
+
+    const box = section.getBoundingClientRect();
+    const paneBox = pane.getBoundingClientRect();
+    return {
+      present: true,
+      visible: getComputedStyle(section).visibility === "visible",
+      height: box.height,
+      left: box.left,
+      right: box.right,
+      top: box.top,
+      bottom: box.bottom,
+      paneLeft: paneBox.left,
+      paneRight: paneBox.right,
+      ...counts,
+    };
+  });
+}
+
+/**
+ * The section is drawn, inside its pane, and wholly on the screen.
+ *
+ * The last clause is what makes the law report that follows it mean anything:
+ * `support/laws.ts` drops whatever its clipping ancestors hide, so a section
+ * hanging below the fold would be swept as if it were not there.
+ */
+async function sectionIsWhollyOnScreen(page: Page, where: string): Promise<SectionBox> {
+  const box = await sectionBox(page);
+  expect(box.present, `${where}: the section is on the page`).toBe(true);
+  expect(box.visible, `${where}: the section is visible`).toBe(true);
+  expect(box.height, `${where}: the section is a box`).toBeGreaterThan(0);
+  expect(box.top, `${where}: the section's top is on the screen`).toBeGreaterThanOrEqual(-0.5);
+  expect(box.bottom, `${where}: the section's foot is on the screen`).toBeLessThanOrEqual(
+    box.viewportHeight + 0.5,
+  );
+  // Containment, applied to the section itself and not only to its leaves.
+  expect(box.left, `${where}: the section starts inside the pane`).toBeGreaterThanOrEqual(
+    box.paneLeft - 0.5,
+  );
+  expect(box.right, `${where}: the section ends inside the pane`).toBeLessThanOrEqual(
+    box.paneRight + 0.5,
+  );
+  return box;
+}
+
+/** Open every fold in the section — the state a tail exists to be read in. */
+async function openEveryFold(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    for (const pre of Array.from(document.querySelectorAll("[data-gate-tail]"))) {
+      const fold = pre.closest("details");
+      if (fold !== null) fold.open = true;
+    }
+  });
+}
+
+/** The four laws over the room as it stands, with this file's own floors. */
+async function lawsHold(page: Page, where: string): Promise<void> {
+  const report = await measureLaws(page);
+
+  expect(report.swept, `${where} rendered something`).toBeGreaterThan(20);
+  expect(report.leaves, `${where} has text leaves`).toBeGreaterThan(10);
+  expect(report.painters, `${where} paints backgrounds`).toBeGreaterThan(5);
+
+  expect(report.escaped, `${where}: a stage child escaped its stage`).toEqual([]);
+  expect(report.past, `${where}: text past the viewport`).toEqual([]);
+  expect(report.overlapping, `${where}: two text leaves overlap`).toEqual([]);
+  expect(report.occluded, `${where}: a box paints over text it does not own`).toEqual([]);
+  expect(report.documentScrollWidth, where).toBeLessThanOrEqual(report.viewport + 0.5);
+  expect(report.roomScrollsSideways, `${where}: the room scrolls sideways`).toBe(false);
+}
+
+test.describe("the gate run holds the four layout laws (013 FR-009)", () => {
+  test("in the degraded form this floor really serves, every width, both themes", async ({
+    page,
+    request,
+  }) => {
+    const entry = await keyedEntry(request);
+    let measured = 0;
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of GATE_WIDTHS) {
+        await page.setViewportSize({ width, height: TALL });
+        await page.goto(`/showfloor/${entry.spec_dir}`);
+        await page.waitForSelector("[data-node-card]");
+
+        for (const story of entry.stories) {
+          await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+          await page.waitForSelector("[data-detail-title]");
+          const where = `${entry.spec_dir}/${story.id} at ${width} in ${scheme}`;
+
+          const box = await sectionIsWhollyOnScreen(page, where);
+          // This floor's section is the degraded one, and the well's `detail`
+          // is an absolute store path with no space in it — the longest
+          // unbroken run of text the pane is ever handed. Asserted rather than
+          // assumed, so a floor that started answering the read would make this
+          // sweep say so instead of quietly measuring something else.
+          expect(
+            await page.locator("[data-gate-run-note]").count(),
+            `${where}: the section degraded, as this floor's fixture set makes it`,
+          ).toBe(1);
+          expect(box.attempts, `${where}: a failed read draws no attempt`).toBe(0);
+
+          await lawsHold(page, where);
+          measured++;
+        }
+      }
+    }
+
+    expect(measured, "every story, every width, both themes").toBe(
+      entry.stories.length * GATE_WIDTHS.length * SCHEMES.length,
+    );
+  });
+});
+
+/**
+ * The four gates this repository declares, verbatim from `ergane.yaml`.
+ *
+ * The gate run is a drawing of commands, so the commands it is measured over
+ * are the real ones rather than shapes chosen to be convenient. `ergane.yaml`
+ * is the only place a gate is declared here (D-006), and these are its four.
+ */
+const DECLARED_GATES = [
+  { name: "test", command: "uv run pytest -q" },
+  { name: "typecheck", command: "npm --prefix web run typecheck" },
+  { name: "unit", command: "npm --prefix web run test:unit" },
+  { name: "smoke", command: "npm --prefix web run test:smoke" },
+] as const;
+
+/**
+ * A failing smoke gate's tail, in the shape Playwright's list reporter writes.
+ *
+ * Its point is the absolute path on the last line: 120-odd characters with no
+ * space in them, inside a `26rem` track. That is the run of text a `<pre>` is
+ * most likely to push past the pane, and `overflow-wrap: anywhere` plus the
+ * well's own `overflow: auto` are what stop it — which is a claim about
+ * geometry, and therefore a claim only law (b) can settle.
+ */
+const FAILING_TAIL = [
+  "  1) [showfloor] › tests/smoke/showfloor.spec.ts:1652:3 › the laws hold with the pane full",
+  "",
+  "    Error: expect(received).toEqual(expected) // deep equality",
+  "",
+  "    - Expected  - 0",
+  "    + Received  + 1",
+  "",
+  "      Array [",
+  '    +   "aside.detail over p.grsaid",',
+  "      ]",
+  "",
+  "        at /home/ergane/state/runtime/worktrees/013-the-gates-show-their-work/us3/web/tests/smoke/showfloor.spec.ts:1673:74",
+  "",
+  "  1 failed",
+].join("\n");
+
+/**
+ * Two recorded verifications of one story: a run that failed and the run after
+ * it that passed.
+ *
+ * Every shape the section can draw is in here, because a law sweep is only
+ * worth the geometry it is pointed at: a band of two the store recorded as
+ * concurrent, two gates that had the host to themselves, one failing gate with
+ * a fold, an interval to bracket, and the factory's own ladder sentence.
+ */
+function twoAttempts(): StoryEvidence {
+  const failed = attemptOf({
+    attempt: 1,
+    verdict: "FAIL",
+    started_at: "2026-08-26T01:04:11Z",
+    finished_at: "2026-08-26T01:05:13Z",
+    loop_summary: "attempt 1 of 3 · implementer · gates: test, typecheck, unit, smoke",
+    gates: [
+      // `concurrent_gates` is how many *other* executions were in flight, so a
+      // pair that ran together each record 1 — and `gateBands` closes the band
+      // at `count + 1`, which is what keeps this a band of two (013 D5).
+      gateOf({ ...DECLARED_GATES[0], duration_s: 8.5, concurrent_gates: 1 }),
+      gateOf({ ...DECLARED_GATES[1], duration_s: 3.2, concurrent_gates: 1 }),
+      gateOf({ ...DECLARED_GATES[2], duration_s: 1.9, concurrent_gates: 0 }),
+      gateOf({
+        ...DECLARED_GATES[3],
+        status: "GATE_FAILED",
+        exit_code: 1,
+        duration_s: 41.3,
+        concurrent_gates: 0,
+        output_tail: FAILING_TAIL,
+      }),
+    ],
+  });
+
+  const passed = attemptOf({
+    attempt: 2,
+    verdict: "PASS",
+    started_at: "2026-08-26T01:29:02Z",
+    finished_at: "2026-08-26T01:30:07Z",
+    loop_summary: "attempt 2 of 3 with the debugger rung at 1",
+    gates: DECLARED_GATES.map((gate) => gateOf({ ...gate, duration_s: 6.4 })),
+  });
+
+  return evidenceOf([failed, passed]);
+}
+
+/**
+ * One attempt the store recorded almost nothing about.
+ *
+ * Every column the section can be handed as null, handed to it as null — so the
+ * `unknown` italic is swept at every width too. `gateOf` cannot express this on
+ * its own (it coalesces a missing status to `PASS`, because that is what the
+ * assembler's own record looks like), so the nulls are written out on top of a
+ * builder record rather than beside one: the keys stay the assembler's, and
+ * what differs from a recorded gate is exactly what is listed here.
+ */
+function unrecordedAttempt(): StoryEvidence {
+  const blank = {
+    ...gateOf({ name: "placeholder" }),
+    name: null,
+    command: null,
+    status: null,
+    exit_code: null,
+    duration_s: null,
+    concurrent_gates: null,
+    output_tail: null,
+  };
+  const attempt: AttemptRecord = {
+    ...attemptOf({ attempt: 1 }),
+    verdict: null,
+    started_at: null,
+    finished_at: null,
+    loop_summary: null,
+    gates: [blank],
+  };
+  return evidenceOf([attempt]);
+}
+
+/**
+ * Serve this floor's own document with a gate run grafted onto one spec.
+ *
+ * 009 FR-011's route double, pointed at a different clause: the room is handed
+ * the **document contract** for a case the fixture floor cannot serve, and
+ * everything else on the page — the rail, the graph, the ladders, the facts —
+ * is still the real floor's. Returns the entry that was dressed.
+ */
+async function serveGateRun(
+  page: Page,
+  request: { get: (url: string) => Promise<{ json: () => Promise<unknown> }> },
+  evidenceFor: (index: number) => StoryEvidence,
+): Promise<{ spec_dir: string; stories: Array<{ id: string | null }> }> {
+  const response = await request.get("/api/showfloor");
+  const document = (await response.json()) as {
+    rail: Array<{ spec_dir: string; stories: Array<{ id: string | null }> }>;
+  };
+  const target = document.rail.find(
+    (entry) => entry.stories.length > 1 && entry.stories.every((story) => story.id !== null),
+  );
+  expect(target, "this floor stages a spec whose stories the graph places").toBeDefined();
+
+  const dressed = {
+    ...document,
+    rail: document.rail.map((entry) =>
+      entry.spec_dir !== target!.spec_dir
+        ? entry
+        : {
+            ...entry,
+            stories: entry.stories.map((story, index) => ({
+              ...story,
+              evidence: evidenceFor(index),
+            })),
+          },
+    ),
+  };
+
+  // Replaced rather than stacked: a second call in one test re-dresses the same
+  // floor, and two live handlers for one pattern would make which document the
+  // room gets a fact about registration order.
+  await page.unroute("**/api/showfloor");
+  await page.route("**/api/showfloor", (route) =>
+    route.fulfill({ contentType: "application/json", body: JSON.stringify(dressed) }),
+  );
+  return target!;
+}
+
+test.describe("the gate run holds the four layout laws, filled (013 FR-009)", () => {
+  test("a drawn timeline stays in its box at every width, in both themes, folded and open", async ({
+    page,
+    request,
+  }) => {
+    // Alternating, so both shapes are swept at every width and in both themes
+    // rather than one of them being measured once and taken on trust.
+    const entry = await serveGateRun(page, request, (index) =>
+      index % 2 === 0 ? twoAttempts() : unrecordedAttempt(),
+    );
+
+    let measured = 0;
+    let foldsOpened = 0;
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of GATE_WIDTHS) {
+        await page.setViewportSize({ width, height: TALL });
+        await page.goto(`/showfloor/${entry.spec_dir}`);
+        await page.waitForSelector("[data-node-card]");
+
+        for (const [index, story] of entry.stories.entries()) {
+          await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+          await page.waitForSelector("[data-detail-title]");
+          const where = `${entry.spec_dir}/${story.id} at ${width} in ${scheme}`;
+          const drawn = index % 2 === 0;
+
+          // The timeline really is drawn — a law sweep over a section that
+          // silently failed to render would pass for the wrong reason, and this
+          // is the one document on the floor that carries attempts at all.
+          const closed = await sectionIsWhollyOnScreen(page, where);
+          expect(closed.attempts, `${where}: the attempts are drawn`).toBe(drawn ? 2 : 1);
+          expect(closed.gates, `${where}: every gate is drawn`).toBe(drawn ? 8 : 1);
+          expect(closed.bands, `${where}: the recorded bands are drawn`).toBe(drawn ? 7 : 1);
+          expect(closed.folds, `${where}: one fold, for the one failing gate`).toBe(drawn ? 1 : 0);
+          expect(closed.openFolds, `${where}: the fold is shut at rest`).toBe(0);
+          expect(
+            await page.locator("[data-gate-run-note]").count(),
+            `${where}: a read that was made leaves no degraded well`,
+          ).toBe(0);
+
+          await lawsHold(page, `${where}, folded`);
+          measured++;
+
+          // And again with the tail open, which is the state it exists for: a
+          // `<pre>` of raw process output, in a 26rem track, carrying a line
+          // with no space in it. Closed, none of that is in the layout at all.
+          if (!drawn) continue;
+          await openEveryFold(page);
+          const open = await sectionIsWhollyOnScreen(page, `${where}, open`);
+          expect(open.openFolds, `${where}: the fold opened`).toBe(1);
+          expect(
+            open.height,
+            `${where}: an opened fold puts the tail in the layout`,
+          ).toBeGreaterThan(closed.height);
+          expect(
+            await page.locator("[data-gate-tail]").first().isVisible(),
+            `${where}: the tail is readable once the fold is open`,
+          ).toBe(true);
+
+          await lawsHold(page, `${where}, open`);
+          foldsOpened++;
+        }
+      }
+    }
+
+    const sweeps = GATE_WIDTHS.length * SCHEMES.length;
+    const drawn = entry.stories.filter((_story, index) => index % 2 === 0).length;
+    expect(measured, "every story, every width, both themes").toBe(
+      entry.stories.length * sweeps,
+    );
+    expect(foldsOpened, "and every drawn timeline measured again with its tail open").toBe(
+      drawn * sweeps,
+    );
+  });
+});
+
+
+/**
+ * The mutation control for the two corrections 013 US3 made to `support/laws.ts`.
+ *
+ * Both are the harness declining to measure text a reader cannot see — a closed
+ * fold's contents, and the part of the tail its own `16rem` well scrolls away —
+ * and "declines to measure" is one bad edit away from "cannot see at all". 005
+ * and 009 each paid for their law with a planted defect; these two corrections
+ * pay for themselves the same way.
+ *
+ * Three plants, each on the exact ground a correction stands on:
+ *
+ *   * over the **visible** part of an open tail — law (c) must go red, so
+ *     `clipped()` starting at the leaf did not turn the well into a blind spot;
+ *   * over the fold's **summary** while it is shut — law (c) must go red, so
+ *     `checkVisibility()` skips the fold's *contents* and not the fold;
+ *   * and the leaf count itself, which must rise when the fold opens: the tail's
+ *     lines enter the measurement exactly when they enter the screen.
+ */
+test.describe("the laws still see the gate run's fold (013 FR-009)", () => {
+  test("a plant over the open tail and over the shut summary both turn law (c) red", async ({
+    page,
+    request,
+  }) => {
+    const entry = await serveGateRun(page, request, () => twoAttempts());
+    await page.setViewportSize({ width: 1280, height: TALL });
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.waitForSelector("[data-node-card]");
+    await page.locator(`[data-node-card][data-story-id="${entry.stories[0].id}"]`).click();
+    await page.waitForSelector("[data-gate-run]");
+
+    /** A text leaf laid exactly over the box of `selector`, in the room. */
+    const plant = (selector: string) =>
+      page.evaluate((sel) => {
+        const target = document.querySelector(sel)!;
+        const box = target.getBoundingClientRect();
+        const planted = document.createElement("p");
+        planted.className = "planted";
+        planted.textContent = "planted";
+        planted.style.position = "fixed";
+        planted.style.margin = "0";
+        planted.style.left = `${box.left}px`;
+        // The *visible* top of the box, which for the open tail is its own
+        // border box and not the top of the text it scrolls away. Flush with
+        // it, not below it: a fold's summary is one 10px line, and a plant
+        // dropped even eight pixels would clear it by more than law (c)'s own
+        // 4px of slack and prove nothing.
+        planted.style.top = `${box.top}px`;
+        planted.style.width = `${Math.max(box.width, 40)}px`;
+        planted.style.height = `${Math.max(Math.min(box.height, 40), 24)}px`;
+        document.querySelector("[data-showfloor-root]")!.appendChild(planted);
+      }, selector);
+
+    const uproot = () =>
+      page.evaluate(() => {
+        for (const planted of Array.from(document.querySelectorAll(".planted"))) {
+          planted.remove();
+        }
+      });
+
+    // ── the fold shut: green, and the summary is not a blind spot.
+    const shut = await measureLaws(page);
+    expect(shut.overlapping, "the room is clean with the fold shut").toEqual([]);
+
+    await plant("[data-gate-run] summary");
+    expect(
+      (await measureLaws(page)).overlapping.length,
+      "a plant on the fold's own summary is still a collision",
+    ).toBeGreaterThan(0);
+    await uproot();
+    expect((await measureLaws(page)).overlapping, "and the room is clean again").toEqual([]);
+
+    // ── the fold open: the tail joins the measurement, and is not a blind spot.
+    await openEveryFold(page);
+    const open = await measureLaws(page);
+    expect(open.overlapping, "the room is clean with the fold open").toEqual([]);
+    expect(
+      open.leaves,
+      "an opened fold puts its tail into the measurement",
+    ).toBeGreaterThan(shut.leaves);
+
+    await plant("[data-gate-tail]");
+    expect(
+      (await measureLaws(page)).overlapping.length,
+      "a plant over the visible tail is still a collision",
+    ).toBeGreaterThan(0);
+    await uproot();
+    expect((await measureLaws(page)).overlapping, "and the room is clean again").toEqual([]);
+  });
+});
+
+/**
+ * US3-S2 in the room (013 FR-010): no recorded attempt, no section.
+ *
+ * The component's half of this is `tests/unit/GateRun.test.tsx`. What is left
+ * for a real browser is the half a component cannot answer — that nothing is
+ * *standing where the section would be*. "Renders no section, not an empty one"
+ * is a claim about the pane's own order, and the pane's order is a layout.
+ *
+ * Made, not waited for, and for 009 FR-011's reason: this floor's fixture set
+ * records no gate run at all, so every story on it takes the *degraded* branch
+ * and none of them take this one. A test that hunted the corpus for a story
+ * with an empty evidence section would be pinning this morning's fixtures.
+ */
+test.describe("a story with no recorded attempt renders no gate run (013 FR-010)", () => {
+  test("no section, and the implements row follows the facts grid directly", async ({
+    page,
+    request,
+  }) => {
+    /** Where the pane's own order can be read: what sits between two rows. */
+    const seam = () =>
+      page.evaluate(() => {
+        const facts = document.querySelector("[data-detail-facts]")!;
+        const head = document.querySelector("[data-detail-implements-head]")!;
+        const section = document.querySelector("[data-gate-run]");
+        return {
+          adjacent: facts.nextElementSibling === head,
+          gap: head.getBoundingClientRect().top - facts.getBoundingClientRect().bottom,
+          sectionHeight: section === null ? 0 : section.getBoundingClientRect().height,
+        };
+      });
+
+    const entry = await serveGateRun(page, request, () => evidenceOf([]));
+    const empty: number[] = [];
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.setViewportSize({ width: 1280, height: TALL });
+      await page.goto(`/showfloor/${entry.spec_dir}`);
+      await page.waitForSelector("[data-node-card]");
+
+      for (const story of entry.stories) {
+        await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+        await page.waitForSelector("[data-detail-title]");
+        const where = `${entry.spec_dir}/${story.id} in ${scheme}`;
+
+        // Not the section, and not one piece of its furniture on its own: no
+        // kicker, no retention line, no degraded well, no attempt.
+        await expect(page.locator("[data-gate-run]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate-run-head]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate-run-retention]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate-run-note]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate-attempt]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate]"), where).toHaveCount(0);
+
+        // And the pane around it is whole — what is absent is the section, not
+        // the story it belongs to (constitution III: a missing key never
+        // crashes a view, and this is the room saying so).
+        for (const part of [
+          "[data-detail-title]",
+          "[data-detail-steps]",
+          "[data-detail-facts]",
+          "[data-detail-implements]",
+        ]) {
+          await expect(page.locator(part), `${where}: ${part}`).toHaveCount(1);
+        }
+
+        const read = await seam();
+        expect(read.adjacent, `${where}: the implements row follows the facts grid`).toBe(true);
+        expect(read.gap, `${where}: no empty strip between them`).toBeLessThan(60);
+        empty.push(read.gap);
+      }
+    }
+
+    // The other half of "not an empty one": the same room, the same story, the
+    // same two rows — with one recorded attempt between them. If the seam did
+    // not move, the measurement above was not measuring the section's absence.
+    await serveGateRun(page, request, () => twoAttempts());
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.waitForSelector("[data-node-card]");
+    await page.locator(`[data-node-card][data-story-id="${entry.stories[0].id}"]`).click();
+    await page.waitForSelector("[data-gate-run]");
+
+    const filled = await seam();
+    expect(filled.adjacent, "a drawn section sits between the two rows").toBe(false);
+    expect(filled.sectionHeight, "and it is a real box").toBeGreaterThan(100);
+    expect(
+      filled.gap,
+      "the seam opens by the height of the section that was missing",
+    ).toBeGreaterThan(Math.max(...empty) + filled.sectionHeight - 1);
+  });
+
+  /**
+   * Constitution III in the room: "a missing key never crashes a view".
+   *
+   * `api/showfloorDocument.ts` is a cast over `response.json()` and not a
+   * parse, so the room can be handed a story with no `evidence` key — and until
+   * this story it was handed one and went white, on `Cannot read properties of
+   * undefined (reading 'attempts')`. That is a room rendering nothing, which is
+   * not what FR-010 asks for and is the opposite of what it asks for.
+   *
+   * `undefined` is not serialised into an object by `JSON.stringify`, so the
+   * document the browser really receives here has no such key at all.
+   */
+  test("a story whose document carries no evidence key costs the room nothing", async ({
+    page,
+    request,
+  }) => {
+    const entry = await serveGateRun(page, request, () => undefined as unknown as StoryEvidence);
+
+    await page.setViewportSize({ width: 1280, height: TALL });
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.waitForSelector("[data-node-card]");
+    await page.locator(`[data-node-card][data-story-id="${entry.stories[0].id}"]`).click();
+    await page.waitForSelector("[data-detail-title]");
+
+    // The key really is absent from what the browser was served.
+    expect(
+      await page.evaluate(async () => {
+        const document_ = (await (await fetch("/api/showfloor")).json()) as {
+          rail: Array<{ stories: Array<Record<string, unknown>> }>;
+        };
+        return document_.rail.some((entry_) =>
+          entry_.stories.some((story) => !("evidence" in story)),
+        );
+      }),
+      "the served document really omits the key",
+    ).toBe(true);
+
+    // And the room is whole: the rail, the stage and the pane, with no section.
+    await expect(page.locator("[data-gate-run]")).toHaveCount(0);
+    await expect(page.locator("[data-stage-canvas]")).toHaveCount(1);
+    await expect(page.locator("[data-detail-title]")).toHaveCount(1);
+    await expect(page.locator("[data-detail-facts]")).toHaveCount(1);
+    await expect(page.locator("[data-detail-implements]")).toHaveCount(1);
+    expect(
+      await page.locator("[data-node-card]").count(),
+      "every card is still drawn",
+    ).toBe(entry.stories.length);
   });
 });

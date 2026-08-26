@@ -33,6 +33,26 @@
  * control is the committed proof that the other three structurally cannot see
  * it.
  *
+ * ── what 013 corrected, and what it did not ────────────────────────────────
+ *
+ * 013 US3 pointed the four at the gate run — the pane's last section, and the
+ * first thing in this repository to hold a `<details>` and a leaf that scrolls
+ * itself. Neither law changed. What changed is that the measurement stopped
+ * reporting text a reader cannot see, which is the doctrine `clipped()` has
+ * encoded since 005 US4 and had two blind spots in:
+ *
+ *   * a leaf's **own** `overflow` now clips its own text, because the output
+ *     tail is a `<pre>` capped at `16rem` that scrolls thirty lines behind a
+ *     248px window (`clipped`'s `from` argument);
+ *   * `painted()` now asks `checkVisibility()`, because Chromium skips a closed
+ *     disclosure through a shadow `::details-content` that no light-DOM
+ *     ancestor carries, and the skipped element still answers
+ *     `getBoundingClientRect()` with the box it would have had.
+ *
+ * Both are paid for the way 005's and 009's laws were: `showfloor.spec.ts`
+ * plants a collision over the visible part of an open tail and over a shut
+ * fold's summary, and requires law (c) red for each.
+ *
  * ── why this file exists ───────────────────────────────────────────────────
  *
  * 005 landed the measurement inside `showfloor.spec.ts` and 006 copied law (c)
@@ -97,9 +117,28 @@ export async function measureLaws(page: Page): Promise<LawReport> {
     const hasText = (element: Element) =>
       !SKIP.includes(element.tagName.toLowerCase()) && (element.textContent ?? "").trim() !== "";
 
+    /**
+     * Is this element actually rendered?
+     *
+     * A box, and the browser's own answer to the question (013 US3). The box
+     * alone was enough until the gate run brought this repository its first
+     * `<details>`: Chromium skips a closed disclosure's contents through
+     * `::details-content { content-visibility: hidden }`, which is a **shadow**
+     * pseudo-element — no ancestor in the light DOM carries the property, and
+     * the skipped `<pre>` still answers `getBoundingClientRect()` with the box
+     * it would have had. So a fold shut over thirty lines of process output
+     * reported a 248px column of text sitting on every row beneath it, and the
+     * collision law was measuring something no reader can see.
+     *
+     * `checkVisibility()` is the browser's own reply and not a guess of this
+     * harness's: false for `display: none`, false for a subtree it is skipping.
+     * Nothing is excused by it — an **open** fold's tail is rendered, is
+     * measured, and is swept at every width `showfloor.spec.ts` sweeps.
+     */
     const painted = (element: Element) => {
       const rect = element.getBoundingClientRect();
-      return rect.width > 0 || rect.height > 0;
+      if (rect.width <= 0 && rect.height <= 0) return false;
+      return element.checkVisibility();
     };
 
     /**
@@ -200,9 +239,29 @@ export async function measureLaws(page: Page): Promise<LawReport> {
     // catch in a room that does not have it. The clip is applied, not excused —
     // an overlap that survives it is still an overlap, which is what keeps the
     // planted collision below going red.
-    const clipped = (element: Element, rect: DOMRect): DOMRect | null => {
+    //
+    // `from` is which element the walk starts at, and it is the difference
+    // between the two things this function is asked for (013 US3):
+    //
+    //   * **a leaf's text** is clipped by the leaf's own `overflow` as well as
+    //     by its ancestors'. The gate run's output tail is the first leaf in
+    //     this repository that scrolls itself — a `<pre>` capped at `16rem`
+    //     with `overflow: auto`, holding a failure that runs to thirty lines —
+    //     and a `Range` over it reports every one of those lines at its
+    //     unclipped height. Measured from the parent, that column of text
+    //     "collides" with every row beneath the fold: an artefact of exactly
+    //     the kind the paragraph above describes, and not one letter of it is
+    //     on the screen.
+    //   * **a painter's own box** is not. An element's `overflow` clips what is
+    //     inside it and never the background it paints itself, so law (d)
+    //     starts its walk one level up, where it always did.
+    //
+    // Nothing is excused either way: the clip is the *screen's*, so an overlap
+    // inside the part of a scroller a reader can actually see survives it, and
+    // `showfloor.spec.ts` plants one there to prove it.
+    const clipped = (element: Element, rect: DOMRect, from: Element | null): DOMRect | null => {
       let box = rect;
-      let parent = element.parentElement;
+      let parent = from;
       while (parent !== null && parent !== document.documentElement) {
         const style = getComputedStyle(parent);
         const clips =
@@ -228,7 +287,12 @@ export async function measureLaws(page: Page): Promise<LawReport> {
       range.selectNodeContents(element);
       return Array.from(range.getClientRects())
         .filter((rect) => rect.width > 0 && rect.height > 0)
-        .map((rect) => ({ element, index, label: describe(element), rect: clipped(element, rect) }))
+        .map((rect) => ({
+          element,
+          index,
+          label: describe(element),
+          rect: clipped(element, rect, element),
+        }))
         .filter(
           (box): box is { element: Element; index: number; label: string; rect: DOMRect } =>
             box.rect !== null,
@@ -281,7 +345,7 @@ export async function measureLaws(page: Page): Promise<LawReport> {
       const style = getComputedStyle(element);
       if (style.visibility === "hidden" || Number(style.opacity) === 0) continue;
       if (backgroundAlpha(style.backgroundColor) === 0) continue;
-      const box = clipped(element, element.getBoundingClientRect());
+      const box = clipped(element, element.getBoundingClientRect(), element.parentElement);
       if (box === null) continue;
       painters.push({ element, label: describe(element), rect: box });
     }

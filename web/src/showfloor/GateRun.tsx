@@ -78,6 +78,33 @@ interface GateRunProps {
 }
 
 /**
+ * What the section really has: its own two keys, read defensively (013 FR-010).
+ *
+ * `api/showfloorDocument.ts` is a **cast** over `response.json()` and not a
+ * parse, so `StoryEvidence` is a promise about what `pane/showfloor.py` emits
+ * and never a guarantee about the bytes that arrive. Constitution III is the
+ * standing instruction for that gap — "a missing key never crashes a view" —
+ * and it was not a hypothetical: a story carrying no `evidence` key took the
+ * whole Showfloor down with `Cannot read properties of undefined`, which is a
+ * room rendering nothing rather than a section rendering nothing.
+ *
+ * This reads the two keys FR-010 turns on and stops there. It is not a
+ * validator for the tree below them: a `gates` that is not a list is the
+ * assembler emitting something it does not emit, and the place to catch that is
+ * the assembler's own tests, where it is caught. What is defended here is the
+ * one question this component is the answer to — *is there a gate run to
+ * draw?* — because every way of answering "no" has to render the same nothing.
+ */
+function readEvidence(evidence: StoryEvidence | null | undefined): {
+  attempts: AttemptRecord[];
+  note: RailNote | null;
+} {
+  const attempts = Array.isArray(evidence?.attempts) ? evidence.attempts : [];
+  const note = evidence?.note;
+  return { attempts, note: typeof note === "object" && note !== null ? note : null };
+}
+
+/**
  * The section, or nothing at all.
  *
  * An empty `attempts` with no note is the document's word for a story the
@@ -85,10 +112,14 @@ interface GateRunProps {
  * failure — and § Don'ts is against rendering an element that can never fill.
  * A note with no attempts is the other case: the read did not happen, and
  * saying so is the section's whole job for that story (FR-002).
+ *
+ * A story the pane cannot read either key out of is the first case and not a
+ * third one: there is no recorded attempt here, so there is no section. See
+ * `readEvidence` above for why that is a case at all.
  */
 export default function GateRun({ evidence }: GateRunProps): JSX.Element | null {
-  const attempts = evidence.attempts;
-  if (attempts.length === 0 && evidence.note === null) return null;
+  const { attempts, note } = readEvidence(evidence);
+  if (attempts.length === 0 && note === null) return null;
 
   return (
     <section className="gaterun" data-gate-run>
@@ -98,7 +129,7 @@ export default function GateRun({ evidence }: GateRunProps): JSX.Element | null 
       <p className="grsaid" data-gate-run-retention>
         {RETENTION}
       </p>
-      {evidence.note === null ? null : <ReadFailed note={evidence.note} />}
+      {note === null ? null : <ReadFailed note={note} />}
       {attempts.map((attempt, index) => (
         // Keyed by position as well as by number: the store can hold two rows
         // for one attempt (one per `form`), and it can hold a row whose number
