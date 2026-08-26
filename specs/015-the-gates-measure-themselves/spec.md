@@ -28,6 +28,19 @@ depends_on_landed: []
 # three: `pytest-cov`, `@vitest/coverage-v8`, and `pip-audit`. Approving this spec
 # is approving those three and nothing else.
 #
+# TWO ENFORCEMENT QUESTIONS DECIDED BY THE OPERATOR, 2026-08-25 ~11:20 PM CT,
+# recorded as D-024 and reflected in Assumptions and Out of scope:
+#
+#   1. `audit` lives in `ergane.yaml` (so the boundary gate runs it and no node
+#      lands without it) but NOT in the `dev`/`main` rulesets. That deliberately
+#      breaks half of `CLAUDE.md` § Landing discipline's rule -- "`dev` requires
+#      exactly those checks" -- and CLAUDE.md is amended to say so rather than
+#      quietly disagreeing with the repository.
+#
+#   2. No allowlist. A finding above the threshold stops the line even with no
+#      fix available. The threshold is the only dial, and US3 must not grow an
+#      ignore file.
+#
 # `state: draft` until the operator flips it.
 ---
 
@@ -185,8 +198,11 @@ is tuned wrong.
 
 - The boundary has network egress (`CLAUDE.md` § Two package worlds), so an audit
   that fetches an advisory database can run at the gate.
-- `main` and `dev` rulesets requiring the new `audit` check are updated by the
-  **operator** after this lands; a node cannot change a ruleset.
+- **The `audit` gate is enforced at the boundary and NOT at the merge queue**
+  (D-024, decided 2026-08-25 ~11:20 PM CT). It is in `ergane.yaml`, so every node
+  must pass it to land; it is deliberately absent from the `dev` and `main`
+  rulesets, so a human can still land a fix by hand when the line is stopped.
+  Nothing about this is a node's to change.
 
 ## Out of scope
 
@@ -198,6 +214,12 @@ is tuned wrong.
   decision with its own format question.
 - **Raising the floors over time.** The floors land at the measured baseline. A
   ratchet is a policy, and policies belong to the operator.
+- **An allowlist, ignore file, or advisory-suppression mechanism.** Decided
+  against explicitly (D-024): a finding above the threshold stops the line even
+  when no fix is available, and a human decides what happens next. The threshold
+  is the only dial. **Do not add one** — an ignore file is the thing that makes an
+  audit gate decorative, because the cheapest response to a red gate at 3 AM is to
+  add a line to it.
 
 ## Work Graph
 
