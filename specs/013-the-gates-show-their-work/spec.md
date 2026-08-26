@@ -1,6 +1,21 @@
 ---
-state: draft
+state: ready
 depends_on_landed: [009-a-landed-epic-reads-landed]
+# Flipped ready 2026-08-25 by the operator. This is a second PR because the
+# first one lost the flip: #58 was armed for auto-merge before the edit was
+# made, merged the pre-flip tree, and the force-push landed on a branch whose
+# PR was already closed. Everything else in #58 -- D-020, the constitution
+# amendment, the refined body, plan, tasks and the derived graph -- landed
+# correctly; only this line did not.
+#
+# NO EDGE ON 012, AND THE SCHEDULER MAKES THE QUESTION MOOT ANYWAY.
+# `ergane.yaml` sets `max_concurrent_epics: 1`, so 012 and 013 queue behind
+# one another whatever their edges say. The module check was done before that
+# was read, and is kept because it is the answer if the cap is ever raised:
+# 012 D3 puts its fallback in `pane/floor_document.py` and says in as many
+# words that it must NOT go inside `LiveReader`; 013 T001 adds a new reader to
+# `pane/readers.py` and renders from `pane/showfloor.py`. Disjoint.
+#
 # Refined 2026-08-25, 7:00 PM CT, under D-020 -- which amended constitution II
 # FIRST, the order the constitution demands for a seam. Held `draft` pending the
 # operator's go; 009 is mid-build and 012 is queued behind it.
