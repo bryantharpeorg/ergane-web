@@ -61,18 +61,46 @@ async function reviewable(page: Page): Promise<Reviewable> {
   const rail = ((await showfloor.json()).rail ?? []) as Array<{ spec_dir: string }>;
   expect(rail.length, "this floor has specs on it").toBeGreaterThan(0);
 
+  // What each spec answered, kept so the refusal below can show its work.
+  //
+  // This precondition failed eleven tests on a GitHub runner while the identical
+  // checkout -- same merge ref, same `+refs/heads/*` fetch, no local `dev` --
+  // passed 82/82 on the operator's host, and the whole rail resolves in 1.6s, so
+  // it is neither the branch nor a timeout. A refusal that names only its
+  // conclusion cannot tell those apart. This one carries the evidence: the status
+  // every spec returned, and for a 200 the reason it was still not reviewable.
+  const seen: string[] = [];
+
   for (const entry of rail) {
     const answer = await page.request.get(`/api/review/${entry.spec_dir}`);
-    if (answer.status() !== 200) continue;
+    if (answer.status() !== 200) {
+      let why = "";
+      try {
+        const body = (await answer.json()) as { error?: string; unmerged?: unknown[] };
+        why = body.error ? ` ${body.error}` : "";
+        if (Array.isArray(body.unmerged)) why += ` (${body.unmerged.length} unmerged)`;
+      } catch {
+        why = " <non-JSON body>";
+      }
+      seen.push(`${entry.spec_dir}=${answer.status()}${why}`);
+      continue;
+    }
     const document = await answer.json();
     const framed = (document.routes as Array<{ path: string; kind: string | null }>)
       .filter((route) => route.kind === "room" && !route.path.startsWith("/review"))
       .map((route) => route.path);
-    if (framed.length === 0) continue;
+    if (framed.length === 0) {
+      const kinds = (document.routes as Array<{ kind: string | null }>).map((r) => r.kind);
+      seen.push(`${entry.spec_dir}=200 but no framed room (route kinds: ${kinds.join(",") || "none"})`);
+      continue;
+    }
     return { specDir: entry.spec_dir, framed, served: document.served };
   }
 
-  throw new Error("no epic on this floor is fully landed and reaches a framed room");
+  throw new Error(
+    `no epic on this floor is fully landed and reaches a framed room. ` +
+      `Walked ${rail.length} spec(s): ${seen.join("; ")}`,
+  );
 }
 
 /**
