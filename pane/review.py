@@ -312,6 +312,15 @@ class ReviewReaders:
         reader_for`) — the branch scan is expensive and pure, and a review is
         one more caller of the same read the showfloor already pays for.
 
+        **Unless the reader has the two reads recorded** (016 FR-001, FR-003).
+        This room is the one that could not tolerate a blind landing read: it
+        refuses a partially landed epic by name, so a read that saw nothing did
+        not degrade — it produced a confident refusal of every epic on the floor.
+        A demo floor therefore answers both git reads from `fixtures/`, and both
+        take the recording's own rule for a document it does not hold: a named
+        degraded read, never an empty answer (plan D3).  A live reader has no
+        recording, gets both git-backed reads, and is untouched (FR-004).
+
         The graph read is `ShowfloorReaders`' own binding, borrowed rather than
         rebuilt: where a compiled graph lives (the seam first, this repository's
         archive second) is one fact with one answer, and a second binding here
@@ -319,15 +328,25 @@ class ReviewReaders:
         """
         from pane.config import DEFAULT_LANDING_BRANCH
         from pane.landing import reader_for
+        from pane.readers import recorded_git_reads
         from pane.showfloor import ShowfloorReaders
 
         root = Path(specs_root)
         repo = root.parent
         branch = landing_branch or DEFAULT_LANDING_BRANCH
         showfloor = ShowfloorReaders.from_reader(reader, root, landing_branch=branch)
+        recorded = recorded_git_reads(reader)
         return cls(
-            landing_facts=reader_for(repo, branch).facts,
-            changed_files=lambda commit: read_changed_files(repo, commit),
+            landing_facts=(
+                recorded.landing_facts
+                if recorded is not None
+                else reader_for(repo, branch).facts
+            ),
+            changed_files=(
+                recorded.changed_files
+                if recorded is not None
+                else lambda commit: read_changed_files(repo, commit)
+            ),
             workgraph=showfloor.workgraph,
             landing_branch=branch,
             manifest=manifest,

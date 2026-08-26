@@ -5,6 +5,15 @@ sidecar `*.envelope.json`.  A missing payload, missing envelope, or an envelope
 with `"status": "pending"` raises `TransportFailed` — the README's rule that a
 missing document is a degraded read, never an empty floor.
 
+**016 adds the two git-backed reads to the set this module replays.**  The
+landing read escaped the Fixture floor until then: `PANE_DEMO=1` served every
+other document from `fixtures/` while `landing_facts` spawned git against
+whatever checkout happened to be on the machine, so a shallow one made the
+review room refuse every epic on a floor with nothing wrong with it.  Both reads
+now come from a recording through the same `load_document` rule as everything
+else (016 plan D2), which is what makes a room's answer independent of the git
+history of the machine that ran it.
+
 `FixtureReader` implements the `Reader` protocol.  It assembles the demo floor
 from the recorded `floor-live.json` plus a scene table (`SCENES`) that covers
 every on-cue epic status document the Desk must render.  Each scene row is an
@@ -22,6 +31,7 @@ from factory.cli.nouns import build
 
 from pane import attention_store
 from pane.attention_store import StoredItem
+from pane.landing import CHANGED_FILES_READ, LANDING_READ, LandingFact
 from pane.readers import EVIDENCE_READ, EpicRef, FloorRead, TransportFailed
 
 
@@ -110,6 +120,54 @@ def load_document(path: Path, *, read: str) -> tuple[Any, dict]:
         raise TransportFailed(read, f"{path}: not recorded yet (fixtures/README.md)")
 
     return payload, envelope
+
+
+def _payload(path: Path, *, read: str) -> Any:
+    """`load_document`'s payload, with a parse failure named rather than raised.
+
+    A document that will not parse could not be read, so it takes the same word
+    as a document that is not there (016 Edge Cases, constitution III) and the
+    file and the parser's own complaint are both in the note.  No caller ever
+    meets a `JSONDecodeError` where it is catching 001's two failure modes.
+    """
+    try:
+        payload, _ = load_document(path, read=read)
+    except json.JSONDecodeError as exc:
+        raise TransportFailed(read, f"{path}: will not parse ({exc})") from exc
+    return payload
+
+
+def _replayed_landings(
+    path: Path, spec_dir: str, recorded: Any
+) -> dict[str, LandingFact]:
+    """One spec's recorded landings as `pane/landing.py`'s own `LandingFact`s.
+
+    The same type the live read returns, built from the same six fields, so no
+    consumer can tell a replayed landing from a read one by its shape (016
+    FR-005).  A recording whose entry is not a landing — no commit, no
+    provenance — is a document that will not read, and takes the same named
+    failure as one that will not parse rather than a fact with holes in it.
+    """
+    if not isinstance(recorded, dict):
+        raise TransportFailed(
+            LANDING_READ, f"{path}: {spec_dir} is not a mapping of story key to landing"
+        )
+
+    facts: dict[str, LandingFact] = {}
+    for story_key, entry in recorded.items():
+        if not isinstance(entry, dict) or not entry.get("commit") or not entry.get("kind"):
+            raise TransportFailed(
+                LANDING_READ, f"{path}: {spec_dir}/{story_key} is not a recorded landing"
+            )
+        facts[str(story_key)] = LandingFact(
+            story_key=str(entry.get("story_key") or story_key),
+            commit=str(entry["commit"]),
+            kind=str(entry["kind"]),
+            merged_at=entry.get("merged_at"),
+            subject=entry.get("subject"),
+            pr_number=entry.get("pr_number"),
+        )
+    return facts
 
 
 class FixtureReader:
@@ -336,6 +394,72 @@ class FixtureReader:
             self.root / "verification" / epic_id / f"{node_id}.json", read=EVIDENCE_READ
         )
         return doc
+
+    # --- the landing branch, recorded like every other document ------------
+
+    def landing_facts(self, spec_dir: str) -> dict[str, LandingFact]:
+        """One spec's landings, replayed from `landing/landing-facts.json`.
+
+        The recorded answer of `pane.landing.read_landing_facts` over ergane's
+        own `landed_facts`, one entry per spec directory, carrying the live
+        read's six fields per story (016 FR-001, FR-005).  It is replayed
+        *through this reader* rather than beside it (016 plan D2): a second
+        replay path would be a second set of rules for what a missing fixture
+        means, and `load_document` already has the only set this repository
+        wants.
+
+        **A spec the recording does not name is a degraded read, named** (016
+        FR-006, plan D3).  It is the missing-document rule one level deeper —
+        the recording is a document per spec directory as much as it is a file —
+        and it is the whole lesson of the defect this replay exists for: an
+        empty landing result is indistinguishable from a fact, and the review
+        room believed it.  Nothing here ever returns `{}`.
+
+        `PANE_DEMO_TRANSPORT_FAIL=epics` drives the same failure deliberately,
+        for the reason `node_history` takes that section: the landing is the
+        epic's, and it fails with it.
+        """
+        self._check_fail("epics", LANDING_READ)
+        path = self.root / "landing" / "landing-facts.json"
+        recorded = _payload(path, read=LANDING_READ)
+        if not isinstance(recorded, dict):
+            raise TransportFailed(
+                LANDING_READ,
+                f"{path}: not a mapping of spec directory to landings",
+            )
+        landings = recorded.get(spec_dir)
+        if landings is None:
+            raise TransportFailed(
+                LANDING_READ,
+                f"{path}: no recorded landing for {spec_dir} (fixtures/README.md)",
+            )
+        return _replayed_landings(path, spec_dir, landings)
+
+    def changed_files(self, commit: str) -> list[str]:
+        """Every path one landing commit changed, as a recording holds it.
+
+        The review room's second git-backed read, and the other half of what a
+        demo floor must own if a room is to answer the same in a checkout with
+        no history as in a full one (016 FR-003).  **No such document is
+        recorded yet** — the same position `node_history` has been in since 013,
+        and for the same reason: a hand-written change list would be a pane that
+        renders the fixture and not the factory (constitution V).  Until one is
+        captured the read takes `load_document`'s missing-document rule and
+        comes back naming the path it looked for, which is what the story's
+        note then says in words rather than a file list nobody landed.
+
+        `fixtures/README.md` says what recording one would take.  The shape is
+        `read_changed_files`' own: a sorted list of repository-relative paths,
+        one document per landing commit.
+        """
+        self._check_fail("epics", CHANGED_FILES_READ)
+        path = self.root / "changed-files" / f"{commit}.json"
+        recorded = _payload(path, read=CHANGED_FILES_READ)
+        if not isinstance(recorded, list):
+            raise TransportFailed(
+                CHANGED_FILES_READ, f"{path}: not a list of changed paths"
+            )
+        return sorted({str(entry).strip() for entry in recorded if str(entry).strip()})
 
     def list_findings(self) -> list[dict]:
         self._check_fail("health", "list_findings")

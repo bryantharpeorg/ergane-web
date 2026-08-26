@@ -18,6 +18,9 @@ Verbs:
   findings <doctor.db> <out>          factory.doctor.store.list_findings over connect_readonly
   questions <verification.db> <out>   factory.verify.store.pending_questions
   refusal <epic_id> <out>             query a CLOSED epic under NOT_OPEN → the refusal shape
+  landing <repo> <out> [branch]       every spec's landings via pane.landing.read_landing_facts
+  changed-files <repo> <landing.json> <out_dir>
+                                      one document per landing commit via read_changed_files
 """
 from __future__ import annotations
 
@@ -227,8 +230,78 @@ async def refusal(epic_id: str, out: str) -> None:
     raise SystemExit("the query was answered, not refused — is the epic still open?")
 
 
+def _pane_on_the_path() -> None:
+    """Make this repository's own `pane` package importable by the recorder.
+
+    The two landing verbs below are the only ones that ride a seam of *this*
+    repository rather than one of ergane's, and they ride it deliberately: the
+    demo floor must replay exactly what the live rooms read, so a recording made
+    through anything but `pane/landing.py` could drift from the read it stands
+    in for (016 FR-005).
+    """
+    root = str(Path(__file__).resolve().parents[1])
+    if root not in sys.path:
+        sys.path.insert(0, root)
+
+
+def landing(repo: str, out: str, branch: str = "dev") -> None:
+    """Every spec directory's landings, off the landing branch, as the pane reads them."""
+    _pane_on_the_path()
+    from pane.landing import read_landing_facts
+
+    checkout = Path(repo).resolve()
+    specs_root = checkout / "specs"
+    document = {
+        path.name: read_landing_facts(checkout, path.name, branch=branch)
+        for path in sorted(specs_root.iterdir())
+        if (path / "spec.md").is_file()
+    }
+    write(
+        Path(out),
+        document,
+        seam="pane.landing.read_landing_facts over factory.workgraph.landed.landed_facts",
+        source=f"{checkout} on {branch} at {_head(checkout, branch)}, read with fetch=False",
+        notes="One entry per spec directory, each mapping story key to the landing the "
+              "branch carries: commit, kind, merged_at, pr_number, subject. A spec the "
+              "branch carries nothing for is recorded as an empty mapping, which is an "
+              "answer; a spec absent from this document is a read nobody made, and the "
+              "demo floor reports it as a degraded read naming this file (016 FR-006). "
+              "A snapshot of a real branch: it ages exactly as the recorded floor does.",
+    )
+
+
+def changed_files(repo: str, landing_facts: str, out_dir: str) -> None:
+    """One changed-file list per landing commit named in a landing recording."""
+    _pane_on_the_path()
+    from pane.landing import read_changed_files
+
+    checkout = Path(repo).resolve()
+    recorded = json.loads(Path(landing_facts).read_text())
+    commits = sorted(
+        {fact["commit"] for facts in recorded.values() for fact in facts.values()}
+    )
+    for commit in commits:
+        write(
+            Path(out_dir) / f"{commit}.json",
+            read_changed_files(checkout, commit),
+            seam="pane.landing.read_changed_files over factory.workgraph.worktree._git",
+            source=f"{checkout}, commit {commit}",
+            notes=f"The paths {commit} changed, sorted and unique, as the review room "
+                  "reads them. Recorded from the same branch as the landing document "
+                  "beside it; a commit no recording names is a read nobody made.",
+        )
+
+
+def _head(repo: Path, branch: str) -> str:
+    """The head the recording was taken at, for the envelope's `source` line."""
+    from factory.workgraph.landed import _resolve_default_head
+
+    return _resolve_default_head(repo, branch, fetch=False)
+
+
 VERBS = {"floor": floor, "epic": epic, "watch": watch, "escalations": escalations,
-         "rollup": rollup, "findings": findings, "questions": questions, "refusal": refusal}
+         "rollup": rollup, "findings": findings, "questions": questions, "refusal": refusal,
+         "landing": landing, "changed-files": changed_files}
 
 
 def main(argv: list[str]) -> int:
