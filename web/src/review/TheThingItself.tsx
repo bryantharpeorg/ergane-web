@@ -42,8 +42,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReviewRoute } from "../api/reviewDocument";
-import { measureLawsIn } from "./laws";
+import { LAWS, measureLawsIn } from "./laws";
 import type { LawReport } from "./laws";
+import type { ReviewView } from "./notes";
 
 /**
  * The widths the operator may pick, ascending.
@@ -197,11 +198,13 @@ export function Measured({
         <Figure label="painters" value={report.painters} unit="" />
       </div>
 
+      {/* Over `LAWS` since 011 US3: a note's frozen coordinates name the same
+          four, and a law spelt one way here and another way in the draft the
+          operator saves would be two vocabularies for one thing. */}
       <div className="rv-laws">
-        <Law name="outside its stage" law="a" findings={report.escaped} />
-        <Law name="past the right edge" law="b" findings={report.past} />
-        <Law name="overlapping text" law="c" findings={report.overlapping} />
-        <Law name="painted over text" law="d" findings={report.occluded} />
+        {LAWS.map((law) => (
+          <Law key={law.law} name={law.name} law={law.law} findings={report[law.key]} />
+        ))}
       </div>
 
       <p className="rv-measured-foot micro" data-room-scrolls={report.roomScrollsSideways}>
@@ -214,6 +217,19 @@ export function Measured({
 interface Props {
   routes: ReviewRoute[];
   specDir: string;
+  /**
+   * Where this track reports what it is currently looking at (011 US3).
+   *
+   * The notes track needs four of a note's five coordinates — route, width,
+   * theme and the measured numbers — and all four are this track's state. It is
+   * handed *up* rather than the notes track reaching *down*, because a second
+   * reader of the frame would be a second measurement of it and the two would
+   * disagree (plan D2, in its component shape).
+   *
+   * Optional: the track is a whole thing without a listener, and the two US2
+   * suites mount it without one.
+   */
+  onView?: (view: ReviewView) => void;
 }
 
 /**
@@ -224,7 +240,7 @@ interface Props {
  * route is the catch-all that serves the rooms — neither is a screen an operator
  * reviews, and offering one would be the room inviting a reader to review JSON.
  */
-export default function TheThingItself({ routes, specDir }: Props): JSX.Element {
+export default function TheThingItself({ routes, specDir, onView }: Props): JSX.Element {
   const rooms = routes.filter((route) => route.kind === "room");
   const [selected, setSelected] = useState<string | null>(null);
   const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
@@ -333,6 +349,30 @@ export default function TheThingItself({ routes, specDir }: Props): JSX.Element 
       mutations.disconnect();
     };
   }, [measure, generation]);
+
+  /**
+   * Report what is on the screen, so a note can be anchored to it (011 US3).
+   *
+   * Four of a note's five coordinates live in this component's state, and the
+   * fifth — the story — is the notes track's own. Handing them up is what lets
+   * `captureNote` freeze *this* render rather than re-derive it from a second
+   * measurement taken a moment later, which is the defect plan D6 forbids in
+   * its other half.
+   *
+   * `unmeasured` and `report` are both carried, and never collapsed: a note
+   * taken over a frame that could not be measured says so in the draft, rather
+   * than reporting zeros that would read as four laws passing.
+   */
+  useEffect(() => {
+    if (onView === undefined || route === null) return;
+    onView({
+      route,
+      width,
+      theme,
+      report,
+      unmeasured: unmeasured === null ? null : unmeasured.reason,
+    });
+  }, [onView, route, width, theme, report, unmeasured]);
 
   if (route === null) {
     return (

@@ -427,3 +427,272 @@ test.describe("§ Layout's four laws over the review room (FR-011)", () => {
     expect(report.documentScrollWidth).toBeLessThanOrEqual(report.viewport + 1);
   });
 });
+
+/* ─────────────────────────────────────────────────────────────────────────
+   011 US3. A note carries its coordinates, and the room writes nothing.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Why the notes track needs a browser at all.
+ *
+ * The unit suite constructs a `LawReport` and asserts what the room does with
+ * it. Only here can the assertion be the one that matters: that the numbers a
+ * note freezes are the numbers *the frame actually measured* — same figures,
+ * same laws, same findings — rather than a plausible set the room composed.
+ * `235px of graph hidden at 1280` is worth recording because it came off a
+ * layout, and a layout is what `jsdom` does not have.
+ *
+ * And FR-011 is the other reason. The composed draft is the largest thing this
+ * room renders: ninety lines of preformatted text with lines far wider than the
+ * column holding them. A sweep that only ever saw an empty notes track would be
+ * reporting zero violations over the room the operator does not use. So the
+ * laws are swept again with a note taken and the document on screen, at every
+ * width and in both themes — the room holding the laws it measures, in the
+ * state it spends its time in.
+ */
+
+/**
+ * The frame, loaded and laid out — not merely addressed.
+ *
+ * Picking a route navigates the frame, and there is a window in that navigation
+ * where `contentDocument` answers a document with no root element in it. The
+ * room handles that case by not measuring (`rendered()` in `TheThingItself`);
+ * this suite has to wait it out, because `measureLawsIn` is entitled to assume a
+ * document it is handed has been laid out.
+ *
+ * Waiting on the *room's* leaf count is not enough and was the first attempt:
+ * the figures on screen are still the previous route's until the new
+ * measurement lands, so a poll for "more than ten leaves" passes on the stale
+ * number and hands the next line a document mid-flight. What is asked here is
+ * asked of the frame's own document — its address, its ready state, and that it
+ * has a tree in it.
+ */
+async function frameSettled(page: Page, pathname: string): Promise<void> {
+  await expect
+    .poll(
+      async () =>
+        page.locator("[data-render-frame]").evaluate((element, expected) => {
+          const doc = (element as HTMLIFrameElement).contentDocument;
+          if (doc === null || doc.documentElement === null) return false;
+          return (
+            doc.location.pathname === expected &&
+            doc.readyState === "complete" &&
+            doc.querySelectorAll("*").length > 20
+          );
+        }, pathname),
+      { message: "the frame never finished loading the route it was pointed at" },
+    )
+    .toBe(true);
+}
+
+/** Type an observation and record it, in the one text box this room has. */
+async function record(page: Page, words: string): Promise<void> {
+  await page.locator("[data-note-field]").fill(words);
+  await page.locator("[data-record]").click();
+  await page.waitForSelector("[data-note]");
+}
+
+/** What one recorded note says about where it was taken. */
+async function coordinates(page: Page, index = 0) {
+  const note = page.locator("[data-note]").nth(index);
+  return {
+    story: await note.getAttribute("data-note-story"),
+    route: (await note.locator("[data-note-route]").textContent())?.trim() ?? "",
+    width: (await note.locator("[data-note-width]").textContent())?.trim() ?? "",
+    theme: (await note.locator("[data-note-theme]").textContent())?.trim() ?? "",
+    measured: (await note.locator("[data-note-measured]").textContent())?.trim() ?? "",
+    laws: (await note.locator("[data-note-laws]").textContent())?.trim() ?? "",
+  };
+}
+
+// --- FR-012: the note's numbers are the frame's own -----------------------
+
+test("a note freezes the coordinates and the measured numbers on the screen", async ({
+  page,
+  request,
+}) => {
+  const { rooms } = await openRoom(page, request);
+  await page.locator("[data-width-pick='1280']").click();
+  await page.locator("[data-theme-pick='dark']").click();
+
+  // The room and the suite agree about the frame before anything is recorded,
+  // so what the note carries can be checked against a real measurement rather
+  // than against the room's own claim about one.
+  const inside = await agreed(page);
+  await record(page, "the graph is cut off on the right");
+
+  const note = await coordinates(page);
+  expect(note.route).toBe(rooms[0]);
+  expect(note.width).toBe("1280px");
+  expect(note.theme).toBe("dark");
+  expect(note.story).toMatch(/^US\d+$/);
+
+  // The figures, all of them, and they are the frame's — not a second
+  // measurement taken a moment later by the track that records them.
+  expect(note.measured).toContain(`frame ${inside.viewport}px`);
+  expect(note.measured).toContain(`document ${inside.documentScrollWidth}px`);
+  expect(note.measured).toContain(`${inside.leaves} text leaves`);
+  expect(note.measured).toContain(`${inside.painters} painters`);
+  expect(note.measured).toContain(
+    `${Math.max(0, Math.round(inside.documentScrollWidth - inside.viewport))}px hidden past the edge`,
+  );
+  // And every law by name, with its count — including the ones that found none.
+  expect(note.laws).toBe(
+    [
+      `outside its stage ${inside.escaped.length}`,
+      `past the right edge ${inside.past.length}`,
+      `overlapping text ${inside.overlapping.length}`,
+      `painted over text ${inside.occluded.length}`,
+    ].join(" · "),
+  );
+});
+
+test("a note keeps its coordinates when the operator moves the controls", async ({
+  page,
+  request,
+}) => {
+  await openRoom(page, request);
+  await page.locator("[data-width-pick='1280']").click();
+  await page.locator("[data-theme-pick='light']").click();
+  await agreed(page);
+  await record(page, "cut off at 1280");
+
+  const taken = await coordinates(page);
+
+  // Everything the room has, moved — and the frame really re-measured, so this
+  // is not a note surviving a change that never happened.
+  await page.locator("[data-width-pick='2560']").click();
+  await page.locator("[data-theme-pick='dark']").click();
+  await expect(page.locator("[data-measured]")).toHaveAttribute("data-width", "2560");
+  await expect
+    .poll(async () => page.locator("[data-render-frame]").evaluate((e) => e.clientWidth))
+    .toBe(2560);
+  const moved = await agreed(page);
+  expect(moved.viewport).toBeGreaterThan(1280);
+
+  expect(await coordinates(page)).toEqual(taken);
+  // The live line follows the view; the record does not. That difference is the
+  // whole of plan D6.
+  expect(await page.locator("[data-capture-where]").textContent()).toContain("2560px");
+});
+
+// --- FR-013: the draft has the shape 007 and 010 have ---------------------
+
+test("the composed draft is a captured-TBD spec, and the room offers no save", async ({
+  page,
+  request,
+}) => {
+  const { specDir } = await openRoom(page, request);
+  await agreed(page);
+  await record(page, "the graph is cut off on the right");
+
+  await expect(page.locator("[data-draft]")).toHaveCount(0);
+  await page.locator("[data-compose]").click();
+  const draft = (await page.locator("[data-draft]").textContent()) ?? "";
+
+  expect(draft.startsWith("---\nstate: draft\n")).toBe(true);
+  expect(draft).toContain("TBD — CAPTURED, NOT REFINED");
+  expect(draft).toContain(`depends_on_landed: [${specDir}]`);
+  expect(draft).toContain("## Operator intent (as captured)");
+  expect(draft).toContain("> the graph is cut off on the right");
+  expect(draft).toContain("## Sketch");
+  expect(draft).toContain("## Open questions");
+  expect(draft).toContain("## Out of scope (already known)");
+  expect(draft).toContain("## Work Graph");
+  expect(draft).toContain("Deliberately absent");
+  // No fenced block anywhere: a compiled graph is what makes a spec
+  // dispatchable, and this room must never emit one.
+  expect(draft).not.toContain("```");
+
+  // FR-014, as the operator meets it: the control says save this yourself, in
+  // those terms, and there is nothing on the page that could save it.
+  expect(await page.locator("[data-save-hint]").textContent()).toContain(
+    "This room saved nothing",
+  );
+  await expect(page.locator("a[download], [download]")).toHaveCount(0);
+  await expect(page.locator("form, input, select")).toHaveCount(0);
+  await expect(page.locator("textarea")).toHaveCount(1);
+});
+
+/**
+ * The runtime half of "the room writes nothing" (FR-014, SC-003).
+ *
+ * `tests/unit/noVerb.test.ts` shows there is no write path in the source and
+ * `tests/test_review_writes_nothing.py` shows the backend writes nothing while
+ * the room runs. This is the third: a whole session of the room being *used* —
+ * routes picked, widths and themes changed, notes taken, the draft composed —
+ * issuing not one request that is not a GET. The Showfloor's own sweep is the
+ * precedent and the shape is deliberately the same.
+ */
+test("a whole session of note-taking issues no request that is not a GET", async ({
+  page,
+  request,
+}) => {
+  const nonGet: string[] = [];
+  page.on("request", (issued) => {
+    if (issued.method() !== "GET") nonGet.push(`${issued.method()} ${issued.url()}`);
+  });
+
+  const { rooms } = await openRoom(page, request);
+  await agreed(page);
+  await record(page, "the first thing");
+  await page.locator("[data-width-pick='1600']").click();
+  await page.locator("[data-theme-pick='dark']").click();
+  if (rooms.length > 1) {
+    await page.locator(`[data-route-pick='${rooms[1]}']`).click();
+    await frameSettled(page, rooms[1]);
+  }
+  await agreed(page);
+  await record(page, "the second thing");
+  await page.locator("[data-compose]").click();
+  await expect(page.locator("[data-draft]")).toHaveCount(1);
+
+  // Non-vacuous: the session really happened, so a clean log is a fact about
+  // the room and not about a page nobody touched.
+  await expect(page.locator("[data-note]")).toHaveCount(2);
+  expect(nonGet, "the review room issued a request that was not a GET").toEqual([]);
+});
+
+// --- FR-011: the laws hold over the room in the state it is used in -------
+
+test.describe("§ Layout's four laws over the room with its draft open (FR-011)", () => {
+  for (const width of WIDTHS) {
+    for (const theme of THEMES) {
+      test(`reports zero violations at ${width} in ${theme}`, async ({ page, request }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({ colorScheme: theme });
+        await openRoom(page, request);
+        await agreed(page);
+
+        // A note with a long line in it and the composed document on screen:
+        // ninety lines of preformatted text whose longest run is far wider than
+        // the column holding it, which is the case that would take the room
+        // sideways if the well's own scroller were not doing its job.
+        await record(
+          page,
+          "the rank label wraps onto two lines and the second is clipped by the card's own box, which is the defect the 2026-08-25 review recorded as F1",
+        );
+        await page.locator("[data-compose]").click();
+        await expect(page.locator("[data-draft]")).toHaveCount(1);
+
+        const report = await measureLaws(page);
+
+        expect(report.leaves, "the sweep found no text at all").toBeGreaterThan(10);
+        expect(report.painters, "the sweep found nothing painted").toBeGreaterThan(0);
+        await expect(page.locator("[data-track='the-notes']")).toBeVisible();
+        await expect(page.locator("[data-draft]")).toBeVisible();
+
+        expect(report.escaped, "text outside a scrolling ancestor").toEqual([]);
+        expect(report.past, "an element past its container").toEqual([]);
+        expect(report.overlapping, "two text leaves overlapping").toEqual([]);
+        expect(report.occluded, "an opaque box painted over text").toEqual([]);
+
+        expect(report.roomScrollsSideways, "the room scrolls sideways").toBe(false);
+        expect(
+          report.documentScrollWidth,
+          "the document is wider than the viewport",
+        ).toBeLessThanOrEqual(report.viewport + 1);
+      });
+    }
+  }
+});
