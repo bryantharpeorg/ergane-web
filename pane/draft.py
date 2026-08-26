@@ -173,12 +173,23 @@ def read_trio(specs_root: Path | str, spec_dir: str) -> dict:
 
 
 def read_revision(tree: Path | str) -> tuple[str | None, bool | None]:
-    """`(revision, dirty)` for the working tree at `tree`, or `(None, None)`.
+    """`(revision, dirty)` for the specs tree at `tree`, or `(None, None)`.
 
-    Two facts, because one of them alone would be a half-truth: the commit the
-    tree is on, and whether the tree is still that commit.  The operator's
-    checkout is where specs are edited, so a room that named only the revision
-    would name a commit whose `spec.md` is not the one it just rendered.
+    Two facts, because either alone would be a half-truth: the commit the
+    checkout is on, and whether the documents this room reads are still what
+    that commit holds.  The operator's checkout is where specs are edited in
+    place, so a room that named only the revision would name a commit whose
+    `spec.md` is not the one it just rendered.
+
+    **`dirty` is scoped to `tree`, not to the whole repository, and the scope is
+    the point.**  The question the stamp answers is "is what I just showed you
+    the revision I just named", so a change to `pane/` or to a stray file
+    somewhere else in the checkout is not this room's business and would be
+    noise on every render.  Scoping it to the specs root also keeps the read
+    cheap enough to make on every request, which is what freshness costs: this
+    is deliberately **not** memoised the way `pane/landing.py` memoises, because
+    the roadmap hard-resets the checkout every tick (N50) and a cached stamp is
+    the exact lie FR-003 exists to prevent.
 
     `(None, None)` is *unknown* and never a failure: a directory that is not in
     a repository has no revision to withhold.  See the module docstring.
@@ -188,7 +199,10 @@ def read_revision(tree: Path | str) -> tuple[str | None, bool | None]:
     path = Path(tree)
     try:
         revision = _git(path, "rev-parse", "HEAD").strip()
-        status = _git(path, "status", "--porcelain")
+        # `-- .` is the scope above; `--untracked-files=all` keeps a `plan.md`
+        # that exists and was never committed counted as a difference, because
+        # to a reader of this room it is exactly that.
+        status = _git(path, "status", "--porcelain", "--untracked-files=all", "--", ".")
     except (WorktreeError, OSError):
         return None, None
 

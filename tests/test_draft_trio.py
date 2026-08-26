@@ -214,6 +214,48 @@ def test_a_working_tree_with_uncommitted_work_says_so(tmp_path):
     assert document["dirty"] is True
 
 
+def test_an_untracked_document_counts_as_uncommitted(tmp_path):
+    """A `plan.md` that was never committed is not what the revision holds.
+
+    To a reader of this room that is exactly a difference, so it is counted as
+    one — an untracked document is the ordinary way a commissioned plan first
+    appears, and a stamp that called the tree clean over it would be naming a
+    commit that does not contain what is on screen.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "--quiet")
+    root = repo / "specs"
+    build_spec(root, SPEC_DIR, spec_md="# the spec\n")
+    git(repo, "add", "--all")
+    git(repo, "commit", "--quiet", "-m", "the constructed corpus")
+    (root / SPEC_DIR / "plan.md").write_text("# newly commissioned\n", encoding="utf-8")
+
+    assert read_trio(root, SPEC_DIR)["dirty"] is True
+
+
+def test_work_outside_the_specs_tree_does_not_dirty_the_stamp(tmp_path):
+    """The stamp answers about what it showed, not about the whole checkout.
+
+    An edit to `pane/` is not this room's business, and counting it would put
+    `+ uncommitted` on every render an operator makes while working — noise that
+    would teach them to stop reading the one word that matters.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "--quiet")
+    root = repo / "specs"
+    build_spec(root, SPEC_DIR, spec_md="# the spec\n")
+    (repo / "elsewhere.txt").write_text("committed\n", encoding="utf-8")
+    git(repo, "add", "--all")
+    git(repo, "commit", "--quiet", "-m", "the constructed corpus")
+    (repo / "elsewhere.txt").write_text("edited, and none of this room's business\n", encoding="utf-8")
+
+    document = read_trio(root, SPEC_DIR)
+    assert document["dirty"] is False
+    assert document["revision"] == git(repo, "rev-parse", "HEAD").strip()
+
+
 def test_an_unversioned_tree_reads_the_revision_as_unknown(specs_root, draft_client):
     """A revision that cannot be read is unknown, never a zero and never a lie.
 
