@@ -10,6 +10,20 @@ from fastapi.testclient import TestClient
 from pane.app import create_app
 
 
+@pytest.fixture(autouse=True)
+def scratch_delivery_store(monkeypatch, tmp_path):
+    """`create_app()` with no settings opens a store; put it in scratch (009 US3).
+
+    Every test below builds the application the way a deployment does, from the
+    environment — and with `PANE_ATTENTION_DB` unset that resolves to
+    `.pane/attention.db` *beside the working directory*, so running this file
+    wrote a store into the repository and read it back on the next run.  The
+    worktree does not carry that file into the gate, which is what made a green
+    run here and a green run on the boundary two different facts.
+    """
+    monkeypatch.setenv("PANE_ATTENTION_DB", str(tmp_path / "attention.db"))
+
+
 def test_create_app_returns_fastapi():
     app = create_app()
     assert isinstance(app, FastAPI)
