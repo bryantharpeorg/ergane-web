@@ -510,3 +510,91 @@ describe("the durations and the interval", () => {
     expect(verificationSeconds("2026-08-25T18:10:15Z", "2026-08-25T18:00:00Z")).toBeNull();
   });
 });
+
+/* ── US3-S2: no recorded attempt, no section (013 FR-010) ──────────────── */
+
+/**
+ * "Renders no section, not an empty one" — and *not a white screen either*.
+ *
+ * US2 answered the case the assembler emits: `{attempts: [], note: null}` is
+ * `_story_evidence`'s word for a node the evidence store has never recorded a
+ * verification of, and the section renders nothing for it. What was left is the
+ * case the assembler does *not* emit, which is the one the room can still be
+ * handed: `api/showfloorDocument.ts` is a **cast** over `response.json()` and
+ * not a parse, so `StoryEvidence` is a promise about `pane/showfloor.py` and
+ * never a guarantee about the bytes that arrive.
+ *
+ * Constitution III is the standing instruction for that gap — "a missing key
+ * never crashes a view" — and it is not a hypothetical here: a story with no
+ * `evidence` key at all took the whole Showfloor down with
+ * `Cannot read properties of undefined (reading 'attempts')`, which is a room
+ * that renders nothing rather than a section that renders nothing.
+ *
+ * A story the pane cannot read a gate run out of is a story with no recorded
+ * attempt, and FR-010 already says what that renders: nothing at all.
+ */
+describe("a story with no recorded attempt renders no section", () => {
+  /** The three shapes that mean "there is no gate run here" (FR-010). */
+  const nothing: Array<[string, StoryEvidence]> = [
+    ["the section the assembler emits for an unverified node", evidenceOf([])],
+    ["a story carrying no evidence key at all", undefined as unknown as StoryEvidence],
+    ["a story whose evidence is null", null as unknown as StoryEvidence],
+  ];
+
+  for (const [what, evidence] of nothing) {
+    it(`renders nothing for ${what}`, () => {
+      const container = section(evidence);
+      expect(container.querySelector("[data-gate-run]")).toBeNull();
+      // Not an empty frame, and not the section's furniture without it: no
+      // kicker, no retention line, no degraded well left standing on its own.
+      expect(container.querySelector("[data-gate-run-head]")).toBeNull();
+      expect(container.querySelector("[data-gate-run-retention]")).toBeNull();
+      expect(container.querySelector("[data-gate-run-note]")).toBeNull();
+      expect(container.textContent).toBe("");
+    });
+  }
+
+  it("renders nothing for an evidence section whose attempts are not a list", () => {
+    // The same absence, arriving in the shape a hand-rolled or half-migrated
+    // document would take. `unknown` is what the room really has here, and the
+    // section says so by not being there.
+    const container = section({ attempts: null, note: null } as unknown as StoryEvidence);
+    expect(container.querySelector("[data-gate-run]")).toBeNull();
+    expect(container.textContent).toBe("");
+  });
+
+  it("leaves nothing between the facts grid and the implements row", () => {
+    // The "not an empty one" half, measured where an empty one would show: the
+    // pane's own order. With no section, the implements kicker follows the
+    // facts grid directly, with nothing standing between them.
+    const story = storyOf("us1", "The section is honest at every width", ladderOf({ done: true }));
+    const bare = render(<DetailPane story={story} />);
+    const facts = bare.querySelector("[data-detail-facts]")!;
+
+    expect(facts.nextElementSibling?.getAttribute("data-detail-implements-head")).not.toBeNull();
+    expect(bare.querySelector("[data-gate-run]")).toBeNull();
+
+    // And the same pane, handed one recorded attempt, puts the section exactly
+    // there — so what is absent above is the section and not the pane's order.
+    const filled = render(
+      <DetailPane story={{ ...story, evidence: evidenceOf([PASSED]) }} />,
+    );
+    const filledFacts = filled.querySelector("[data-detail-facts]")!;
+    expect(filledFacts.nextElementSibling?.hasAttribute("data-gate-run")).toBe(true);
+  });
+
+  it("costs the pane nothing when the room is handed a story it cannot read", () => {
+    // Constitution III, in the room rather than in the component: the pane's
+    // own furniture is all still there, which is the difference between a
+    // section that did not render and a view that crashed.
+    const story = storyOf("us1", "The section is honest at every width", ladderOf({ done: true }));
+    const { evidence: _absent, ...evidenceless } = story;
+    const container = render(<DetailPane story={evidenceless as unknown as typeof story} />);
+
+    expect(container.querySelector("[data-detail-title]")).not.toBeNull();
+    expect(container.querySelector("[data-detail-steps]")).not.toBeNull();
+    expect(container.querySelector("[data-detail-facts]")).not.toBeNull();
+    expect(container.querySelector("[data-detail-implements]")).not.toBeNull();
+    expect(container.querySelector("[data-gate-run]")).toBeNull();
+  });
+});

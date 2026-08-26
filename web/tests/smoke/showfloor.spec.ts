@@ -3102,6 +3102,10 @@ async function serveGateRun(
     ),
   };
 
+  // Replaced rather than stacked: a second call in one test re-dresses the same
+  // floor, and two live handlers for one pattern would make which document the
+  // room gets a fact about registration order.
+  await page.unroute("**/api/showfloor");
   await page.route("**/api/showfloor", (route) =>
     route.fulfill({ contentType: "application/json", body: JSON.stringify(dressed) }),
   );
@@ -3273,5 +3277,146 @@ test.describe("the laws still see the gate run's fold (013 FR-009)", () => {
     ).toBeGreaterThan(0);
     await uproot();
     expect((await measureLaws(page)).overlapping, "and the room is clean again").toEqual([]);
+  });
+});
+
+/**
+ * US3-S2 in the room (013 FR-010): no recorded attempt, no section.
+ *
+ * The component's half of this is `tests/unit/GateRun.test.tsx`. What is left
+ * for a real browser is the half a component cannot answer — that nothing is
+ * *standing where the section would be*. "Renders no section, not an empty one"
+ * is a claim about the pane's own order, and the pane's order is a layout.
+ *
+ * Made, not waited for, and for 009 FR-011's reason: this floor's fixture set
+ * records no gate run at all, so every story on it takes the *degraded* branch
+ * and none of them take this one. A test that hunted the corpus for a story
+ * with an empty evidence section would be pinning this morning's fixtures.
+ */
+test.describe("a story with no recorded attempt renders no gate run (013 FR-010)", () => {
+  test("no section, and the implements row follows the facts grid directly", async ({
+    page,
+    request,
+  }) => {
+    /** Where the pane's own order can be read: what sits between two rows. */
+    const seam = () =>
+      page.evaluate(() => {
+        const facts = document.querySelector("[data-detail-facts]")!;
+        const head = document.querySelector("[data-detail-implements-head]")!;
+        const section = document.querySelector("[data-gate-run]");
+        return {
+          adjacent: facts.nextElementSibling === head,
+          gap: head.getBoundingClientRect().top - facts.getBoundingClientRect().bottom,
+          sectionHeight: section === null ? 0 : section.getBoundingClientRect().height,
+        };
+      });
+
+    const entry = await serveGateRun(page, request, () => evidenceOf([]));
+    const empty: number[] = [];
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.setViewportSize({ width: 1280, height: TALL });
+      await page.goto(`/showfloor/${entry.spec_dir}`);
+      await page.waitForSelector("[data-node-card]");
+
+      for (const story of entry.stories) {
+        await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+        await page.waitForSelector("[data-detail-title]");
+        const where = `${entry.spec_dir}/${story.id} in ${scheme}`;
+
+        // Not the section, and not one piece of its furniture on its own: no
+        // kicker, no retention line, no degraded well, no attempt.
+        await expect(page.locator("[data-gate-run]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate-run-head]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate-run-retention]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate-run-note]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate-attempt]"), where).toHaveCount(0);
+        await expect(page.locator("[data-gate]"), where).toHaveCount(0);
+
+        // And the pane around it is whole — what is absent is the section, not
+        // the story it belongs to (constitution III: a missing key never
+        // crashes a view, and this is the room saying so).
+        for (const part of [
+          "[data-detail-title]",
+          "[data-detail-steps]",
+          "[data-detail-facts]",
+          "[data-detail-implements]",
+        ]) {
+          await expect(page.locator(part), `${where}: ${part}`).toHaveCount(1);
+        }
+
+        const read = await seam();
+        expect(read.adjacent, `${where}: the implements row follows the facts grid`).toBe(true);
+        expect(read.gap, `${where}: no empty strip between them`).toBeLessThan(60);
+        empty.push(read.gap);
+      }
+    }
+
+    // The other half of "not an empty one": the same room, the same story, the
+    // same two rows — with one recorded attempt between them. If the seam did
+    // not move, the measurement above was not measuring the section's absence.
+    await serveGateRun(page, request, () => twoAttempts());
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.waitForSelector("[data-node-card]");
+    await page.locator(`[data-node-card][data-story-id="${entry.stories[0].id}"]`).click();
+    await page.waitForSelector("[data-gate-run]");
+
+    const filled = await seam();
+    expect(filled.adjacent, "a drawn section sits between the two rows").toBe(false);
+    expect(filled.sectionHeight, "and it is a real box").toBeGreaterThan(100);
+    expect(
+      filled.gap,
+      "the seam opens by the height of the section that was missing",
+    ).toBeGreaterThan(Math.max(...empty) + filled.sectionHeight - 1);
+  });
+
+  /**
+   * Constitution III in the room: "a missing key never crashes a view".
+   *
+   * `api/showfloorDocument.ts` is a cast over `response.json()` and not a
+   * parse, so the room can be handed a story with no `evidence` key — and until
+   * this story it was handed one and went white, on `Cannot read properties of
+   * undefined (reading 'attempts')`. That is a room rendering nothing, which is
+   * not what FR-010 asks for and is the opposite of what it asks for.
+   *
+   * `undefined` is not serialised into an object by `JSON.stringify`, so the
+   * document the browser really receives here has no such key at all.
+   */
+  test("a story whose document carries no evidence key costs the room nothing", async ({
+    page,
+    request,
+  }) => {
+    const entry = await serveGateRun(page, request, () => undefined as unknown as StoryEvidence);
+
+    await page.setViewportSize({ width: 1280, height: TALL });
+    await page.goto(`/showfloor/${entry.spec_dir}`);
+    await page.waitForSelector("[data-node-card]");
+    await page.locator(`[data-node-card][data-story-id="${entry.stories[0].id}"]`).click();
+    await page.waitForSelector("[data-detail-title]");
+
+    // The key really is absent from what the browser was served.
+    expect(
+      await page.evaluate(async () => {
+        const document_ = (await (await fetch("/api/showfloor")).json()) as {
+          rail: Array<{ stories: Array<Record<string, unknown>> }>;
+        };
+        return document_.rail.some((entry_) =>
+          entry_.stories.some((story) => !("evidence" in story)),
+        );
+      }),
+      "the served document really omits the key",
+    ).toBe(true);
+
+    // And the room is whole: the rail, the stage and the pane, with no section.
+    await expect(page.locator("[data-gate-run]")).toHaveCount(0);
+    await expect(page.locator("[data-stage-canvas]")).toHaveCount(1);
+    await expect(page.locator("[data-detail-title]")).toHaveCount(1);
+    await expect(page.locator("[data-detail-facts]")).toHaveCount(1);
+    await expect(page.locator("[data-detail-implements]")).toHaveCount(1);
+    expect(
+      await page.locator("[data-node-card]").count(),
+      "every card is still drawn",
+    ).toBe(entry.stories.length);
   });
 });
