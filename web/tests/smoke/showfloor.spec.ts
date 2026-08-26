@@ -523,6 +523,8 @@ test.describe("the room has no verb (constitution I, FR-017)", () => {
 /** One epic's stories and edges, straight off the document the room renders. */
 interface StageEntry {
   spec_dir: string;
+  /** The spec's own goal, for the band beneath the stage (009 US4, FR-010). */
+  intent: string;
   epic_id: string | null;
   stories_total: number;
   stories_landed: number;
@@ -1219,10 +1221,10 @@ interface PaneStory {
 /** The first spec on the floor whose stories carry requirement keys. */
 async function keyedEntry(request: {
   get: (url: string) => Promise<{ json: () => Promise<unknown> }>;
-}): Promise<{ spec_dir: string; stories: PaneStory[] }> {
+}): Promise<{ spec_dir: string; intent: string; stories: PaneStory[] }> {
   const response = await request.get("/api/showfloor");
   const document = (await response.json()) as {
-    rail: Array<{ spec_dir: string; stories: PaneStory[] }>;
+    rail: Array<{ spec_dir: string; intent: string; stories: PaneStory[] }>;
   };
   const entry = document.rail.find((candidate) =>
     candidate.stories.some((story) => story.requirement_keys.length > 0),
@@ -1242,10 +1244,13 @@ test.describe("the detail pane tells the selected story (FR-015)", () => {
     await page.goto(`/showfloor/${entry.spec_dir}`);
     await page.waitForSelector("[data-node-card]");
 
-    // Nothing is selected until something is picked, and the pane says what
-    // the room is for rather than sitting blank (§ Detail pane).
-    await expect(page.locator("[data-detail-empty]")).toHaveCount(1);
+    // Nothing is selected until something is picked. Since D-019 the band
+    // beneath the stage says what the *spec* is for rather than describing the
+    // room, and the room's own explainer is not mounted while a spec is
+    // selected — the two never stack (009 FR-012, FR-013).
     await expect(page.locator("[data-detail-title]")).toHaveCount(0);
+    await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
+    await expect(page.locator("[data-spec-goal]")).toHaveCount(entry.intent === "" ? 0 : 1);
 
     await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
 
@@ -1763,6 +1768,71 @@ async function roomMetrics(page: Page): Promise<RoomMetrics> {
   });
 }
 
+/** One band under the stage, measured as the browser lays it out. */
+interface BandMetrics {
+  text: string;
+  display: string;
+  visibility: string;
+  opacity: string;
+  textOverflow: string;
+  width: number;
+  height: number;
+  top: number;
+  bottom: number;
+  /** The bottom of the graph scroller, or the legend's top where none exists. */
+  graphBottom: number;
+  legendTop: number;
+  insideStage: boolean;
+  insidePane: boolean;
+  clippedWide: boolean;
+  clippedTall: boolean;
+  /** The grid's selection hook at the instant of the measurement. */
+  selection: string | null;
+}
+
+/**
+ * The band beneath the stage, whichever paragraph is occupying it (009 US4).
+ *
+ * 008 measured `[data-detail-empty]` here and this is that measurement, taken
+ * by selector so the two occupants D-019 defines — the spec's own goal, and the
+ * room's explainer in the no-spec case — are held to one standard rather than
+ * two. `null` when the selector matches nothing, which is an *answer* for
+ * FR-011 and not a failure to measure.
+ */
+async function bandMetrics(page: Page, selector: string): Promise<BandMetrics | null> {
+  return page.evaluate((which) => {
+    const band = document.querySelector(which) as HTMLElement | null;
+    if (band === null) return null;
+    const style = getComputedStyle(band);
+    const box = band.getBoundingClientRect();
+    const scroller = document.querySelector("[data-stage-scroll]");
+    const legend = document.querySelector("[data-legend]")!;
+    const stage = document.querySelector("[data-stage]")!;
+    const pane = document.querySelector("[data-detail]");
+    const cols = document.querySelector("[data-showfloor-cols]");
+    const legendTop = legend.getBoundingClientRect().top;
+    return {
+      text: (band.textContent ?? "").replace(/\s+/g, " ").trim(),
+      display: style.display,
+      visibility: style.visibility,
+      opacity: style.opacity,
+      textOverflow: style.textOverflow,
+      width: box.width,
+      height: box.height,
+      top: box.top,
+      bottom: box.bottom,
+      graphBottom:
+        scroller === null ? legendTop : scroller.getBoundingClientRect().bottom,
+      legendTop,
+      insideStage: stage.contains(band),
+      insidePane: pane !== null && pane.contains(band),
+      clippedWide: band.scrollWidth > band.clientWidth + 0.5,
+      clippedTall: band.scrollHeight > band.clientHeight + 0.5,
+      selection: cols === null ? null : cols.getAttribute("data-selection"),
+    };
+  }, selector);
+}
+
 /** Every wire's committed path, beside the card boxes it claims to join. */
 async function wireGeometry(page: Page) {
   return page.evaluate(() => {
@@ -1927,10 +1997,13 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
       const before = await roomMetrics(page);
       expect(before.selection, `${where}: opens on no story`).toBe("none");
       expect(before.tracks[2], `${where}: the track is collapsed`).toBe(0);
+      // The band beneath the stage carries this spec's goal (009 FR-012), and
+      // the room's own explainer is not mounted beside it.
       await expect(
-        page.locator("[data-detail-empty]"),
-        `${where}: the room explains itself beneath the stage`,
-      ).toHaveCount(1);
+        page.locator("[data-spec-goal]"),
+        `${where}: the spec's goal is beneath the stage`,
+      ).toHaveCount(wired.intent === "" ? 0 : 1);
+      await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
       await expect(page.locator("[data-detail-title]")).toHaveCount(0);
 
       const wiresBefore = await wireGeometry(page);
@@ -1988,9 +2061,15 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
         `${where}: the scroller gained the released width`,
       ).toBeCloseTo(26 * after.root, 0);
 
-      // FR-006: the explanation is gone from beneath the stage, and the pane
-      // is telling the story instead.
+      // The pane is telling the story — and the band beneath the stage did not
+      // empty behind it, which is the layout jump D-019 closes. 008's
+      // assertion here was that the room's explainer left; since D-019 it was
+      // never there, and what must *not* leave is the goal (009 FR-012).
       await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
+      await expect(
+        page.locator("[data-spec-goal]"),
+        `${where}: the band survived the pick`,
+      ).toHaveCount(wired.intent === "" ? 0 : 1);
       await expect(page.locator("[data-detail-title]")).toHaveText(story.title);
 
       // And the wires still join the cards they name, measured against the
@@ -2013,13 +2092,34 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
     }
   });
 
-  test("the room's two sentences sit beneath the stage, verbatim and visible (FR-005)", async ({
+  /**
+   * **Superseded by D-019, in the same band.** 008 US2 asserted here that the
+   * room's two sentences sat beneath the stage for every staged spec at every
+   * width. D-019 gave that band to the spec's own goal — the goal is true of
+   * the graph whether or not a story is picked, where a generic description of
+   * the room stops being interesting after the first visit — and retired the
+   * explainer to the case where no spec is selected at all.
+   *
+   * So the *measurement* below is 008's, unchanged and in full: visible rather
+   * than merely present, a non-zero box, never truncated, beneath the graph,
+   * above the legend, inside the stage column and out of the track it gave up.
+   * What changed is which element it is pointed at, and that the sweep now
+   * asserts the empty case too — a spec whose document carries no goal must
+   * render no band, not an empty one (009 FR-011).
+   */
+  test("the spec's own goal sits beneath the stage, verbatim and visible (009 FR-010 … FR-012)", async ({
     page,
     request,
   }) => {
     const rail = await stageRail(request);
     const staged = rail.filter((entry) => entry.stories.length > 0);
     expect(staged.length).toBeGreaterThanOrEqual(5);
+    // SC-005's second half — "no spec's goal is missing from the room" — is
+    // only a claim if some spec on this floor has one to miss.
+    expect(
+      staged.filter((entry) => entry.intent !== "").length,
+      "some staged spec on this floor states a goal",
+    ).toBeGreaterThan(0);
 
     for (const scheme of SCHEMES) {
       await page.emulateMedia({ colorScheme: scheme });
@@ -2030,44 +2130,27 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
           await page.waitForSelector("[data-stage-canvas]");
           const where = `${entry.spec_dir} at ${width} in ${scheme}`;
 
-          const read = await page.evaluate(() => {
-            const empty = document.querySelector("[data-detail-empty]") as HTMLElement | null;
-            if (empty === null) return null;
-            const style = getComputedStyle(empty);
-            const box = empty.getBoundingClientRect();
-            const scroller = document.querySelector("[data-stage-scroll]")!;
-            const legend = document.querySelector("[data-legend]")!;
-            const stage = document.querySelector("[data-stage]")!;
-            const pane = document.querySelector("[data-detail]")!;
-            return {
-              text: (empty.textContent ?? "").replace(/\s+/g, " ").trim(),
-              display: style.display,
-              visibility: style.visibility,
-              opacity: style.opacity,
-              overflow: style.overflow,
-              textOverflow: style.textOverflow,
-              width: box.width,
-              height: box.height,
-              top: box.top,
-              bottom: box.bottom,
-              graphBottom: scroller.getBoundingClientRect().bottom,
-              legendTop: legend.getBoundingClientRect().top,
-              insideStage: stage.contains(empty),
-              insidePane: pane.contains(empty),
-              clippedWide: empty.scrollWidth > empty.clientWidth + 0.5,
-              clippedTall: empty.scrollHeight > empty.clientHeight + 0.5,
-            };
-          });
+          const read = await bandMetrics(page, "[data-spec-goal]");
 
-          expect(read, `${where}: the room is explained somewhere`).not.toBeNull();
+          // FR-011: a spec that states no goal renders no band at all. Not an
+          // empty bordered strip, and not the room's explainer standing in for
+          // one — furniture in the place of an answer is the same defect as a
+          // ladder defaulting to its first stop.
+          if (entry.intent === "") {
+            expect(read, `${where}: no goal stated, so no band`).toBeNull();
+            await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
+            continue;
+          }
 
-          // The same words, not a paraphrase and not a shortened one.
-          expect(read!.text, `${where}: the two sentences, verbatim`).toBe(ROOM_EXPLAINED);
-          expect(read!.text.split(". "), `${where}: two sentences`).toHaveLength(2);
+          expect(read, `${where}: the spec's goal is in the room`).not.toBeNull();
 
-          // Visible, not merely present. Plan D1: a `display: none` would pass
-          // 005's `toHaveCount(1)` and would be the pane withholding what the
-          // room says (constitution III).
+          // The document's own paragraph, verbatim — not a paraphrase, not a
+          // truncation, and not a second read of the spec file by the browser.
+          expect(read!.text, `${where}: the document's own words`).toBe(entry.intent);
+
+          // Visible, not merely present. A `display: none` would satisfy a
+          // `toHaveCount(1)` and would be the pane withholding what it read
+          // (constitution III).
           expect(read!.display, `${where}: not display:none`).not.toBe("none");
           expect(read!.visibility, `${where}: computed visible`).toBe("visible");
           expect(Number(read!.opacity), `${where}: opaque`).toBeGreaterThan(0);
@@ -2080,7 +2163,7 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
           expect(read!.textOverflow, `${where}: no ellipsis`).toBe("clip");
 
           // Beneath the stage, above the legend row — and inside the stage
-          // column rather than in the track it just gave up (D-016 clause b).
+          // column rather than in the track the pane gave up (FR-012).
           expect(read!.top, `${where}: beneath the graph`).toBeGreaterThanOrEqual(
             read!.graphBottom - 0.5,
           );
@@ -2089,8 +2172,177 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
           );
           expect(read!.insideStage, `${where}: inside the stage column`).toBe(true);
           expect(read!.insidePane, `${where}: not in the collapsed track`).toBe(false);
+
+          // The two explanations never stack (plan D7).
+          await expect(
+            page.locator("[data-detail-empty]"),
+            `${where}: the room's explainer is not mounted beside the goal`,
+          ).toHaveCount(0);
         }
       }
+    }
+  });
+
+  /**
+   * FR-012's own scenario, and SC-005's first half: the band reads the *same*
+   * before and after a story is picked.
+   *
+   * This is the committed evidence for why D-019 changed the band's occupant at
+   * all. Under D-016 this test could not have been written — the band emptied
+   * on the click, and "identical text across both selection states" had no
+   * second state to compare. Both themes, because the assertion is about the
+   * words and a theme that dropped them would be the same defect wearing
+   * different clothes.
+   */
+  test("the band reads identically with and without a story selected (009 FR-012, SC-005)", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    const speaking = rail.filter((entry) => entry.intent !== "" && entry.stories.length > 0);
+    expect(speaking.length, "a staged spec on this floor states a goal").toBeGreaterThan(0);
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const entry of speaking) {
+        const story = entry.stories.find((candidate) => candidate.id !== null);
+        if (story === undefined) continue;
+        const where = `${entry.spec_dir} in ${scheme}`;
+
+        await page.goto(`/showfloor/${entry.spec_dir}`);
+        await page.waitForSelector("[data-stage-canvas]");
+
+        const unselected = await bandMetrics(page, "[data-spec-goal]");
+        expect(unselected, `${where}: a band with nothing selected`).not.toBeNull();
+        expect(unselected!.text, `${where}: the document's own words`).toBe(entry.intent);
+        expect(unselected!.selection, `${where}: nothing is selected yet`).toBe("none");
+
+        await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
+        await page.waitForSelector("[data-detail-title]");
+
+        const selected = await bandMetrics(page, "[data-spec-goal]");
+        expect(selected, `${where}: the band survived the pick`).not.toBeNull();
+        expect(selected!.selection, `${where}: a story is selected now`).toBe("story");
+
+        // Identical text, in both selection states — the whole of FR-012.
+        expect(selected!.text, `${where}: identical text`).toBe(unselected!.text);
+
+        // Still a visible box, still beneath the graph and above the legend,
+        // in the layout the restored `26rem` track leaves behind.
+        expect(selected!.visibility, `${where}: still visible`).toBe("visible");
+        expect(selected!.height, `${where}: still a box`).toBeGreaterThan(0);
+        expect(selected!.clippedTall, `${where}: still not clipped`).toBe(false);
+        expect(selected!.top, `${where}: still beneath the graph`).toBeGreaterThanOrEqual(
+          selected!.graphBottom - 0.5,
+        );
+        expect(selected!.bottom, `${where}: still above the legend`).toBeLessThanOrEqual(
+          selected!.legendTop + 0.5,
+        );
+        expect(selected!.insideStage, `${where}: still in the stage column`).toBe(true);
+      }
+    }
+  });
+
+  /**
+   * FR-013, and FR-011 against a document this floor does not happen to serve.
+   *
+   * Both cases are *made* rather than waited for: the room is handed a document
+   * with an empty rail, and one whose single entry states no goal. The floor's
+   * own corpus cannot be relied on to carry either — a spec gaining a
+   * `## Context` heading is an ordinary edit, and a test that went red for it
+   * would be pinning this morning's corpus (008 US1). The route double serves
+   * the *document contract*, which is what these two clauses are about.
+   */
+  test("the band belongs to the room's explainer when no spec is selected (009 FR-013)", async ({
+    page,
+  }) => {
+    await page.route("**/api/showfloor", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          reference_instant: null,
+          specs_root: "specs",
+          rail: [],
+          degraded: [],
+        }),
+      }),
+    );
+
+    await page.goto("/showfloor");
+    await page.waitForSelector("[data-empty-floor]");
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+
+      // The room's own two sentences, verbatim, in the band — this is the one
+      // place they are still said, and they are said in full.
+      const read = await bandMetrics(page, "[data-detail-empty]");
+      expect(read, `${scheme}: the room explains itself`).not.toBeNull();
+      expect(read!.text, `${scheme}: the two sentences, verbatim`).toBe(ROOM_EXPLAINED);
+      expect(read!.text.split(". "), `${scheme}: two sentences`).toHaveLength(2);
+      expect(read!.display, `${scheme}: not display:none`).not.toBe("none");
+      expect(read!.visibility, `${scheme}: computed visible`).toBe("visible");
+      expect(read!.height, `${scheme}: a non-zero box`).toBeGreaterThan(0);
+      expect(read!.clippedTall, `${scheme}: not clipped`).toBe(false);
+      expect(read!.insideStage, `${scheme}: inside the stage column`).toBe(true);
+      expect(read!.insidePane, `${scheme}: not in the collapsed track`).toBe(false);
+      expect(read!.bottom, `${scheme}: above the legend row`).toBeLessThanOrEqual(
+        read!.legendTop + 0.5,
+      );
+
+      // And no spec's goal beside it, because there is no spec.
+      await expect(page.locator("[data-spec-goal]")).toHaveCount(0);
+    }
+  });
+
+  test("a spec that states no goal renders no band, not an empty one (009 FR-011)", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    const staged = rail.find((entry) => entry.stories.length > 0)!;
+    expect(staged, "this floor stages a spec").toBeDefined();
+
+    await page.route("**/api/showfloor", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          reference_instant: null,
+          specs_root: "specs",
+          rail: [{ ...staged, intent: "" }],
+          degraded: [],
+        }),
+      }),
+    );
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto(`/showfloor/${staged.spec_dir}`);
+      await page.waitForSelector("[data-stage-canvas]");
+
+      // Nothing at all between the graph and the legend: no band with the
+      // spec's goal, no band with the room's explainer standing in for it, and
+      // no empty bordered strip left behind by either.
+      await expect(page.locator("[data-spec-goal]")).toHaveCount(0);
+      await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
+
+      // The room around it is untouched — the graph is drawn and the legend is
+      // under it — so what is absent is the band and not the stage.
+      await expect(page.locator("[data-stage-canvas]")).toHaveCount(1);
+      await expect(page.locator("[data-legend]")).toHaveCount(1);
+
+      // And the legend really does follow the graph directly, with no gap left
+      // holding the place of a paragraph that was not rendered.
+      const gap = await page.evaluate(() => {
+        const scroller = document.querySelector("[data-stage-scroll]");
+        const legend = document.querySelector("[data-legend]")!;
+        const graphBottom =
+          scroller === null
+            ? legend.getBoundingClientRect().top
+            : scroller.getBoundingClientRect().bottom;
+        return legend.getBoundingClientRect().top - graphBottom;
+      });
+      expect(gap, `${scheme}: no band-sized hole under the graph`).toBeLessThan(40);
     }
   });
 });
