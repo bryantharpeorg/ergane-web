@@ -12,7 +12,7 @@ a state-lit DAG). Today it has exactly one verb, **Answer**, and it never replac
 CLI. D-021 admits four further *grooming* writes by test rather than by list, and every
 one is refused today for want of an ergane authoring seam — see constitution I.
 
-Start with `CONTEXT.md` (the conceptual model), then `docs/decisions.md` (D-001…D-021,
+Start with `CONTEXT.md` (the conceptual model), then `docs/decisions.md` (D-001…D-022,
 the binding design decisions), then `specs/`. `docs/greenfield-log.md` is the append-only
 record of how the repository came to be.
 
