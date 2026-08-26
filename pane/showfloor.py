@@ -57,6 +57,7 @@ if TYPE_CHECKING:
 
 from pane.landing import LANDING_READ
 from pane.readers import QueryRefused, TransportFailed
+from pane.sweep import sweep
 
 # --- the ladder: DESIGN.md § The status ladder, as a table ----------------
 
@@ -989,10 +990,9 @@ def _attempt(row: dict) -> dict:
       1).
     * **`model` and `persona` are null, and say so in `unknown`.**  The store
       does not carry them and the persona registry is not asked (FR-003).
-    * **No `output_tail`.**  US1-S1 enumerates what this document carries and
-      the tail is not on that list; it is raw process output that has never been
-      swept for a credential, so it arrives with the sweep that guards it and
-      not before (013 D4, FR-006/FR-007, US2's to add).
+    * **The `output_tail` is failure-only and swept.**  US1 left it out of the
+      document deliberately, to arrive with the sweep that guards it; `_gate`
+      below is where it does (013 D4, FR-006/FR-007).
     """
     judge = row.get("judge")
     output_check = row.get("output_check") or {}
@@ -1048,23 +1048,64 @@ def _attempt(row: dict) -> dict:
     }
 
 
+#: The one gate status that suppresses a tail (013 FR-006).  Everything else the
+#: store can record — FAIL, TIMEOUT, CONFIG_ERROR, and a status it did not
+#: record at all — is a gate whose output is evidence.  Written as *the pass*
+#: rather than as a list of failures so that a status ergane adds later arrives
+#: carrying its output instead of silently losing it.
+GATE_PASSED = "PASS"
+
+
 def _gate(gate: dict) -> dict:
-    """One gate command's outcome: the five facts US1-S1 names, and its command.
+    """One gate command's outcome: the five facts US1-S1 names, its command, and
+    — on failure only — the tail it printed.
 
     `exit_code` is null exactly when there was no exit to read — the command hit
     its deadline or never ran — which is the store's own meaning and not a zero
     standing in for one.  `concurrent_gates` is how many *other* gate executions
     were in flight beside this one; it is carried as the count ergane recorded
     and never inferred from durations (013 D5).
+
+    ## The tail, and the two rules it arrives under
+
+    **Failure-only** (FR-006).  A passing gate's `output_tail` does not reach
+    the document at all, so the room cannot render one by accident and no
+    surface has to decide what to withhold: the tail is evidence for a failure,
+    not decoration for a success.  The key is on every gate regardless,
+    answered `None` where there is none — a key that appeared only on failures
+    would make "this gate printed nothing" and "this gate is shaped differently"
+    the same observation.  A recorded-but-empty tail is `None` too: a silent
+    command wrote `""` into the store's column, and carrying that through would
+    have the room draw a fold over nothing (§ Don'ts).
+
+    **Swept** (FR-007).  This is the first raw process output this repository
+    has ever rendered — text no author here wrote and no reviewer here read —
+    and constitution VI is absolute about what may reach a rendered page.  It
+    goes through `pane.sweep`, which is the *same* definition
+    `tests/test_credential_sweep.py` runs over every committed file, so US2-S3's
+    "the same credential sweep every other surface passes" is true as an
+    identity and not as a resemblance.  Whole, not truncated: ergane already
+    bounds the column at ≤32 KiB, and a second bound invented here would be the
+    pane withholding evidence it had.
     """
+    status = gate.get("status")
     return {
         "name": gate.get("name"),
         "command": gate.get("command"),
-        "status": gate.get("status"),
+        "status": status,
         "exit_code": gate.get("exit_code"),
         "duration_s": gate.get("duration_s"),
         "concurrent_gates": gate.get("concurrent_gates"),
+        "output_tail": _gate_tail(status, gate.get("output_tail")),
     }
+
+
+def _gate_tail(status: str | None, tail: str | None) -> str | None:
+    """The tail this gate may render: swept, or `None`.  See `_gate`."""
+    if status == GATE_PASSED or not tail:
+        return None
+    swept = sweep(tail)
+    return swept or None
 
 
 def _attestation_disagreement(

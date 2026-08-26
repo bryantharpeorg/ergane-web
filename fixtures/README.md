@@ -75,8 +75,9 @@ operator's host by a real build, and a hand-written gate run would be a pane tha
 the fixture and not the factory (constitution V).
 
 Two things to get right when recording one. The answer's `output_tail` is raw process
-output and has never been swept for a credential, so the sweep runs over the recording
-before it is committed like every other file here (constitution VI). And the rows are
+output, so the sweep runs over the recording before it is committed like every other file
+here (constitution VI) — the same `pane/sweep.py` definition the document itself puts a
+failing gate's tail through on the way to the room (013 FR-007). And the rows are
 overwritten by a re-dispatch (N28) — a recording is one dispatch's record, and the
 envelope should say which epic and which day it came from.
 

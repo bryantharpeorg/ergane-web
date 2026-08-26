@@ -17,10 +17,13 @@
  */
 
 import type {
+  AttemptRecord,
+  GateRecord,
   Ladder,
   LadderStop,
   RailEntry,
   ShowfloorStory,
+  StoryEvidence,
 } from "../../../src/api/showfloorDocument";
 
 const STOP_KEYS = ["ready", "building", "verifying", "pr_open", "queue", "merged"];
@@ -335,4 +338,79 @@ export function entryFromWorkgraph(
     stories_total: stories.length,
     stories_landed: stories.filter((story) => story.ladder.stop_key === "merged").length,
   });
+}
+
+/* ── the gate run (013 US1's section, US2's subject) ──────────────────── */
+
+/**
+ * One gate as `pane/showfloor.py`'s `_gate` emits it, keys and all.
+ *
+ * The same rule the ladder builder above works under: the *keys* are the
+ * assembler's own, so a builder that drifted from the document contract shows
+ * up as a name that does not exist there. Two of the backend's rules are worth
+ * restating, because a builder that broke them would let a test assert
+ * something the room can never actually be handed:
+ *
+ * * `concurrent_gates` is how many **other** gate executions were in flight —
+ *   so three gates that ran together each record `2`, and a gate that had the
+ *   host to itself records `0` (013 D5).
+ * * `output_tail` is non-null **only** for a gate that did not pass: the
+ *   assembler drops a passing gate's tail before the document is built (013
+ *   FR-006), so `gateOf` refuses to attach one to a `PASS`.
+ */
+export function gateOf(overrides: Partial<GateRecord> & { name: string }): GateRecord {
+  const status = overrides.status ?? "PASS";
+  const tail = status === "PASS" ? null : overrides.output_tail ?? null;
+  return {
+    command: `uv run ${overrides.name} -q`,
+    exit_code: status === "PASS" ? 0 : 1,
+    duration_s: 4,
+    concurrent_gates: 0,
+    ...overrides,
+    status,
+    output_tail: tail,
+  };
+}
+
+/** One attempt as `_attempt` emits it: every key, and the two that are always null. */
+export function attemptOf(
+  overrides: Partial<AttemptRecord> & { attempt: number },
+): AttemptRecord {
+  return {
+    form: "PHASE",
+    verdict: "PASS",
+    started_at: null,
+    finished_at: null,
+    provenance: null,
+    loop_summary: null,
+    loop_digest: null,
+    judge_unavailable: false,
+    criteria_drift: false,
+    spec_ref: null,
+    gates: [],
+    output_check: {
+      write_scope: "worktree",
+      has_diff: true,
+      expected_artifacts: [],
+      artifacts_present: null,
+      passed: true,
+      hygiene_violations: [],
+      size_refusal: null,
+    },
+    judge: null,
+    ...overrides,
+    // Never overridable: the store carries neither and the pane may not
+    // resolve them from the registry (013 FR-003).
+    model: null,
+    persona: null,
+    unknown: ["model", "persona"],
+  };
+}
+
+/** A story's whole evidence section — `{attempts, note}` and no third key. */
+export function evidenceOf(
+  attempts: AttemptRecord[],
+  note: StoryEvidence["note"] = null,
+): StoryEvidence {
+  return { attempts, note };
 }

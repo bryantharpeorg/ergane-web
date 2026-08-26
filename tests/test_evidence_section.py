@@ -72,12 +72,11 @@ SPEC_DIR = "910-a-constructed-gate-run"
 NODE_ID = "us1"
 STORY_KEY = "US1"
 
-#: A marker planted in every `output_tail` this file writes.  US1-S1 enumerates
-#: what the document carries and the tail is not on that list — it is raw
-#: process output that has never been swept for a credential, so it arrives with
-#: the sweep that guards it and not before (013 D4).  Finding this string
-#: anywhere in the document would mean it arrived early.
-PLANTED_TAIL = "tail-marker-that-must-not-reach-the-document"
+#: A marker planted in every `output_tail` this file writes.  US1 carried none
+#: of them into the document; US2 carries the *failing* ones, swept (013 D4,
+#: FR-006).  Finding this string on a gate that passed would mean the room had
+#: been handed output it may not render.
+PLANTED_TAIL = "tail-marker-from-a-gate-that-really-ran"
 
 
 # --- the store this file builds -------------------------------------------
@@ -342,24 +341,41 @@ def test_a_node_with_no_recorded_verification_is_an_answer(monkeypatch, tmp_path
     assert untouched == {"attempts": [], "note": None}
 
 
-def test_the_output_tail_does_not_reach_the_document(monkeypatch, tmp_path):
-    """No gate carries its tail here: it arrives with the sweep that guards it.
+def test_no_passing_gate_carries_a_tail_into_the_document(monkeypatch, tmp_path):
+    """The half of US1's tail rule that outlives US1 (013 FR-006).
 
-    Every gate written above has `PLANTED_TAIL` in `output_tail`.  US1-S1
-    enumerates what the document carries and the tail is not on that list —
-    it is raw process output no surface in this repository has ever swept for a
-    credential, and constitution VI is absolute about what may reach a rendered
-    page (013 D4).
+    US1 asserted that *no* gate carried its tail, because the sweep that guards
+    one had not been written yet and the document was the wrong side of it.  US2
+    wrote the sweep, and a failing gate's tail now arrives through it — so what
+    is asserted here is the part that is permanent: **a gate that passed carries
+    none**, whatever it printed.  Every gate written above has `PLANTED_TAIL` in
+    its `output_tail`, so a passing gate that carried one would be found here
+    however the rule was spelt, and `tests/test_gate_tail_sweep.py` owns the
+    other half.
     """
     path = evidence_store(monkeypatch, tmp_path)
     record(path, failed_attempt(), judged_attempt())
     corpus = corpus_for(tmp_path)
     reader = LiveReader(corpus.specs_root)
 
-    import json
+    entry = corpus.entry(SPEC_DIR, node_history=reader.node_history)
+    gates = [
+        gate
+        for attempt in story_of(entry, STORY_KEY)["evidence"]["attempts"]
+        for gate in attempt["gates"]
+    ]
+    passing = [gate for gate in gates if gate["status"] == "PASS"]
 
-    document = corpus.assemble(node_history=reader.node_history)
-    assert PLANTED_TAIL not in json.dumps(document)
+    # A sweep over nothing passes for the wrong reason: attempt 2 is all green.
+    assert len(passing) >= 4
+    for gate in passing:
+        assert gate["output_tail"] is None, f"{gate['name']} carried a tail it passed with"
+
+    # And the ones that did not pass carry theirs, marker and all.
+    failing = [gate for gate in gates if gate["status"] != "PASS"]
+    assert failing
+    for gate in failing:
+        assert PLANTED_TAIL in (gate["output_tail"] or "")
 
 
 # --- US1-S2: the read degrades in its own section -------------------------
