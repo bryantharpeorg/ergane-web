@@ -1,6 +1,23 @@
 ---
-state: ready
+state: landed
 depends_on_landed: [009-a-landed-epic-reads-landed]
+# Attested landed 2026-08-25. US1 a4a276a7b941 (#63), US2 b654af4cf511 (#64),
+# US3 346c736e52e8 (#65) - all three observed on dev by content.
+#
+# Dispatched 7:43:23 PM CT, complete 9:00 PM CT: 1h17m for three serial
+# stories, THREE ATTEMPTS FOR THREE STORIES - no rework at all, every judge
+# verdict PASS. Agent build 17m34s, 18m27s, 23m08s; landing overhead ~8m a
+# story. The cleanest epic of the build, and the one with the most unknowns in
+# it: four of its cells render `unknown` by design because the platform has no
+# attestation surface behind them (PR-2 through PR-5 in the feedback log).
+#
+# IT RAN BEFORE 012, WHICH IS NOT WHAT THE OPERATOR WAS TOLD. I forecast 012
+# first and 013 second. 013 was already `ready` on dev while 012's flip was
+# still sitting on the #62 branch, and the roadmap reads the working tree - so
+# the moment #62 merged at 7:47 PM the scheduler took the spec that had been
+# dispatchable the longest. A spec's readiness is a fact about the branch, not
+# about the order the operator flipped things.
+#
 # Flipped ready 2026-08-25 by the operator. This is a second PR because the
 # first one lost the flip: #58 was armed for auto-merge before the edit was
 # made, merged the pre-flip tree, and the force-push landed on a branch whose
