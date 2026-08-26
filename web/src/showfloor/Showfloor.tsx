@@ -42,7 +42,7 @@ import AttentionBadge from "./AttentionBadge";
 import DetailPane, { RoomExplanation } from "./DetailPane";
 import Legend from "./Legend";
 import Rail from "./Rail";
-import Stage from "./Stage";
+import Stage, { SpecGoal } from "./Stage";
 import { specDirFromPath } from "../routes";
 
 /** What the room selected, and the directory it was asked for and could not find. */
@@ -295,12 +295,20 @@ export default function Showfloor(): JSX.Element {
               }
             />
           )}
-          {/* § Detail pane, amended by D-016: "the explanation moves beneath
-              the stage, above the legend row, and the pane's track is gone
-              until a story is picked". Here, not in the pane — the words are
-              the same and they are never withheld; what changes is that they
-              stop costing the graph 403px of width (FR-005). */}
-          {story === null ? <RoomExplanation /> : null}
+          {/* § Stage and § Detail pane, amended by D-019: the band beneath the
+              stage, above the legend row, belongs to **the spec's own goal**.
+
+              D-016 put the room's explainer here and stopped it costing the
+              graph 403px of width; what it left behind was a band that emptied
+              the moment a story was picked, which reads as a glitch. So the
+              occupant changes and the place does not: the goal is true of the
+              graph whether or not a story is selected, so nothing vanishes on a
+              click (009 FR-012), and the room's own two sentences retire to the
+              genuinely empty case — no spec selected at all (FR-013).
+
+              The two never stack. Two explanations under one graph is noise,
+              and a build that showed both has misread the entry (plan D7). */}
+          {entry === null ? <RoomExplanation /> : <SpecGoal intent={entry.intent} />}
           {/* § Stage: "One legend row under the stage, rendered once per page,
               never per epic." Here is the once — the room has exactly one
               Showfloor, so a legend mounted from it cannot repeat however many

@@ -172,6 +172,46 @@ def parse_spec_name(spec_md_text: str) -> str | None:
     return name or None
 
 
+#: Where a spec states its own goal, and the order the two are tried.  Every
+#: refined spec in the corpus opens its body with `## Context`, a paragraph
+#: saying why the spec exists; the ones still unrefined open with `## Sketch`,
+#: which serves the same role (D-019).  `## Context` first, `## Sketch` when
+#: the spec does not carry one.
+_SPEC_INTENT_HEADINGS = ("## Context", "## Sketch")
+
+
+def parse_spec_intent(spec_md_text: str) -> str:
+    """The spec's own goal — one paragraph, or `""` when it states none.
+
+    This is `parse_story_headings`' operation performed one heading level up:
+    the *same* `_intent_after` paragraph reader, pointed at the spec's own
+    opening heading instead of a `### User Story` one (009 plan D6).  A second
+    parser would be free to disagree with the first about where a paragraph
+    ends, and the room would then explain a story and its spec by two different
+    rules.
+
+    Never the section and never a Markdown render — the first paragraph,
+    whitespace-collapsed, treated as prose (D-019, "What this is not").  A spec
+    carrying neither heading, or a heading with nothing under it, says nothing
+    here; the caller renders no band at all rather than an empty one (FR-011),
+    because an empty bordered strip under the graph is furniture standing in
+    for an answer.
+    """
+    lines = spec_md_text.splitlines()
+    for heading in _SPEC_INTENT_HEADINGS:
+        for index, line in enumerate(lines):
+            if line.strip() != heading:
+                continue
+            intent = _intent_after(lines, index)
+            if intent:
+                return intent
+            # The heading is there and states nothing.  Fall through to the
+            # next one rather than stop: "no goal stated" is the answer only
+            # when neither heading carries a paragraph.
+            break
+    return ""
+
+
 def _intent_after(lines: list[str], heading_index: int) -> str:
     """The first paragraph under a story heading, whitespace-collapsed.
 
@@ -582,6 +622,7 @@ async def _assemble_spec(
     # --- the spec text: titles, priorities, intents, the spec's name
     headings: dict[str, StoryHeading] = {}
     name: str | None = None
+    intent = ""
     try:
         text = (root / spec_dir / "spec.md").read_text(encoding="utf-8")
     except OSError as exc:
@@ -589,6 +630,7 @@ async def _assemble_spec(
     else:
         headings = parse_story_headings(text)
         name = parse_spec_name(text)
+        intent = parse_spec_intent(text)
 
     # --- the compiled graph: story identity and requirement keys
     graph: dict | None = None
@@ -657,6 +699,10 @@ async def _assemble_spec(
     return {
         "spec_dir": spec_dir,
         "name": name if name is not None else spec_dir,
+        # The band under the stage (US4, FR-010).  Always present, so the room
+        # never has to tell a missing field from a spec that stated nothing;
+        # `""` is the spec saying nothing, and the band is not rendered for it.
+        "intent": intent,
         "state": spec_state,
         "chip": _rail_chip(spec_state, stories),
         "stories_landed": landed,

@@ -68,6 +68,16 @@ export interface RailNote {
 export interface RailEntry {
   spec_dir: string;
   name: string;
+  /**
+   * The spec's own goal — one paragraph, for the band under the stage (009
+   * US4, FR-010).
+   *
+   * `pane/showfloor.py` lifts it from the body's `## Context` heading, or
+   * `## Sketch` for a spec still unrefined. Always a string, never null: `""`
+   * is the spec stating no goal, and the room renders no band for it at all
+   * rather than an empty one (FR-011, D-019).
+   */
+  intent: string;
   state: string | null;
   /** The epic's word, from DESIGN.md's chip vocabulary; null when unstated. */
   chip: string | null;

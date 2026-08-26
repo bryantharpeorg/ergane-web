@@ -260,6 +260,35 @@ interface StageProps {
   onSelectStory?: (story: ShowfloorStory) => void;
 }
 
+/**
+ * The band under the stage: what the epic on it is *for* (009 US4, D-019).
+ *
+ * `DESIGN.md` § Stage, amended 2026-08-25: "Under the stage, above the legend,
+ * the spec's own goal — one paragraph lifted from the spec's `## Context` — or
+ * `## Sketch` for a spec still unrefined — saying what this epic is *for*. It
+ * does not depend on selection, because it is true of the graph either way, and
+ * a spec carrying neither heading renders no band at all rather than an empty
+ * one."
+ *
+ * Two things this is not. It is not a Markdown render — the paragraph arrives
+ * whitespace-collapsed on the document and is written as prose, because the
+ * reading room for a spec's full body is 007 and it is still a sketch. And it
+ * is not conditional on a story being picked: the band emptying itself on a
+ * click is the layout jump D-019 exists to close.
+ *
+ * `null` for a spec that states no goal, which is the whole of FR-011: an empty
+ * bordered strip under the graph is furniture standing in for an answer, the
+ * same defect in a different costume as a ladder defaulting to its first stop.
+ */
+export function SpecGoal({ intent }: { intent: string }): JSX.Element | null {
+  if (intent === "") return null;
+  return (
+    <p className="spec-goal" data-spec-goal>
+      {intent}
+    </p>
+  );
+}
+
 export default function Stage({
   entry,
   floor,
