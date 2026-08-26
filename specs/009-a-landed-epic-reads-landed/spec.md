@@ -1,6 +1,26 @@
 ---
-state: ready
+state: landed
 depends_on_landed: [006-the-desk-matches-the-stage]
+# Attested landed 2026-08-25. US1 aff31ee23ac0 (#53), US2 d303cd1df842 (#57),
+# US3 a966b3c05a53 (#59), US4 578e4fba606f (#61) - all four observed on dev by
+# content, not by a merged flag.
+#
+# Dispatched 5:05:12 PM CT, complete 7:42 PM CT: 2h37m for four serial stories.
+# Six attempts for four stories - US1 and US2 each took a second pass, US3 and
+# US4 first-attempt. Every judge verdict PASS, including the two that followed a
+# rework. Agent build ran 8m17s to 27m05s (median ~13m), and landing overhead
+# ~15m a story; both are far under the 24-84m the older baseline records, which
+# is the number to re-measure from now on.
+#
+# THE REWORK ON US1 AND US2 IS WORTH READING BEFORE THE NEXT EPIC. I predicted
+# US1 attempt 2 was a doomed deterministic loop and recommended pausing for an
+# operator hand-fix. The agent fixed both defects itself and did it better than
+# the fix I had in mind: it exempted `unknown` from the chip-border assertion
+# AND strengthened it with positive Unknown-Rule assertions, and it scoped
+# `fetch-depth: 0` to the smoke job alone rather than all four gates. The pause
+# cost about thirty minutes of US2 not starting. A ladder that has attempts left
+# is evidence I do not have; spend it before spending the operator's hands.
+#
 # Drafted 2026-08-25 under D-018, and widened the same afternoon under D-019.
 # Both amended DESIGN.md FIRST -- the order constitution VIII demands.
 # Flipped `ready` 2026-08-25 by the operator.
