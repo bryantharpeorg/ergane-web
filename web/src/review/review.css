@@ -5,10 +5,10 @@
  * A colour or a face this file named for itself would be the defect
  * constitution VIII calls one.
  *
- * US1 builds the left track. The centre (the thing itself) and the right (the
- * notes) are US2's and US3's, and nothing is reserved for them here: § Don't
- * opens with "don't render an element that can never fill", and an empty column
- * held open for work that has not landed is exactly that.
+ * US1 built the left track and US2 adds the centre one — the thing itself. The
+ * right (the notes) is US3's, and nothing is reserved for it here: § Don't opens
+ * with "don't render an element that can never fill", and an empty column held
+ * open for work that has not landed is exactly that.
  */
 
 .review {
@@ -38,6 +38,28 @@
   flex-direction: column;
   gap: 1.3rem;
   padding: 1.4rem 1.6rem 1.8rem;
+  min-width: 0;
+}
+
+/* § The review room: "The frame is furniture, and it is the widest thing on
+   screen. The rendered route gets the room's centre and the operator's chosen
+   width; the two side tracks hold at a fixed measure and scroll independently."
+   `min-width: 0` on both is what lets a long path wrap instead of widening the
+   row past the viewport — law (b) of the four this room measures, on the room
+   itself (FR-011). */
+.rv-tracks {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.3rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.rv-thing {
+  flex: 4 1 34rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
   min-width: 0;
 }
 
@@ -72,6 +94,13 @@
   flex-direction: column;
   gap: 1.1rem;
   min-width: 0;
+  /* "the two side tracks hold at a fixed measure and scroll independently"
+     (§ The review room). The measure is the track's; the scroll is its own, so
+     a long epic's file lists never push the frame down the page. */
+  flex: 1 1 20rem;
+  max-width: 24rem;
+  max-height: 60rem;
+  overflow-y: auto;
 }
 
 .rv-track-head {
@@ -244,4 +273,277 @@
 .rv-unmerged .num {
   color: var(--gold);
   margin-right: 0.5rem;
+}
+
+
+/* ── The served revision (FR-009, FR-010) ─────────────────────────────────
+   § The review room: "The served revision is a header, not a footnote. Micro
+   uppercase over a hairline at the top of the view, always present." The micro
+   class carries the uppercase and the size; what is added here is the rule it
+   sits over and the room's own padding. */
+
+.rv-served {
+  margin: 0;
+  padding: 0.5rem 1.6rem;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.rv-served-label {
+  color: var(--faint);
+}
+
+.rv-served-verdict {
+  color: var(--muted);
+}
+
+/* State is never carried by colour alone (constitution VIII): the verdict is a
+   sentence either way, and this only weights the one that matters. */
+.rv-served[data-contains="false"] .rv-served-verdict {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* "…the statement takes a full-width band above the frame in the room's warning
+   face — not a chip, not a tooltip." Gold, like the refusal: § Colors gives gold
+   to "waiting on the operator", and that is what a mismatch is. Nothing has
+   failed; a decision is owed before the notes are worth taking. */
+.rv-mismatch {
+  background: var(--gold-w);
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.rv-mismatch .lead {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+
+.rv-mismatch p {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.rv-mismatch .num {
+  color: var(--gold);
+}
+
+/* ── The thing itself (FR-007, FR-008) ───────────────────────────────────── */
+
+.rv-picks {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.rv-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.rv-pick-legend {
+  color: var(--faint);
+  margin-right: 0.15rem;
+}
+
+/* A control that selects, wearing the room's own clothes: no new colour, no
+   radius § Layout does not name, and the chosen one carries a word
+   (`aria-pressed`) as well as a weight. */
+.rv-option,
+.rv-remeasure {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+.rv-option[data-chosen="true"] {
+  color: var(--accent);
+  background: var(--accent-w);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.rv-remeasure {
+  margin-left: auto;
+  font-family: var(--sans);
+}
+
+/* The frame is the widest thing on screen, and when the chosen width is wider
+   than the room the *holder* scrolls rather than the page: a room that scrolled
+   sideways would break, on itself, the law it is measuring (FR-011). */
+.rv-screen {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  background: var(--sunken);
+}
+
+/* Nothing overlays the frame — § The review room: "an overlay on the thing under
+   review is a defect the reviewer cannot see past." */
+.rv-render {
+  display: block;
+  border: 0;
+  background: var(--surface);
+}
+
+/* ── The measured numbers (FR-008) ───────────────────────────────────────── */
+
+.rv-laws {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.rv-laws-head {
+  font-size: var(--t-title);
+  font-weight: 600;
+  margin: 0;
+}
+
+.rv-laws-at {
+  margin: 0;
+  color: var(--faint);
+}
+
+/* § The review room: "Numerals right-aligned tabular mono, the unit always
+   present, the law named beside the figure." § The Desk in this world gives the
+   table its shape: micro uppercase headers over a hairline, cells .5rem .8rem. */
+.rv-figures {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 0;
+}
+
+.rv-figures th[scope="col"] {
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.3rem 0.8rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.rv-figures th[scope="col"]:nth-child(2) {
+  text-align: right;
+}
+
+.rv-figures th[scope="row"] {
+  font-family: var(--sans);
+  font-size: var(--t-small);
+  font-weight: 400;
+  color: var(--ink);
+  text-align: left;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--hairline);
+  overflow-wrap: anywhere;
+}
+
+.rv-figures td {
+  font-size: var(--t-small);
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--hairline);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rv-figures td.rv-unit {
+  text-align: left;
+  color: var(--faint);
+  white-space: normal;
+}
+
+.rv-law-key {
+  color: var(--faint);
+}
+
+/* A law that found something says what it found. A count with no list is the
+   screenshot this room replaced. */
+.rv-figures tr[data-found="0"] td.num {
+  color: var(--muted);
+}
+
+.rv-figures tr:not([data-found="0"])[data-found] td.num {
+  color: var(--alarm);
+  font-weight: 600;
+}
+
+.rv-violations {
+  border-left: 2px solid var(--alarm);
+  padding: 0.3rem 0 0.3rem 0.7rem;
+  min-width: 0;
+}
+
+.rv-violation-head {
+  margin: 0 0 0.2rem;
+  color: var(--alarm);
+}
+
+.rv-violations ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.rv-violation {
+  font-size: var(--t-tag);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* ── Routes the frame will not take ──────────────────────────────────────── */
+
+.rv-unframeable {
+  min-width: 0;
+}
+
+.rv-unframeable-head {
+  margin: 0 0 0.2rem;
+  color: var(--faint);
+}
+
+.rv-unframeable ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.rv-unframeable li {
+  font-size: var(--t-tag);
+  overflow-wrap: anywhere;
+  min-width: 0;
 }

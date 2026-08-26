@@ -65,6 +65,35 @@ export interface ReviewRoute {
   stories: string[];
 }
 
+/**
+ * The revision this pane is serving, and whether it carries the epic (011 US2).
+ *
+ * The room reviews the **running service**: the frame renders what this pane is
+ * serving right now, not a branch the pane built. So which revision the process
+ * is standing on decides what every measurement on the screen is about, and
+ * `contains_epic` is the question the operator would otherwise have to ask a
+ * terminal (FR-009, FR-010, plan D5).
+ *
+ * **`contains_epic` has three values and the third is not the second.** `true`
+ * is every landing carried, `false` is at least one measurably absent — the
+ * mismatch the room states where it cannot be missed — and `null` is a read
+ * that did not settle it. A revision that would not read is unknown, never a
+ * mismatch: rendering one the room had not measured would be inventing the
+ * alarm it exists to raise honestly (constitution III).
+ */
+export interface ServedRevision {
+  revision: string | null;
+  /** The same revision cut once, server-side, so two renders cannot disagree. */
+  short_revision: string | null;
+  /** `null` for a detached HEAD, which is not a branch and is never shown as one. */
+  branch: string | null;
+  contains_epic: boolean | null;
+  /** The stories measured absent from the served revision, by name. */
+  missing: string[];
+  /** The stories the read could not place either way. */
+  unplaced: string[];
+}
+
 export interface ReviewDocument {
   spec_dir: string;
   name: string;
@@ -73,6 +102,8 @@ export interface ReviewDocument {
   story_source: string;
   stories: ReviewStory[];
   routes: ReviewRoute[];
+  /** Which revision the frame is really showing, and whether it is this epic's. */
+  served: ServedRevision;
   notes: ReviewNote[];
 }
 
