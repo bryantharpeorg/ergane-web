@@ -20,7 +20,9 @@ The web surface an operator glances at to see what the factory is doing and what
 waiting on them. One application, two rooms — the **Showfloor** and the **Desk**. A
 pane renders state and carries exactly one verb — **Answer**. It is not a second
 operator console: every deliberate act (ready a spec, promote, dispatch) belongs to
-the operator CLI. This is the "web status board" ergane's spec 046 placed out of its
+the operator CLI. D-021 opened a narrow door — four grooming writes, admitted only
+when an ergane seam carries them — and no seam does yet, so the sentence above is
+still literally true. This is the "web status board" ergane's spec 046 placed out of its
 own scope.
 _Avoid_: dashboard, console, app, UI, board
 

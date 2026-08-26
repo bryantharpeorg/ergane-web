@@ -10,13 +10,49 @@ attribution) are ergane's constitution and are not repeated here.
 
 ## Core Principles
 
-### I. A Glass With One Verb (NON-NEGOTIABLE)
+### I. A Glass With Few Verbs, Admitted By Test (NON-NEGOTIABLE)
 
-The pane displays; the operator CLI acts. The single exception is **Answer** —
-resolving a Question or an Escalation through the factory's existing answer seam.
-No story, plan, or implementation may add a second write path, however small: no
-pause buttons, no dispatch forms, no spec editing. A requirement that needs one is a
-defect in the requirement (D-001).
+The pane displays; the operator CLI acts. A write path exists only where this
+principle names it, and a named write may be built only once it passes every clause
+of the guard below (D-001, amended by D-021).
+
+**The verbs.** **Answer** — resolving a Question or an Escalation through the
+factory's existing answer seam. And the four **grooming writes**, each of which
+touches a spec's own files and nothing else: **Create** a spec draft, **Commission**
+its trio, **Save** an edit to that trio, **Declare** its state `ready` or `deferred`.
+
+**The guard. Every clause, or the write is forbidden.**
+
+1. **Seam.** The write rides a surface the ergane distribution exports (principle
+   II). No exported seam, no write — and this clause is doing all the work today:
+   `ergane spec` exports `list`, `validate`, `derive` and `landed`, and all four are
+   read-only, so **not one of the four grooming writes is currently buildable**.
+   Filed to ergane as PR-7.
+2. **Named.** The write is one of the four above. A write this principle does not
+   name is a defect in the requirement, not a gap in the principle.
+3. **Scoped.** It touches `specs/` in the operator's own tree and nothing else.
+   Never the factory's stores, never the runtime root, never a file the pane did not
+   render for the operator first.
+4. **Confirmed.** The operator sees the exact bytes that will be written, and
+   confirms, in the room, before the write happens. No write is a side effect of
+   navigation, of another write, or of a background refresh.
+5. **Reported.** The pane renders what the seam returned — including a refusal —
+   without softening it (principle III).
+6. **Consequence stated.** A write that starts a factory says so on the control.
+   Declaring a spec `ready` causes the roadmap to dispatch within 300 seconds: nodes
+   that spend tokens, open pull requests and move the landing branch. That sentence,
+   or its equivalent, is on screen before the operator confirms.
+
+**Still forbidden, by name.** Dispatching an epic; killing, pausing or resetting a
+workflow; resolving an escalation by any path but Answer; writing anywhere outside
+`specs/`; and writing to any factory store. Pause buttons and dispatch forms remain
+what D-001 called them.
+
+**What this amendment is not.** It is not permission to write today. It replaces a
+fixed list of forbidden writes with a test, so that the moment ergane exports an
+authoring seam the pane can use it without amending the constitution again. Until
+then clause 1 refuses all four verbs, and a room that needs one composes the change
+and hands the operator the file to save.
 
 ### II. Borrowed Seams, Never Re-Derived Logic
 
