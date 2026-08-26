@@ -358,6 +358,16 @@
   }
 }
 
+/* The centre track: the picks, the frame, and the numbers, in that order.
+   FR-008 asks for the numbers "beside" the frame and the spec's own sketch says
+   which beside it means — the track holds "a live browser at one of those
+   routes … beside the measured numbers for that screen". They are one track,
+   and they stack inside it because § The review room gives the frame the
+   operator's chosen width and calls it the widest thing on screen: a panel
+   holding a column to its right would take that width back from the one element
+   the room exists to show. Nothing is folded away and nothing is behind a
+   disclosure — the figures are in the same view as the thing they describe,
+   which is the property that made the two manual reviews useful. */
 .rv-thing {
   display: flex;
   flex-direction: column;
@@ -431,33 +441,25 @@
 }
 
 /* ── The frame ─────────────────────────────────────────────────────────────
-   A width past the room's own measure scrolls this wrapper and not the page.
-   § Stage's scrollbar clothing, borrowed: thin, no stepper buttons, thumb on
-   `--rule`, trough transparent, in both themes. */
+   The frame takes the operator's chosen width whatever the room's is, so a
+   width past the room's own measure scrolls this wrapper and not the page:
+   § Stage sanctions a horizontal scroll that is itself on screen, and a room
+   that took the document sideways would be breaking the law it is here to
+   measure (FR-011).
+
+   **Its clothing is the stage scroller's, and it is declared there, once.**
+   `showfloor.css` § Stage carries every scrollbar rule this pane has —
+   `.showfloor .dag-scroll`, `.draft .dag-scroll` and now
+   `.review .rv-frame-scroll` in the same blocks — because D-016's sentence
+   ("the scroll is furniture and wears the room's clothes") is one sentence and
+   two places to change it is one place to forget. `showfloor.spec.ts` asserts
+   over the shipped bytes that no scrollbar rule in this repository escapes
+   those blocks. What is left here is what belongs to this frame alone: the
+   hairline that separates it from the room, and the ground under it while it
+   loads. */
 .rv-frame-scroll {
-  overflow-x: auto;
-  overflow-y: hidden;
-  min-width: 0;
   border: 1px solid var(--rule);
   background: var(--sunken);
-  scrollbar-width: thin;
-  scrollbar-color: var(--rule) transparent;
-}
-
-.rv-frame-scroll::-webkit-scrollbar {
-  height: 10px;
-}
-
-.rv-frame-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.rv-frame-scroll::-webkit-scrollbar-thumb {
-  background: var(--rule);
-}
-
-.rv-frame-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
 }
 
 .rv-render {

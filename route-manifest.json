@@ -20,7 +20,13 @@
     "across separators. Every pattern that matches contributes its routes, so",
     "order does not matter. A pattern with an empty route list is a path known",
     "to reach nothing the operator can look at -- a test, a document, a lockfile",
-    "-- and that is a different answer from `no pattern matched`."
+    "-- and that is a different answer from `no pattern matched`.",
+    "",
+    "A file may be named by more than one pattern and every match contributes,",
+    "which is how a file that reaches further than its directory says so without",
+    "widening its neighbours: web/src/showfloor/showfloor.css is loaded on every",
+    "page and dresses three rooms since 011 US2 put the review room's frame",
+    "scroller in the same blocks as the stage's, so it carries its own line."
   ],
   "routes": [
     { "path": "/", "kind": "room", "name": "The Desk" },
@@ -93,6 +99,7 @@
     { "pattern": "web/src/api/draftDocument.ts", "routes": ["/draft"] },
     { "pattern": "web/src/desk/**", "routes": ["/", "/desk"] },
     { "pattern": "web/src/showfloor/**", "routes": ["/showfloor"] },
+    { "pattern": "web/src/showfloor/showfloor.css", "routes": ["/showfloor", "/draft", "/review"] },
     { "pattern": "web/src/review/**", "routes": ["/review"] },
     { "pattern": "web/src/draft/**", "routes": ["/draft"] },
     { "pattern": "tests/**", "routes": [] },

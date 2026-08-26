@@ -885,7 +885,8 @@
    graph to live inside. `overflow-y: hidden` keeps the one axis DESIGN.md
    names; the canvas's own padding is what keeps the cards' shadow off it. */
 .showfloor .dag-scroll,
-.draft .dag-scroll {
+.draft .dag-scroll,
+.review .rv-frame-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   min-width: 0;
@@ -923,7 +924,8 @@
    (constitution VIII). Every other value is `var(--rule)` or `var(--faint)`
    (FR-010). */
 .showfloor .dag-scroll::-webkit-scrollbar,
-.draft .dag-scroll::-webkit-scrollbar {
+.draft .dag-scroll::-webkit-scrollbar,
+.review .rv-frame-scroll::-webkit-scrollbar {
   /* "Thin", said in the one place a WebKit scrollbar's thickness can be said.
      The stage scrolls on one axis, so this is the bar's height. */
   height: 8px;
@@ -931,14 +933,16 @@
 }
 
 .showfloor .dag-scroll::-webkit-scrollbar-track,
-.draft .dag-scroll::-webkit-scrollbar-track {
+.draft .dag-scroll::-webkit-scrollbar-track,
+.review .rv-frame-scroll::-webkit-scrollbar-track {
   background: none;
 }
 
 /* § Shapes: "Rectangles with `2px` radius on cards". The thumb is furniture of
    the same family, so it takes the same corner. */
 .showfloor .dag-scroll::-webkit-scrollbar-thumb,
-.draft .dag-scroll::-webkit-scrollbar-thumb {
+.draft .dag-scroll::-webkit-scrollbar-thumb,
+.review .rv-frame-scroll::-webkit-scrollbar-thumb {
   background: var(--rule);
   border-radius: 2px;
 }
@@ -949,7 +953,8 @@
    lighter than it on the dark one. A literal "brighter" would only be true in
    one of the two, and DESIGN.md names both. */
 .showfloor .dag-scroll::-webkit-scrollbar-thumb:hover,
-.draft .dag-scroll::-webkit-scrollbar-thumb:hover {
+.draft .dag-scroll::-webkit-scrollbar-thumb:hover,
+.review .rv-frame-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--faint);
 }
 
@@ -959,7 +964,8 @@
    orientation, and the two zeroes are there because Chromium has historically
    kept a button's box on `display: none` alone. */
 .showfloor .dag-scroll::-webkit-scrollbar-button,
-.draft .dag-scroll::-webkit-scrollbar-button {
+.draft .dag-scroll::-webkit-scrollbar-button,
+.review .rv-frame-scroll::-webkit-scrollbar-button {
   display: none;
   width: 0;
   height: 0;
