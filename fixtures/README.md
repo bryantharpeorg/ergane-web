@@ -37,6 +37,20 @@ shape cannot drift. Re-record with that seam after a promotion, or whenever the 
 floor should show newer landings; it is a snapshot of a real branch and ages exactly
 as the recorded floor does.
 
+One command, so re-recording is never a hand edit (the verb landed with 016):
+
+```bash
+$PY scripts/record-fixtures.py landing "$PWD" fixtures/landing/landing-facts.json dev
+```
+
+It walks every spec directory in `specs/` and writes what the branch carries for each,
+with the head it read in the envelope's `source`. **Two answers it holds are different
+things and the difference is the whole point.** A spec mapped to `{}` is a spec the
+branch was read for and carries nothing — an answer. A spec this document does not
+name at all is a read nobody made, and `FixtureReader.landing_facts` reports it as a
+degraded read naming this file (016 FR-006), because an empty landing result
+impersonating a fact is exactly what refused fifteen healthy epics.
+
 It exists because the review room read **real git** under `PANE_DEMO=1` while every
 other room served this directory, and a shallow CI checkout therefore made it refuse
 every epic on the floor — eleven failing tests on a floor with nothing wrong with it,
@@ -45,6 +59,7 @@ history of the machine that ran it.
 
 | Requirement | Path | Seam |
 |---|---|---|
+| Landings per spec directory, off the landing branch (016 FR-001) | `landing/landing-facts.json` | `pane.landing.read_landing_facts` over `factory.workgraph.landed.landed_facts`, `fetch=False` |
 | FloorStatus, busy floor | `floor/floor-live.json` | `collect_floor` during the live epic |
 | FloorStatus, quiet floor (no epics, empty queue) | `floor/floor-quiet.json` | `collect_floor` over this repo's `specs/`, three drafts, nothing running |
 | `workgraph.json` ×3 | `workgraphs/002-expense-notes.json` (2 nodes, merge edge), `workgraphs/077-…-runs-in-the-loop.json` (5 nodes, **both edge kinds, a same-rank pair**), `workgraphs/001-trip-expenses.json` (inferred merge edges, `inferred_edges` populated) | `ergane spec derive` |
@@ -79,6 +94,34 @@ renders a killed epic has to say those two things differently.
 Sweep note: the credential sweep must anchor secret-looking prefixes on a word boundary —
 `the-desk-sees-the-floor` contains the substring `sk-sees`.
 
+### Not recorded yet: what a landing commit changed (016)
+
+The review room reads a second git-backed fact beside the landing: the file list of
+each landing commit, `pane.landing.read_changed_files` over ergane's own `_git`.
+`FixtureReader.changed_files` looks for `changed-files/<commit>.json` — one recorded
+answer per landing commit — and **no such document exists**. Until one is captured the
+read takes the missing-document rule above and comes back naming the path it looked
+for, which each story's note then says in words rather than a file list nobody landed.
+That is deliberate for the reason the gate run below is: a hand-written change list is
+a pane that renders the fixture and not the factory (constitution V).
+
+Both git reads had to leave real git for a room to answer the same in a checkout with
+no history as in a full one (016 FR-003) — a landing replayed from here while the file
+list still read the host would have left the same defect in half.
+
+Recording one is a command, and the rows come back with no source touched:
+
+```bash
+$PY scripts/record-fixtures.py changed-files "$PWD" \
+    fixtures/landing/landing-facts.json fixtures/changed-files
+```
+
+It reads the commits the landing document names, so the two recordings stay in step by
+construction; re-record both together after a promotion. The output is one document per
+commit and the sweep runs over them before they are committed, like every other file
+here — a repository path is not a credential, but the rule has no exceptions
+(constitution VI).
+
 ### Not recorded yet: the per-node gate run (013 US1)
 
 `FixtureReader.node_history` looks for `verification/<epic_id>/<node_id>.json` — one
@@ -107,6 +150,7 @@ $PY scripts/record-fixtures.py escalations fixtures/escalations/open_escalations
 $PY scripts/record-fixtures.py rollup "$ERGANE_LEDGER_PATH" fixtures/usage/rollup-by-persona.json --by persona
 $PY scripts/record-fixtures.py findings "$ERGANE_ROOT/doctor.db" fixtures/doctor/findings.json
 $PY scripts/record-fixtures.py questions "$ERGANE_VERIFICATION_DB_PATH" fixtures/questions/pending_questions.json
+$PY scripts/record-fixtures.py landing "$PWD" fixtures/landing/landing-facts.json dev
 # on-cue states (stop the systemd worker first; the harness runs its own):
 systemctl --user stop ergane-worker && sleep 95   # the harness refuses while another poller holds the queue
 PYTHONPATH=~/code/ergane $PY scripts/record-fixtures-harness.py --out fixtures/raw-harness

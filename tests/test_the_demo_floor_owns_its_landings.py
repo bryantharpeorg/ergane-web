@@ -43,7 +43,7 @@ from fastapi.testclient import TestClient
 from pane.app import create_app
 from pane.config import Settings
 from pane.fixture_floor import FixtureReader
-from pane.landing import CHANGED_FILES_READ, LANDING_READ, LandingFact
+from pane.landing import CHANGED_FILES_READ, LANDING_READ, LandingFact, read_changed_files
 from pane.readers import LiveReader, QueryRefused, TransportFailed, recorded_git_reads
 from pane.review import ReviewReaders
 from pane.showfloor import ShowfloorReaders
@@ -245,6 +245,30 @@ def test_a_changed_file_list_nobody_recorded_names_the_path_it_looked_for():
 # --- the demo floor itself, over a corpus the test built --------------------
 
 
+def record_document(path: Path, payload: object, *, seam: str, source: str) -> None:
+    """Write one scratch recording and the envelope every recording carries.
+
+    The envelope names the test as the source, because a scratch document that
+    claimed the committed one's provenance would be exactly the lie the sidecar
+    exists to prevent (spec 001 FR-009).
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    path.with_name(f"{path.stem}.envelope.json").write_text(
+        json.dumps(
+            {
+                "captured_at": "2026-08-26T18:44:00Z",
+                "seam": seam,
+                "source": source,
+                "notes": "Recorded by tests/test_the_demo_floor_owns_its_landings.py "
+                "through the live seam, never hand-composed.",
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
 def record_landing(root: Path, facts_by_spec: dict[str, dict[str, LandingFact]]) -> None:
     """Write a scratch floor's landing recording, in the live read's own shape.
 
@@ -254,30 +278,14 @@ def record_landing(root: Path, facts_by_spec: dict[str, dict[str, LandingFact]])
     (constitution V).  The envelope says so, because a document that claimed the
     committed one's provenance would be the lie the envelope exists to prevent.
     """
-    landing = root / "landing"
-    landing.mkdir(parents=True, exist_ok=True)
-    (landing / "landing-facts.json").write_text(
-        json.dumps(
-            {
-                spec_dir: {key: dataclasses.asdict(fact) for key, fact in facts.items()}
-                for spec_dir, facts in facts_by_spec.items()
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    (landing / "landing-facts.envelope.json").write_text(
-        json.dumps(
-            {
-                "captured_at": "2026-08-26T18:44:00Z",
-                "seam": "pane.landing.read_landing_facts over factory.workgraph.landed.landed_facts",
-                "source": "a repository this test built under its own tmp_path",
-                "notes": "Recorded by tests/test_the_demo_floor_owns_its_landings.py "
-                "from the branch it wrote, never hand-composed.",
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
+    record_document(
+        root / "landing" / "landing-facts.json",
+        {
+            spec_dir: {key: dataclasses.asdict(fact) for key, fact in facts.items()}
+            for spec_dir, facts in facts_by_spec.items()
+        },
+        seam="pane.landing.read_landing_facts over factory.workgraph.landed.landed_facts",
+        source="a repository this test built under its own tmp_path",
     )
 
 
@@ -512,3 +520,34 @@ def test_the_live_read_never_falls_back_to_a_recording(landed, tmp_path):
         readers.landing_facts(SPEC)
 
     assert raised.value.read == LANDING_READ
+
+
+def test_a_recorded_change_list_puts_the_review_room_s_file_rows_back(
+    demo_floor, landed, auth_headers
+):
+    """The missing change list is a gap in the recording, not one in the code.
+
+    `changed_files` comes back naming the document it wanted because nothing is
+    recorded for it yet, and this repository will not hand-write one
+    (constitution V, `fixtures/README.md`).  So the test records one the way
+    `scripts/record-fixtures.py changed-files` does — through the live seam, over
+    a repository it built — puts it on the demo floor, and takes the branch away:
+    the rows come back, from the recording, with no source touched.
+    """
+    root = Path(demo_floor.state.settings.fixtures_root)
+    for fact in FixtureReader(root).landing_facts(SPEC).values():
+        recorded = read_changed_files(landed.repo, fact.commit)
+        assert recorded, "the constructed landing changed nothing"
+        record_document(
+            root / "changed-files" / f"{fact.commit}.json",
+            recorded,
+            seam="pane.landing.read_changed_files over factory.workgraph.worktree._git",
+            source=f"the repository this test built, commit {fact.commit}",
+        )
+
+    shutil.rmtree(landed.repo / ".git")
+    client = TestClient(demo_floor, headers=auth_headers)
+    document = client.get(f"/api/review/{SPEC}").json()
+
+    assert all(story["files"] for story in document["stories"])
+    assert all(story["notes"] == [] for story in document["stories"])
