@@ -1,0 +1,15 @@
+[
+  "fixtures/README.md",
+  "pane/showfloor.py",
+  "pane/sweep.py",
+  "tests/test_credential_sweep.py",
+  "tests/test_evidence_section.py",
+  "tests/test_gate_tail_sweep.py",
+  "web/src/api/showfloorDocument.ts",
+  "web/src/showfloor/DetailPane.tsx",
+  "web/src/showfloor/GateRun.tsx",
+  "web/src/showfloor/gateRun.ts",
+  "web/src/showfloor/showfloor.css",
+  "web/tests/unit/GateRun.test.tsx",
+  "web/tests/unit/support/showfloor-builder.ts"
+]

@@ -3,10 +3,18 @@
  *
  * The second HITL surface: an epic lands, and the operator opens
  * `/review/<spec-dir>` to read what it changed and which screens those changes
- * reach. US1 builds the first of the room's three tracks — what changed — and
- * the two that follow it (the thing itself, the notes) are US2's and US3's.
- * Nothing is drawn here for them: an element that can never fill is the one
- * thing § Do's and Don'ts names first.
+ * reach. US1 built the first of the room's three tracks — what changed — and
+ * US2 adds the second: the thing itself, rendered in a same-origin frame at a
+ * width and theme the operator picks, beside the four layout laws measured
+ * inside it. The third (the notes) is US3's, and nothing is drawn here for it:
+ * an element that can never fill is the one thing § Do's and Don'ts names first.
+ *
+ * **The served revision is a header on every render** (FR-009). The room
+ * reviews the running service, so the one thing an operator cannot otherwise
+ * know is whether the screens in front of them were built from the epic they
+ * came to review. It is above the tracks on the document, on the refusal and on
+ * nothing else the room can answer — because those are the two answers an
+ * operator is actually looking at a served screen in.
  *
  * **The room reaches nothing but this pane's own document.** One bare GET of
  * `/api/review/<spec-dir>`, behind the same bearer token as every other route
@@ -21,14 +29,20 @@
  */
 
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import Masthead from "../Masthead";
 import { readReview } from "../api/reviewDocument";
 import type { ReviewAnswer } from "../api/reviewDocument";
 import { specDirFromReviewPath } from "../routes";
+import { RevisionMismatch, ServedHeader } from "./ServedRevision";
+import TheThingItself from "./TheThingItself";
 import WhatChanged from "./WhatChanged";
 
 interface FrameProps {
-  children: JSX.Element | JSX.Element[];
+  // `ReactNode` since 011 US2: the header is conditional on the refusal render,
+  // and a room that could not hold a `null` child would have to draw an empty
+  // element instead — the first thing § Don't names.
+  children: ReactNode;
 }
 
 /** § Layout's app frame: the appbar, then the room, inside one capped card. */
@@ -88,6 +102,9 @@ export default function Review(): JSX.Element {
     const named = answer.refusal.unmerged;
     return (
       <Frame>
+        {answer.refusal.served === null ? null : (
+          <ServedHeader served={answer.refusal.served} />
+        )}
         <main id="room" className="rv-cols">
           <div className="rv-refusal" data-refusal role="status">
             <p className="lead">
@@ -149,12 +166,25 @@ export default function Review(): JSX.Element {
 
   return (
     <Frame>
+      <ServedHeader served={answer.document.served} />
       <main id="room" className="rv-cols" data-spec-dir={answer.document.spec_dir}>
         <header className="rv-head">
           <h1 className="rv-name">{answer.document.name}</h1>
           <p className="rv-dir micro">{answer.document.spec_dir}</p>
         </header>
-        <WhatChanged review={answer.document} />
+        {/* FR-010: above the frame, full width, and before anything the
+            operator might otherwise start reading as if it were the epic. */}
+        <RevisionMismatch
+          served={answer.document.served}
+          specName={answer.document.name}
+        />
+        <div className="rv-tracks" data-tracks>
+          <WhatChanged review={answer.document} />
+          <TheThingItself
+            routes={answer.document.routes}
+            specDir={answer.document.spec_dir}
+          />
+        </div>
       </main>
     </Frame>
   );

@@ -210,7 +210,7 @@ def read_landing_facts(
 
     facts: dict[str, LandingFact] = {}
     for story_key, fact in found.items():
-        merged_at, subject = _commit_details(path, fact.commit)
+        merged_at, subject = commit_details(path, fact.commit)
         facts[story_key] = LandingFact(
             story_key=story_key,
             commit=fact.commit,
@@ -225,7 +225,7 @@ def read_landing_facts(
 def read_changed_files(repo: Path | str, commit: str) -> list[str]:
     """Every repository-relative path one commit changed, sorted and unique.
 
-    **The same seam and the same doctrine as `_commit_details` above** (011
+    **The same seam and the same doctrine as `commit_details` above** (011
     plan, Named traps): `factory.workgraph.worktree._git`, ergane's own git
     helper, with its scrubbed environment, its timeout and its `WorktreeError`
     vocabulary.  ergane exports no commit-diff surface, and a gap in its
@@ -267,8 +267,12 @@ def pr_number_of(subject: str | None) -> int | None:
     return int(match.group(1)) if match is not None else None
 
 
-def _commit_details(repo: Path, commit: str) -> tuple[str | None, str | None]:
+def commit_details(repo: Path, commit: str) -> tuple[str | None, str | None]:
     """One commit's instant and subject, or `(None, None)` if it cannot be read.
+
+    Public since 011 US2, and for one caller: `pane/revision.py` reads the same
+    two facts about the revision the service is serving, and a second spelling
+    of `git log -1` would be a second answer about when a commit was made.
 
     A commit whose metadata will not read is not a failed *landing* read — the
     landing itself was established by the seam above — so this degrades to the

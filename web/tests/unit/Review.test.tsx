@@ -18,7 +18,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import Review from "../../src/review/Review";
-import type { ReviewDocument, ReviewStory } from "../../src/api/reviewDocument";
+import type {
+  ReviewDocument,
+  ReviewStory,
+  ServedRevision,
+} from "../../src/api/reviewDocument";
 
 const containers: HTMLElement[] = [];
 
@@ -56,12 +60,35 @@ function story(overrides: Partial<ReviewStory> = {}): ReviewStory {
   };
 }
 
+/**
+ * The served-revision header the backend puts on every answer (011 US2).
+ *
+ * Its default is the ordinary case — the service is serving a revision that
+ * carries the epic — so a test about the what-changed track is not also a test
+ * about a mismatch. The mismatch has its own file, `ServedRevision.test.tsx`.
+ */
+function served(overrides: Partial<ServedRevision> = {}): ServedRevision {
+  return {
+    revision: "9c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d",
+    short_revision: "9c1d2e3f4a5b",
+    branch: "dev",
+    committed_at: "2026-08-22T18:02:11Z",
+    subject: "001-the-desk-sees-the-floor/us4: US4 (#5)",
+    contains_epic: true,
+    missing: [],
+    unknown: [],
+    notes: [],
+    ...overrides,
+  };
+}
+
 function review(overrides: Partial<ReviewDocument> = {}): ReviewDocument {
   return {
     spec_dir: "001-the-desk-sees-the-floor",
     name: "The Desk sees the floor",
     landing_branch: "dev",
     story_source: "workgraph",
+    served: served(),
     stories: [story()],
     routes: [
       { path: "/", kind: "room", name: "The Desk", stories: ["US1"] },
@@ -230,6 +257,7 @@ describe("the room refuses half an epic and names the stories (FR-004)", () => {
         { story_key: "US2", title: "The thing itself renders beside its numbers" },
         { story_key: "US3", title: "A note carries its coordinates" },
       ],
+      served: served({ contains_epic: false, missing: [{ story_key: "US2", title: "" }] }),
       detail: "US2, US3 have not merged to dev",
     });
     await act(async () => {});
@@ -241,6 +269,9 @@ describe("the room refuses half an epic and names the stories (FR-004)", () => {
     expect(refusal.textContent).toContain("The thing itself renders beside its numbers");
     // And nothing of the track: half an epic is not reviewed at all.
     expect(container.querySelector("[data-track='what-changed']")).toBeNull();
+    // But the header is: a refusal is a render, and it is served by some
+    // revision (011 FR-009's "any render").
+    expect(container.querySelector("[data-served]")).not.toBeNull();
   });
 
   it("names a spec directory this corpus does not have", async () => {

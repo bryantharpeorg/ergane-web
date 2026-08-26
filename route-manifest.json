@@ -71,6 +71,7 @@
     { "pattern": "pane/sweep.py", "routes": ["/showfloor", "/api/showfloor", "/draft", "/api/draft/{spec_dir}"] },
     { "pattern": "pane/landing.py", "routes": ["/", "/desk", "/showfloor", "/review", "/api/showfloor", "/api/review/{spec_dir}"] },
     { "pattern": "pane/review.py", "routes": ["/review", "/api/review/{spec_dir}"] },
+    { "pattern": "pane/revision.py", "routes": ["/review", "/api/review/{spec_dir}"] },
     { "pattern": "pane/draft.py", "routes": ["/draft", "/api/draft/{spec_dir}"] },
     { "pattern": "pane/checks.py", "routes": ["/draft", "/api/draft/{spec_dir}"] },
     { "pattern": "route-manifest.json", "routes": ["/review", "/api/review/{spec_dir}", "/draft", "/api/draft/{spec_dir}"] },

@@ -1,0 +1,11 @@
+[
+  "fixtures/README.md",
+  "pane/fixture_floor.py",
+  "pane/readers.py",
+  "pane/showfloor.py",
+  "tests/test_evidence_section.py",
+  "web/src/api/showfloorDocument.ts",
+  "web/src/showfloor/Showfloor.tsx",
+  "web/tests/unit/Showfloor.test.tsx",
+  "web/tests/unit/support/showfloor-builder.ts"
+]

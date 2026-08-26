@@ -1,0 +1,19 @@
+[
+  "pane/app.py",
+  "pane/draft.py",
+  "route-manifest.json",
+  "tests/test_draft_trio.py",
+  "web/playwright.config.ts",
+  "web/src/App.tsx",
+  "web/src/api/draftDocument.ts",
+  "web/src/draft/DocumentColumn.tsx",
+  "web/src/draft/Draft.tsx",
+  "web/src/draft/DraftNote.tsx",
+  "web/src/draft/Markdown.tsx",
+  "web/src/draft/ReadStamp.tsx",
+  "web/src/routes.ts",
+  "web/src/styles/global.css",
+  "web/tests/smoke/draft.spec.ts",
+  "web/tests/unit/Draft.test.tsx",
+  "web/tests/unit/draftRoutes.test.ts"
+]

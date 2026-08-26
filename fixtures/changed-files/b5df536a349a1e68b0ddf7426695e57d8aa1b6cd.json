@@ -1,0 +1,13 @@
+[
+  "web/src/showfloor/EpicStage.tsx",
+  "web/src/showfloor/LandingLine.tsx",
+  "web/src/showfloor/StationNode.tsx",
+  "web/src/showfloor/motion.ts",
+  "web/src/showfloor/showfloor.css",
+  "web/src/showfloor/states.ts",
+  "web/src/showfloor/transitions.ts",
+  "web/tests/smoke/showfloor.spec.ts",
+  "web/tests/unit/EpicStage.test.tsx",
+  "web/tests/unit/states.test.ts",
+  "web/tests/unit/transitions.test.tsx"
+]

@@ -1,0 +1,17 @@
+[
+  "README.md",
+  "pane/app.py",
+  "pane/auth.py",
+  "pane/config.py",
+  "pane/events.py",
+  "pane/floor_document.py",
+  "pane/readers.py",
+  "tests/test_auth_seam.py",
+  "tests/test_degraded.py",
+  "tests/test_events.py",
+  "tests/test_floor_document.py",
+  "tests/test_readonly_sweep.py",
+  "web/src/api/events.ts",
+  "web/src/api/floorDocument.ts",
+  "web/tests/unit/events.test.ts"
+]

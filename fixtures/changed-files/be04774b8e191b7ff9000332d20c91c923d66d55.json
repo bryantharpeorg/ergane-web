@@ -1,0 +1,4 @@
+[
+  "web/src/showfloor/showfloor.css",
+  "web/tests/smoke/showfloor.spec.ts"
+]

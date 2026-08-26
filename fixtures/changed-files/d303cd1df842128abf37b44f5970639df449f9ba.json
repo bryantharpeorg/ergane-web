@@ -1,0 +1,7 @@
+[
+  "web/src/showfloor/showfloor.css",
+  "web/tests/smoke/desk-degraded.spec.ts",
+  "web/tests/smoke/desk.spec.ts",
+  "web/tests/smoke/showfloor.spec.ts",
+  "web/tests/smoke/support/laws.ts"
+]

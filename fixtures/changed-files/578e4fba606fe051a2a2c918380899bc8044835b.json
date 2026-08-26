@@ -1,0 +1,11 @@
+[
+  "pane/showfloor.py",
+  "tests/test_spec_intent.py",
+  "web/src/api/showfloorDocument.ts",
+  "web/src/showfloor/Showfloor.tsx",
+  "web/src/showfloor/Stage.tsx",
+  "web/src/showfloor/showfloor.css",
+  "web/tests/smoke/showfloor.spec.ts",
+  "web/tests/unit/Showfloor.test.tsx",
+  "web/tests/unit/support/showfloor-builder.ts"
+]

@@ -1,0 +1,18 @@
+[
+  "web/src/api/events.ts",
+  "web/src/desk/Desk.tsx",
+  "web/src/desk/EpicRow.tsx",
+  "web/src/desk/MilestoneBar.tsx",
+  "web/src/desk/NodeChevron.tsx",
+  "web/src/desk/milestones.ts",
+  "web/src/showfloor/NodeCard.tsx",
+  "web/src/showfloor/ladder.ts",
+  "web/src/styles/global.css",
+  "web/tests/smoke/desk-world.spec.ts",
+  "web/tests/smoke/desk.spec.ts",
+  "web/tests/unit/Desk.test.tsx",
+  "web/tests/unit/EpicRow.test.tsx",
+  "web/tests/unit/NodeChevron.test.tsx",
+  "web/tests/unit/noVerb.test.ts",
+  "web/tests/unit/showfloorEvents.test.ts"
+]

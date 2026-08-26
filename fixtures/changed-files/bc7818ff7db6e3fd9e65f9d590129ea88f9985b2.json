@@ -1,0 +1,11 @@
+[
+  "web/src/showfloor/DetailPane.tsx",
+  "web/src/showfloor/NodeCard.tsx",
+  "web/src/showfloor/Showfloor.tsx",
+  "web/src/showfloor/Stage.tsx",
+  "web/src/showfloor/showfloor.css",
+  "web/tests/smoke/showfloor.spec.ts",
+  "web/tests/unit/DetailPane.test.tsx",
+  "web/tests/unit/NodeCard.test.tsx",
+  "web/tests/unit/noVerb.test.ts"
+]

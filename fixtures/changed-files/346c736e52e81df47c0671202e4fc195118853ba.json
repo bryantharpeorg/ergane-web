@@ -1,0 +1,7 @@
+[
+  "web/src/showfloor/GateRun.tsx",
+  "web/tests/smoke/showfloor.spec.ts",
+  "web/tests/smoke/support/laws.ts",
+  "web/tests/unit/GateRun.test.tsx",
+  "web/tests/unit/support/showfloor-builder.ts"
+]

@@ -1,0 +1,8 @@
+{
+  "captured_at": "2026-08-26T21:35:50+00:00",
+  "seam": "pane.revision.read_served_revision and revision_contains over factory.workgraph.worktree._git",
+  "source": "/home/tharpeboxadmin/.local/state/ergane/runtime/worktrees/011-the-work-comes-back-for-review/us2 on dev at 13d22b12e3d299aa0c957860d7f3e1e622c97106, read with no network",
+  "host": "tharpebox",
+  "ergane_version": "0.2.0",
+  "notes": "The revision this checkout was serving when the recording was taken, and which of the landing commits beside it that revision already carries. Recorded from the same checkout as the landing document, so the two stay in step; re-record both together after a promotion. A commit in neither list is a read nobody made and the demo floor reports it as one, never as a revision that omits it."
+}

@@ -1,0 +1,7 @@
+[
+  "web/src/showfloor/EpicStage.tsx",
+  "web/src/showfloor/LandingLine.tsx",
+  "web/src/showfloor/showfloor.css",
+  "web/tests/smoke/showfloor.spec.ts",
+  "web/tests/unit/LandingLine.test.tsx"
+]

@@ -1,0 +1,12 @@
+[
+  "pane/floor_document.py",
+  "tests/test_the_row_draws_the_graph.py",
+  "web/src/api/floorDocument.ts",
+  "web/src/desk/DegradedWell.tsx",
+  "web/src/desk/EpicRow.tsx",
+  "web/src/showfloor/AttentionBadge.tsx",
+  "web/src/styles/global.css",
+  "web/tests/smoke/desk-world.spec.ts",
+  "web/tests/smoke/desk.spec.ts",
+  "web/tests/unit/EpicRow.test.tsx"
+]
