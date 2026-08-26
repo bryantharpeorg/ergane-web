@@ -311,6 +311,11 @@ class ReviewReaders:
         The landing reader is the process's memoised one (`pane.landing.
         reader_for`) — the branch scan is expensive and pure, and a review is
         one more caller of the same read the showfloor already pays for.
+
+        The graph read is `ShowfloorReaders`' own binding, borrowed rather than
+        rebuilt: where a compiled graph lives (the seam first, this repository's
+        archive second) is one fact with one answer, and a second binding here
+        would be a second answer waiting to disagree with it.
         """
         from pane.config import DEFAULT_LANDING_BRANCH
         from pane.landing import reader_for
