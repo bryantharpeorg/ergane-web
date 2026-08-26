@@ -46,6 +46,12 @@ from pane.readers import QueryRefused, TransportFailed
 #: read it was in the same vocabulary as `epic_status` and `workgraph`.
 LANDING_READ = "landed_facts"
 
+#: The changed-file read's own name (011 FR-002).  Its own word rather than
+#: `landed_facts`', because they fail independently: a commit whose file list
+#: will not read has still landed, and a room that named both failures the same
+#: could not say which of the two the operator lost.
+CHANGED_FILES_READ = "changed_files"
+
 #: The PR number GitHub appends to a squash subject: `… : US1 (#47)`.  The
 #: number is read out of the subject the queue wrote, never invented — a subject
 #: without one leaves `pr_number` unknown.
@@ -216,6 +222,43 @@ def read_landing_facts(
     return facts
 
 
+def read_changed_files(repo: Path | str, commit: str) -> list[str]:
+    """Every repository-relative path one commit changed, sorted and unique.
+
+    **The same seam and the same doctrine as `_commit_details` above** (011
+    plan, Named traps): `factory.workgraph.worktree._git`, ergane's own git
+    helper, with its scrubbed environment, its timeout and its `WorktreeError`
+    vocabulary.  ergane exports no commit-diff surface, and a gap in its
+    exported surface is worth a finding, not a licence to write git plumbing
+    here — so this module imports no `subprocess` and spawns nothing of its own
+    (constitution II).
+
+    `--root` is what makes the read total: a landing is a squash commit with one
+    parent, but a corpus whose first commit *is* the landing would otherwise
+    read as a commit that changed nothing, which is the silent-empty answer this
+    repository has already been bitten by once.
+
+    Failure is 001's two words, told apart by `_translated`: a repository that
+    is not there is transport, a git that ran and declined an unknown revision
+    is refusal.  Neither is ever an empty list.
+    """
+    from factory.workgraph.worktree import _git
+
+    path = Path(repo)
+    with _translated(path, read=CHANGED_FILES_READ):
+        output = _git(
+            path,
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            "--root",
+            commit,
+            "--",
+        )
+    return sorted({line.strip() for line in output.splitlines() if line.strip()})
+
+
 def pr_number_of(subject: str | None) -> int | None:
     """The PR number in a squash subject, or None when it names none."""
     if not subject:
@@ -255,10 +298,17 @@ def _commit_details(repo: Path, commit: str) -> tuple[str | None, str | None]:
 
 
 class _translated:
-    """Turn ergane's `WorktreeError` into 001's two words, and nothing else."""
+    """Turn ergane's `WorktreeError` into 001's two words, and nothing else.
 
-    def __init__(self, repo: Path) -> None:
+    `read` is the name the two words carry out.  It defaults to the landing
+    read, which is what every caller before 011 was doing; a caller reading
+    something else over the same git seam names its own read, so a note in the
+    room says which read was lost rather than which module lost it.
+    """
+
+    def __init__(self, repo: Path, read: str = LANDING_READ) -> None:
         self._repo = repo
+        self._read = read
 
     def __enter__(self) -> "_translated":
         return self
@@ -269,13 +319,13 @@ class _translated:
         if value is None:
             return False
         if isinstance(value, OSError):
-            raise TransportFailed(LANDING_READ, str(value)) from value
+            raise TransportFailed(self._read, str(value)) from value
         if isinstance(value, WorktreeError):
             detail = str(value)
             lowered = detail.lower()
             if not self._repo.is_dir() or any(
                 marker in lowered for marker in _TRANSPORT_MARKERS
             ):
-                raise TransportFailed(LANDING_READ, detail) from value
-            raise QueryRefused(LANDING_READ, detail) from value
+                raise TransportFailed(self._read, detail) from value
+            raise QueryRefused(self._read, detail) from value
         return False

@@ -18,6 +18,12 @@ from pane.fixture_floor import FixtureReader
 from pane.floor_document import assemble_floor_document
 from pane.intake import create_intake_router
 from pane.readers import LiveReader, Reader
+from pane.review import (
+    EpicNotLanded,
+    ReviewReaders,
+    SpecNotFound,
+    assemble_review,
+)
 from pane.showfloor import ShowfloorReaders, assemble_showfloor
 
 log = logging.getLogger("pane")
@@ -95,6 +101,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 reader, settings.specs_root, landing_branch=settings.landing_branch
             ),
         )
+        return JSONResponse(document)
+
+    # 011 US1: the review room's one document, on the same guarded router as
+    # every other read.  Two answers are refusals rather than documents and both
+    # say which: 404 for a spec directory this corpus does not have, and 409 for
+    # an epic the landing branch does not carry whole — a review of half an epic
+    # is a review of nothing, so the room names the unmerged stories and stops
+    # (FR-004).  The room itself is served by the guarded catch-all, like every
+    # other room, so `/review/<spec-dir>` is behind the same token (FR-006).
+    @router.get("/api/review/{spec_dir}")
+    async def api_review(spec_dir: str):
+        try:
+            document = assemble_review(
+                settings.specs_root,
+                spec_dir,
+                ReviewReaders.from_reader(
+                    reader, settings.specs_root, landing_branch=settings.landing_branch
+                ),
+            )
+        except SpecNotFound as miss:
+            return JSONResponse(miss.as_document(), status_code=404)
+        except EpicNotLanded as refusal:
+            return JSONResponse(refusal.as_document(), status_code=409)
         return JSONResponse(document)
 
     @router.get("/api/attention")
