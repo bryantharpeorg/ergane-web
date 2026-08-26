@@ -84,12 +84,21 @@ export function isBuilding(entry: RailEntry): boolean {
  * the order the numbering runs. Where neither exists — a corpus of drafts — the
  * first row is selected rather than none: the room is a master–detail, and a
  * master with nothing detailed is a room that has stopped working.
+ *
+ * **Landed is the chip, not the frontmatter.** `entry.state` is the spec's own
+ * attestation, and 009's whole doctrine is that an attestation is a claim while
+ * a landing is a fact: the assembler layers the landing branch over the claim
+ * and `entry.chip` is what comes out. Reading `state` here made the room
+ * disagree with itself — the rail drew `landed 4/4` for an epic whose every
+ * story the branch carries, and the default selection stepped over it because
+ * nobody had edited the frontmatter yet. That is the epic an operator most
+ * wants staged, and it is the one the rail already says has landed.
  */
 export function defaultSelection(rail: RailEntry[]): RailEntry | null {
   const building = rail.filter(isBuilding);
   if (building.length > 0) return building[building.length - 1];
 
-  const landed = rail.filter((entry) => entry.state === "landed");
+  const landed = rail.filter((entry) => entry.chip === "landed");
   if (landed.length > 0) return landed[landed.length - 1];
 
   return rail.length > 0 ? rail[0] : null;

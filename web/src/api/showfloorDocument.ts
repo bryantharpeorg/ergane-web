@@ -42,6 +42,112 @@ export interface Ladder {
   awaiting_operator: boolean;
 }
 
+/**
+ * One gate command's outcome, as `factory.verify.store` recorded it (013 FR-001).
+ *
+ * `exit_code` is null exactly when there was no exit to read — the command hit
+ * its deadline or never ran — which is the store's own meaning and not a zero
+ * standing in for it. `concurrent_gates` is how many *other* gate executions
+ * were in flight beside this one; a timeline draws concurrency from this count
+ * and never from the durations (013 D5, FR-005).
+ *
+ * No `output_tail`: it is raw process output that has never been swept for a
+ * credential, so it arrives with the sweep that guards it (013 D4).
+ */
+export interface GateRecord {
+  name: string | null;
+  command: string | null;
+  status: string | null;
+  exit_code: number | null;
+  duration_s: number | null;
+  concurrent_gates: number | null;
+}
+
+/** The judge's call on one dispatched scenario, with its reasoning. */
+export interface JudgeFinding {
+  scenario: string | null;
+  passed: boolean | null;
+  reasoning: string | null;
+}
+
+/** One bounded judge invocation, as the attempt's row recorded it. */
+export interface JudgeRecord {
+  outcome: string | null;
+  feedback: string | null;
+  judge_attempt: number | null;
+  truncated_input: boolean | null;
+  /**
+   * The *judge's* persona-registry alias, recorded by the run that used it.
+   * Never the attempt's model, which nothing records — the two are different
+   * facts and the key says which one this is (013 FR-003).
+   */
+  model_alias: string | null;
+  findings: JudgeFinding[];
+}
+
+/** The anti-rubber-stamp check: did the node actually produce something? */
+export interface OutputCheckRecord {
+  write_scope: string | null;
+  has_diff: boolean | null;
+  expected_artifacts: string[];
+  artifacts_present: boolean | null;
+  passed: boolean | null;
+  hygiene_violations: Array<Record<string, unknown>>;
+  size_refusal: Record<string, unknown> | null;
+}
+
+/**
+ * One recorded verification of one story — one attempt's whole evidence bundle.
+ *
+ * `started_at`/`finished_at` bracket **one verification**, not one story:
+ * `AttemptTiming`'s docstring in ergane says the dispatch-to-verification-start
+ * interval and the merge-queue time are not in that table at all. Anything
+ * rendering the interval labels it *verification*, never wall clock.
+ *
+ * `model` and `persona` are always null and always named in `unknown`. The
+ * store carries neither, and the persona registry is not asked: the DEBUGGER
+ * rung relabels the persona without re-resolving `model_alias`, so the registry
+ * disagrees with reality on precisely the escalated attempt an operator is
+ * reading (013 D2, FR-003).
+ */
+export interface AttemptRecord {
+  attempt: number | null;
+  form: string | null;
+  verdict: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  provenance: string | null;
+  /** The ladder the attempt ran under, one line, as ergane wrote it. */
+  loop_summary: string | null;
+  loop_digest: string | null;
+  judge_unavailable: boolean;
+  criteria_drift: boolean;
+  spec_ref: string | null;
+  gates: GateRecord[];
+  output_check: OutputCheckRecord;
+  /** Null when the judge never ran — a different fact from a judge that failed. */
+  judge: JudgeRecord | null;
+  model: null;
+  persona: null;
+  /** What the store does not carry, named rather than left blank. */
+  unknown: string[];
+}
+
+/**
+ * One story's gate run, and its own degradation (013 FR-001, FR-002).
+ *
+ * An empty `attempts` with a null `note` is an answer, not an absence of one:
+ * this story has no recorded verification, and the room renders no section at
+ * all for it rather than an empty frame (FR-010). A `note` is the read that
+ * could not be made, in the room's own triple — and it stays *in* this section:
+ * nothing about a store the pane cannot open changes the ladder, the facts, or
+ * any other spec on the rail.
+ */
+export interface StoryEvidence {
+  attempts: AttemptRecord[];
+  note: RailNote | null;
+}
+
 export interface ShowfloorStory {
   id: string | null;
   story_key: string | null;
@@ -56,6 +162,8 @@ export interface ShowfloorStory {
   facts: Record<string, unknown>;
   /** The live fields the answer did not carry, named rather than defaulted. */
   unknown: string[];
+  /** What the factory recorded about this story's attempts (013 US1). */
+  evidence: StoryEvidence;
 }
 
 /** One read that failed, in 001's words: transport and refusal told apart. */

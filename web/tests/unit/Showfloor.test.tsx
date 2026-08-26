@@ -264,6 +264,17 @@ describe("the default selection, as a rule (FR-009)", () => {
     expect(defaultSelection([...CORPUS, killed])?.spec_dir).toBe("009-c");
   });
 
+  it("calls an epic the branch landed before the frontmatter caught up", () => {
+    // 009's doctrine, one layer up from the ladder: an attestation is a claim
+    // and a landing is a fact. The assembler layers the branch over the claim,
+    // so the rail already draws `landed 4/4` for this entry while its
+    // frontmatter still reads `ready` — and a default selection reading the
+    // frontmatter stepped straight over the newest thing that landed.
+    const unattested = { ...landedEntry("009-c"), state: "ready" };
+    expect(unattested.chip).toBe("landed");
+    expect(defaultSelection([...CORPUS, unattested])?.spec_dir).toBe("009-c");
+  });
+
   it("does not call an undispatched spec building, however it is declared", () => {
     // `ready` says the operator flipped it; only an epic answering says the
     // factory took it.

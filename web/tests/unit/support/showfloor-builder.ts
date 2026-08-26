@@ -104,6 +104,11 @@ export function storyOf(id: string, title: string, ladder: Ladder): ShowfloorSto
     ladder,
     facts: {},
     unknown: [],
+    // The assembler emits this section for every story, always. Empty attempts
+    // with no note is its word for a story the evidence store has never
+    // recorded a verification of, which is the shape every builder default
+    // should be: the room draws no section for it at all (013 FR-010).
+    evidence: { attempts: [], note: null },
   };
 }
 
