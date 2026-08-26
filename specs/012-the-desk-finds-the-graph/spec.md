@@ -1,6 +1,12 @@
 ---
-state: draft
+state: ready
 depends_on_landed: [009-a-landed-epic-reads-landed]
+# Flipped `ready` 2026-08-25, 7:44 PM CT, by the operator's standing instruction
+# ("flip 012 to ready once 009 lands"), the moment 009's US4 landed at
+# 578e4fba606f and 009 read `landed` by content. The hold below is discharged:
+# 009's US1 has merged, so `pane/floor_document.py` is settled on dev and this
+# spec's US1 branches from a tree that already carries it.
+#
 # Drafted 2026-08-25, 5:35 PM CT, while 009 was mid-flight. Held `draft`
 # deliberately: 009 is dispatched and serial, and this spec touches
 # `pane/floor_document.py`, which 009's US1 also reaches. Flip it when 009 lands.
