@@ -1,6 +1,42 @@
 ---
-state: ready
+state: landed
 depends_on_landed: [012-the-desk-finds-the-graph]
+# Attested landed 2026-08-26. US1 d919ad83fb2c (#78), US2 b44cb747043c (#81),
+# US3 7004b7b92d52 (#82) - all three observed on dev by content, not by a merged
+# flag.
+#
+# FR-001 IS ATTESTED OPEN, AND THAT IS THE POINT OF READING THIS BLOCK. It says
+# the room MUST render the trio as markdown. It does not: US1 shipped an honest
+# source-view, labelled in `web/src/draft/Markdown.tsx` as exactly that, because
+# no markdown renderer is on the approved roster and constitution VII forbids a
+# node adding one. It raised the mandated stop-and-ask, waited, and landed before
+# the answer arrived - the operator approved `marked` LEXER ONLY six minutes
+# later. The judge then returned PASS on attempts 2 and 3.
+#
+# So this epic attests as landed while carrying a requirement its own source file
+# says it does not satisfy. That is recorded rather than smoothed over, and the
+# gap it exposes is filed as verify/judge-passes-a-story-that-states-its-own-
+# requirement-unmet: nothing distinguishes SATISFIED from HONESTLY DEFERRED, so a
+# well-argued comment can retire a MUST. FR-001 is closed by a follow-up spec that
+# lands `marked` lexer-only into that one file plus the roster, constitution VII
+# and a D-entry - the file itself says "when the operator approves one, this file
+# is the only file that changes."
+#
+# Dispatched 11:55 PM CT 25 Aug, complete 12:17 PM CT 26 Aug. Six attempts for
+# three stories, and every failure was environmental rather than a defect in the
+# work: US1 spent attempts on a BASE_MOVED collision with 011 running
+# concurrently (the roadmap ignored `max_concurrent_epics: 1`), and US2 lost
+# attempts 1 and 2 to leaked Playwright servers holding the smoke gate's fixed
+# ports, then attempt 3 to the ladder rung the operator question consumed. Every
+# judge verdict that ran was PASS.
+#
+# US1'S RECOVERY IS THE ONE TO KEEP. On attempt 3 as `debugger`, with its single
+# recovery cycle already spent and no rung behind it, it resolved a two-node file
+# collision unaided: rebased, reconciled `web/src/routes.ts`, and added the
+# manifest rows 011 had just landed - including one the operator's own prepared
+# hand-fix had missed. A ladder with rungs left is evidence the operator does not
+# have yet.
+#
 # Flipped `ready` 2026-08-25, 11:36 PM CT. The hold is discharged: D-022 landed on
 # dev at d337d16 (#72), so the seam amendment and `DESIGN.md` § The drafting table
 # are both on the branch a node will build from.
