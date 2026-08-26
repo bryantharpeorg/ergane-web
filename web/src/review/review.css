@@ -1,0 +1,247 @@
+/* The review room's rules (011 US1; DESIGN.md § The review room, § Layout).
+ *
+ * Tokens only — every colour here is a `var(--…)` declared in
+ * `styles/global.css` § Colors, and every size is a step of § Typography's ramp.
+ * A colour or a face this file named for itself would be the defect
+ * constitution VIII calls one.
+ *
+ * US1 builds the left track. The centre (the thing itself) and the right (the
+ * notes) are US2's and US3's, and nothing is reserved for them here: § Don't
+ * opens with "don't render an element that can never fill", and an empty column
+ * held open for work that has not landed is exactly that.
+ */
+
+.review {
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* § Layout › App frame: "full-bleed surface card, `max-width: 96rem`, centred;
+   never a hard content cap below 96rem". */
+.rv-frame {
+  width: 100%;
+  max-width: 96rem;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.rv-cols {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+  padding: 1.4rem 1.6rem 1.8rem;
+  min-width: 0;
+}
+
+.rv-cols .quiet {
+  font-style: italic;
+  color: var(--muted);
+  margin: 1.4rem 0;
+}
+
+.rv-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.rv-name {
+  font-size: var(--t-display);
+  font-weight: 600;
+  margin: 0;
+}
+
+.rv-dir {
+  margin: 0;
+}
+
+/* ── The track ─────────────────────────────────────────────────────────── */
+
+.rv-changed {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.rv-track-head {
+  font-size: var(--t-name);
+  font-weight: 600;
+  margin: 0;
+}
+
+.rv-provenance {
+  margin: 0;
+}
+
+.rv-story {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  min-width: 0;
+}
+
+.rv-story-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.rv-key {
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+.rv-title {
+  font-size: var(--t-title);
+  font-weight: 600;
+  margin: 0;
+}
+
+.rv-priority {
+  margin-left: auto;
+}
+
+/* § The review room: "Numerals right-aligned tabular mono, the unit always
+   present, the law named beside the figure." A landing's numerals are its SHA
+   and its pull request, and both are shown whole rather than as a tick. */
+.rv-landing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: var(--t-small);
+}
+
+.rv-sha {
+  color: var(--ink);
+}
+
+.rv-pr {
+  color: var(--accent);
+}
+
+.rv-when {
+  color: var(--faint);
+  font-size: var(--t-tag);
+}
+
+.rv-subject {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.rv-count {
+  margin: 0.2rem 0 0;
+}
+
+.rv-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--hairline);
+}
+
+.rv-file {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--hairline);
+  min-width: 0;
+}
+
+/* A path is data, and a long one wraps rather than reaching past the card:
+   § Don't — "don't let any text cross the viewport outside a scrolling
+   ancestor", which is one of the four laws this room exists to measure. */
+.rv-path {
+  font-size: var(--t-small);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.rv-routes {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.rv-route {
+  font-size: var(--t-chip);
+  padding: 0.1rem 0.4rem;
+  color: var(--accent);
+  background: var(--accent-w);
+  border-radius: 2px;
+}
+
+.review .unknown {
+  font-family: var(--sans);
+  font-size: var(--t-small);
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* ── The refusal (FR-004) ──────────────────────────────────────────────────
+   The room's warning face: gold, the token § Colors gives to "waiting on the
+   operator", because that is exactly what a partly landed epic is. Not the
+   alarm face — nothing has failed. */
+.rv-refusal {
+  background: var(--gold-w);
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.rv-refusal .lead {
+  font-weight: 600;
+  font-size: var(--t-body);
+  color: var(--ink);
+  margin: 0;
+}
+
+.rv-refusal p {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--ink);
+}
+
+.rv-unmerged {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: var(--t-small);
+}
+
+.rv-unmerged .num {
+  color: var(--gold);
+  margin-right: 0.5rem;
+}

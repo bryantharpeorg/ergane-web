@@ -29,8 +29,18 @@ import { describe, expect, it } from "vitest";
 const WRITER = "src/api/answer.ts";
 const WRITE_ROUTE = "/api/attention/";
 
-/** The read routes any other file may GET, and no others. */
-const READ_ROUTES = ['"/api/floor"', '"/api/showfloor"'];
+/**
+ * The read routes any other file may GET, and no others.
+ *
+ * **A second named change, 011 US1.** The list grew by one: the review room
+ * reads `GET /api/review/<spec-dir>`, and its spec directory is interpolated,
+ * so the entry is spelt as the opening of the template literal rather than as a
+ * quoted constant. The subject is untouched — every fetch outside the one
+ * writer is still a bare GET of a *read* route named here, so a convenience
+ * write added anywhere still turns this red, and so does a read of a route
+ * nobody declared.
+ */
+const READ_ROUTES = ['"/api/floor"', '"/api/showfloor"', "`/api/review/"];
 
 const deskFiles = import.meta.glob("../../src/desk/**/*.tsx", {
   query: "?raw",
@@ -241,5 +251,74 @@ describe("the Showfloor has no verb at all (constitution I, FR-017)", () => {
     expect(badge).toContain("href={DESK_ROOT_PATH}");
     expect(badge).toContain("{count}");
     expect(badge).not.toContain("<button");
+  });
+});
+
+/**
+ * The review room's own sweep (011 US1, constitution I).
+ *
+ * The room is new and it is the one that most looks like it wants a verb: it
+ * exists so an operator can record what they think of the work. US3 will give
+ * it note-taking, and FR-014 says in as many words that the room writes
+ * nothing — not a file, not a directory, not a spec — so the notes stay in the
+ * browser and the composed draft is handed to the operator to save.
+ *
+ * This is the control on that. **No file in `web/src/review/` may reach a write
+ * of any kind, and the one read it makes is the room's own document.** A node
+ * that "helpfully" adds a save button, a POST, or a second route to this room
+ * turns it red, which is the point: D-023's safety argument is that this room
+ * spawns nothing and writes nothing, and an argument nothing enforces is a
+ * sentence in a decision log.
+ */
+const reviewFiles = import.meta.glob("../../src/review/**/*.{ts,tsx}", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+describe("the review room writes nothing (011 FR-014, constitution I)", () => {
+  it("sweeps a room that is really there", () => {
+    expect(Object.keys(reviewFiles).length).toBeGreaterThan(1);
+    expect(
+      Object.keys(reviewFiles).some((path) => path.endsWith("review/Review.tsx")),
+      "Review.tsx is in the sweep",
+    ).toBe(true);
+  });
+
+  it("renders no form and no input anywhere in the room", () => {
+    for (const [path, source] of Object.entries(reviewFiles)) {
+      for (const control of ["<form", "<input", "<select", "<textarea", "onSubmit"]) {
+        expect(code(source), `${path} must not render ${control}`).not.toContain(control);
+      }
+    }
+  });
+
+  it("reaches no write and no route but its own document", () => {
+    for (const [path, raw] of Object.entries(reviewFiles)) {
+      const source = code(raw);
+      for (const pattern of ["method:", "XMLHttpRequest", "navigator.sendBeacon", "https://"]) {
+        expect(source, `${path} must not contain ${pattern}`).not.toContain(pattern);
+      }
+      for (const context of source.split("fetch(").slice(1)) {
+        const call = context.split(")")[0];
+        expect(
+          call.includes("`/api/review/"),
+          `${path} fetches ${call.trim()}, which is not this room's document`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("spawns nothing: no browser, no worker, no window it drives (D-023)", () => {
+    // The substitution D-023 made is the whole safety argument of this room:
+    // the operator's own browser is the browser. A room that opened a window,
+    // started a worker or reached an origin of its own has reintroduced every
+    // question that decision closed.
+    for (const [path, raw] of Object.entries(reviewFiles)) {
+      const source = code(raw);
+      for (const pattern of ["window.open", "new Worker", "postMessage", "document.domain"]) {
+        expect(source, `${path} must not contain ${pattern}`).not.toContain(pattern);
+      }
+    }
   });
 });

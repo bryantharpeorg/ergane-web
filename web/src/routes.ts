@@ -1,25 +1,42 @@
 /**
- * Route constants for the pane's two rooms.
+ * Route constants for the pane's rooms.
  *
  * 001 R-010 reserved /desk and /showfloor. 005 US2 (FR-009) gives the Showfloor
  * a selection in its URL — `/showfloor/<spec-dir>` — so a chosen epic can be
  * linked, reloaded and shared. The backend needs no route for it: 001's guarded
  * SPA catch-all already answers any path with the shell, behind the same token.
+ *
+ * 011 US1 adds the review room at `/review/<spec-dir>`, on the same terms: one
+ * landed epic per URL, served by the same catch-all and behind the same token
+ * (FR-006). **Every path exported here is listed in `route-manifest.json`**, and
+ * `tests/unit/routeManifest.test.ts` asserts it — that pair is what FR-005 buys,
+ * a manifest that cannot fall behind the rooms in silence.
  */
 
 /** The Desk answers at both; `/` is the one the pane links to. */
 export const DESK_ROOT_PATH = "/";
 export const DESK_PATH = "/desk";
 export const SHOWFLOOR_PATH = "/showfloor";
+export const REVIEW_PATH = "/review";
 
 /** The deep link for one spec's stage. */
 export function showfloorPathFor(specDir: string): string {
   return `${SHOWFLOOR_PATH}/${encodeURIComponent(specDir)}`;
 }
 
+/** The deep link for one landed epic's review. */
+export function reviewPathFor(specDir: string): string {
+  return `${REVIEW_PATH}/${encodeURIComponent(specDir)}`;
+}
+
 /** Whether a path is the Showfloor, with or without a selection. */
 export function isShowfloorPath(pathname: string): boolean {
-  return pathname === SHOWFLOOR_PATH || pathname.startsWith(`${SHOWFLOOR_PATH}/`);
+  return isUnder(pathname, SHOWFLOOR_PATH);
+}
+
+/** Whether a path is the review room, with or without an epic. */
+export function isReviewPath(pathname: string): boolean {
+  return isUnder(pathname, REVIEW_PATH);
 }
 
 /**
@@ -32,8 +49,27 @@ export function isShowfloorPath(pathname: string): boolean {
  * than silently trimmed into a hit.
  */
 export function specDirFromPath(pathname: string): string | null {
-  if (!isShowfloorPath(pathname)) return null;
-  const rest = pathname.slice(SHOWFLOOR_PATH.length).replace(/^\//, "").replace(/\/$/, "");
+  return isShowfloorPath(pathname) ? segmentAfter(pathname, SHOWFLOOR_PATH) : null;
+}
+
+/**
+ * The spec directory a review path asks for, or null when it names none.
+ *
+ * Read the same way the Showfloor's is, from the same helper: two rooms that
+ * parsed one grammar twice would eventually disagree about what `/review/a%2Fb`
+ * asks for, and a review room that quietly reviewed a different epic from the
+ * one in the URL is the worst thing this room could do.
+ */
+export function specDirFromReviewPath(pathname: string): string | null {
+  return isReviewPath(pathname) ? segmentAfter(pathname, REVIEW_PATH) : null;
+}
+
+function isUnder(pathname: string, root: string): boolean {
+  return pathname === root || pathname.startsWith(`${root}/`);
+}
+
+function segmentAfter(pathname: string, root: string): string | null {
+  const rest = pathname.slice(root.length).replace(/^\//, "").replace(/\/$/, "");
   if (rest === "") return null;
   try {
     return decodeURIComponent(rest);
