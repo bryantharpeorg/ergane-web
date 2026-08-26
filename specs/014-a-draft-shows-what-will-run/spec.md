@@ -1,6 +1,10 @@
 ---
-state: draft
+state: ready
 depends_on_landed: [012-the-desk-finds-the-graph]
+# Flipped `ready` 2026-08-25, 11:36 PM CT. The hold is discharged: D-022 landed on
+# dev at d337d16 (#72), so the seam amendment and `DESIGN.md` § The drafting table
+# are both on the branch a node will build from.
+#
 # Carved out of 010 by the operator, 2026-08-25 ~10:35 PM CT, on the finding that
 # 010's move 3 is the only part of the grooming room buildable today: it writes
 # nothing, and every seam it needs is exported. 010 keeps moves 1, 2 and 4 and
