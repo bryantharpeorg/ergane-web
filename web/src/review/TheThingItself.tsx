@@ -77,8 +77,8 @@ export default function TheThingItself({
       setMeasurement(null);
       return;
     }
-    const document_ = frameRef.current?.contentDocument ?? null;
-    if (document_ === null) {
+    const frameDocument = frameRef.current?.contentDocument ?? null;
+    if (frameDocument === null) {
       setMeasurement(null);
       return;
     }
@@ -86,7 +86,7 @@ export default function TheThingItself({
     // The theme is the operator's, applied to the frame's own root: `data-theme`
     // is the mechanism `styles/global.css` § Colors already declares, and an
     // explicit choice beats the operating system's in both directions.
-    document_.documentElement.setAttribute("data-theme", theme);
+    frameDocument.documentElement.setAttribute("data-theme", theme);
 
     // Two frames before reading a box. The width lands on the iframe element in
     // this document, and the frame's own layout follows it one paint later; a
