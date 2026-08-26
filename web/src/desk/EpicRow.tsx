@@ -98,6 +98,15 @@ import {
  * whose state the Desk has been told and refuses to say. An undeclared node's
  * `undeclared` is deliberately not one of the six words and falls to the
  * Unknown Rule, exactly as 001 had it.
+ *
+ * **012 US2 narrows when that word is reached, and changes it nowhere else.**
+ * `undeclared` is a claim about a graph — "the work graph does not declare this
+ * story" — and it may only be made by a row that has one. On a row joined to no
+ * graph the claim is unmakeable, and standing it in for one is the rendering
+ * FR-007 forbids and plan D4 names: the word would be the pane's answer to "no
+ * graph", which is how a topology nobody declared gets shown as one somebody
+ * did. What the pane *was* told there is the floor's own state, so that is what
+ * the chip says, and the missing graph is said once on the row instead.
  */
 const FLOOR_WORDS: Record<string, string> = {
   PENDING: "ready",
@@ -229,16 +238,25 @@ function edgeText(edge: StoryEdge): string {
 }
 
 /** The chip a story cell wears, and where its word came from. */
-function cellChip(card: NodeCard, story: ShowfloorStory | null): Chip & { source: string } {
+function cellChip(
+  card: NodeCard,
+  story: ShowfloorStory | null,
+  graphRead: boolean,
+): Chip & { source: string } {
   if (story !== null) return { ...storyChip(story.ladder), source: "document" };
 
   // 001's word for a node the workgraph does not declare, unchanged by the
-  // change of clothes and not one of § Chips' six.
-  const word = !card.declared
-    ? "undeclared"
-    : card.awaiting_operator
-      ? "waiting on you"
-      : (FLOOR_WORDS[card.state] ?? "unknown");
+  // change of clothes and not one of § Chips' six — and reached only by a row
+  // that read a graph, because only such a row can know a story is missing
+  // from one (012 FR-007). Where no graph was joined the floor's own state is
+  // what the pane has been told, and refusing to say it would trade a fact for
+  // a claim the pane cannot make.
+  const word =
+    !card.declared && graphRead
+      ? "undeclared"
+      : card.awaiting_operator
+        ? "waiting on you"
+        : (FLOOR_WORDS[card.state] ?? "unknown");
   return { word, tone: chipTone(word), count: null, source: "floor-state" };
 }
 
@@ -276,12 +294,14 @@ interface StoryCellProps {
   story: ShowfloorStory | null;
   /** Whether the document answered for this story's epic at all. */
   answered: boolean;
+  /** Whether a work graph was joined to this story's epic at all (012 FR-007). */
+  graphRead: boolean;
 }
 
 /** One story of the epic: its key, its ladder, its chip — in that order. */
-function StoryCell({ card, story, answered }: StoryCellProps) {
+function StoryCell({ card, story, answered, graphRead }: StoryCellProps) {
   const ladder = story?.ladder ?? null;
-  const chip = cellChip(card, story);
+  const chip = cellChip(card, story, graphRead);
   // "WAITING_OPERATOR (or `awaiting_operator` true in any state)" wears the gold
   // chip; a VERIFYING node that is also awaited is *paged*, which is a fact the
   // chip's word does not carry, so it keeps the marker 001 gave it.
@@ -422,6 +442,7 @@ export default function EpicRow({ epic, showfloor = null }: EpicRowProps) {
             card={card}
             story={storyForCard(entry, card)}
             answered={entry !== null}
+            graphRead={graphRead}
           />
         ))}
         {entry === null && (

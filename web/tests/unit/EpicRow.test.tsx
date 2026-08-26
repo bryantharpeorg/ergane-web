@@ -533,13 +533,25 @@ describe("the ladders are the document's own (US2-S2, FR-005)", () => {
   });
 
   it("keeps the awaited story's own words when the document carries no ladder", () => {
-    // The paged scene: undeclared, VERIFYING, awaited. `undeclared` is 001's
-    // word and it outranks the state's, so the fact the chip cannot carry — that
-    // the factory is waiting on an answer — stays on the marker beside it.
-    const cell = render(FIXTURE_EPICS[2], unjoined).querySelector("[data-story]")!;
-    expect(chipOf(cell)).toBe("undeclared");
+    // The paged scene: VERIFYING and awaited, on a row joined to no graph.
+    //
+    // **012 US2 changes the word this asserts and nothing else about it**
+    // (FR-007, and the naming discipline 006 FR-003 set). It read `undeclared`,
+    // which was 001's word for a card the graph does not declare — but this row
+    // read no graph at all, so that word was the pane's answer to "no graph",
+    // which is the rendering FR-007 forbids and plan D4 names. What the pane
+    // was actually told here is `awaiting_operator`, and that is now the word.
+    // The subject has not moved an inch: the same paged, VERIFYING story of the
+    // same scene, still carrying the fact the chip alone cannot — the marker
+    // beside it — and still reading a word rather than a colour.
+    const container = render(FIXTURE_EPICS[2], unjoined);
+    const cell = container.querySelector("[data-story]")!;
+    expect(chipOf(cell)).toBe("waiting on you");
     expect(cell.hasAttribute("data-paged")).toBe(true);
     expect(cell.getAttribute("data-state")).toBe("VERIFYING");
+    // And the graph the row does not have is named where it belongs: once, on
+    // the row, in words that are not `UNDECLARED`.
+    expect(container.querySelector("article.epic")!.getAttribute("data-graph")).toBe("unread");
   });
 
   it("matches a floor node to the document's story by id and by folded story key", () => {
@@ -689,16 +701,44 @@ describe("the story cell, succeeding the chevron it replaced", () => {
     expect(cell.textContent).toContain("paged");
   });
 
-  it("renders declared=false as undeclared", () => {
+  it("renders declared=false as undeclared, on a row that read a graph", () => {
     // Succeeds "renders declared=false as undeclared". `undeclared` is not one
     // of § Chips' six words, so it falls to the Unknown Rule's italic muted.
-    const cell = withCard(
-      cardOf("us1", { state: "VERIFYING" }, null),
-    ).querySelector("[data-story]")!;
+    //
+    // **012 US2 adds the row's precondition and keeps the subject** (FR-007,
+    // named here the way 006 FR-003 asks). `undeclared` is a claim about a
+    // graph — this story is not in it — and only a row that read one can make
+    // it. The card under test is unchanged; what the row around it now has is
+    // a second, declared story, which is what gives the row a graph to be
+    // missing from. The case where it has none is the next test, and the two
+    // together are the whole of FR-007.
+    const container = render(
+      epicOf("fx-one", "one", "RUNNING", [
+        { ...cardOf("us2", { state: "MERGED" }, "US2"), depends_on: [], depends_on_merged: [] },
+        cardOf("us1", { state: "VERIFYING" }, null),
+      ]),
+      unjoined,
+    );
+    const cell = stories(container)[1];
 
     expect(cell.hasAttribute("data-undeclared")).toBe(true);
     expect(chipOf(cell)).toBe("undeclared");
     expect(cell.querySelector("[data-chip]")?.getAttribute("data-chip-tone")).toBe("unknown");
+  });
+
+  it("never renders undeclared on a row that read no graph (012 FR-007)", () => {
+    // The same card, on a row with nothing declared: the pane cannot know the
+    // story is missing from a graph it never read, so it says what it *was*
+    // told — the floor's own state — and names the missing graph once, on the
+    // row. This is plan D4's line: `UNDECLARED` never becomes the rendering
+    // for "no graph".
+    const container = withCard(cardOf("us1", { state: "VERIFYING" }, null));
+    const cell = container.querySelector("[data-story]")!;
+
+    expect(cell.hasAttribute("data-undeclared")).toBe(true);
+    expect(chipOf(cell)).toBe("verifying");
+    expect(container.textContent).not.toContain("undeclared");
+    expect(container.querySelector("[data-no-graph]")).not.toBeNull();
   });
 
   it("keeps the paged marker when the story is also undeclared", () => {
