@@ -17,6 +17,18 @@
  * colour alone, and a wire has nowhere to write its word.
  */
 
+/**
+ * The two edge kinds, in words, because a wire has nowhere to write one.
+ *
+ * Exported since 014 US3: the drafting table draws the same two strokes on its
+ * unlit stage and owes § Named Rules the same sentence — but it must not render
+ * *this* legend, whose four ladder fills describe a run that has not happened.
+ * "**Don't** render an element that can never fill" (§ Do's and Don'ts) is the
+ * rule, and a second spelling of the same sentence would be the other way to
+ * break it: two rooms could then disagree about which stroke means what.
+ */
+export const EDGE_LEGEND = "solid wire = merge edge · dashed = pass edge";
+
 /** § The status ladder's four fills, in the order the ladder runs. */
 const FILLS = [
   { key: "done", word: "done" },
@@ -35,7 +47,7 @@ export default function Legend(): JSX.Element {
         </span>
       ))}
       <span className="legend-edges" data-legend-edges>
-        solid wire = merge edge · dashed = pass edge
+        {EDGE_LEGEND}
       </span>
     </p>
   );

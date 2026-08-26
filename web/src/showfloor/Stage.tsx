@@ -38,6 +38,32 @@ import Wires, { type WireEdge } from "./Wires";
 /* ── the graph ─────────────────────────────────────────────────────────── */
 
 /**
+ * The least a thing needs to be laid out on this stage: an id, and the two
+ * dependency lists the workgraph declares.
+ *
+ * **014 US3 is why this is an interface and not `ShowfloorStory`.** The
+ * drafting table stages a *compiled Work Graph* — the deriver's own result,
+ * before anything has run — which carries none of a story's live clothing: no
+ * ladder, no chip, no attempt, no title. What it does carry is the three fields
+ * below, because those are the graph's own shape and the run has nothing to do
+ * with them. So the two functions under this comment take the shape they
+ * actually read rather than the document one caller happens to hold, and both
+ * rooms lay a DAG out with **one** implementation.
+ *
+ * Widening a parameter is the whole of the change: `ShowfloorStory` satisfies
+ * it unaltered, `ranksOf` is generic so a caller gets its own type back, and
+ * every existing call site reads the same. A second copy of these thirty lines
+ * in `web/src/draft/` would be D-005's defect in TypeScript — two things that
+ * decide what a dependency means, drifting the first time one is corrected.
+ */
+export interface GraphNode {
+  /** Null is a story the document could not name; it draws, and wires nothing. */
+  id: string | null;
+  depends_on: string[];
+  depends_on_merged: string[];
+}
+
+/**
  * The stage's edges, from the two dependency kinds the workgraph declares.
  *
  * § Stage tells them apart by stroke — merge solid olive, pass dashed rule —
@@ -46,19 +72,19 @@ import Wires, { type WireEdge } from "./Wires";
  * `depends_on` is an ordering-only one (the predecessor reached a verdict). The
  * pane re-derives neither; it reads both lists and draws them differently.
  */
-export function edgesOf(stories: ShowfloorStory[]): WireEdge[] {
+export function edgesOf(nodes: readonly GraphNode[]): WireEdge[] {
   const declared = new Set(
-    stories.map((story) => story.id).filter((id): id is string => id !== null),
+    nodes.map((node) => node.id).filter((id): id is string => id !== null),
   );
   const edges: WireEdge[] = [];
 
-  for (const story of stories) {
-    if (story.id === null) continue;
-    for (const source of story.depends_on_merged) {
-      if (declared.has(source)) edges.push({ source, target: story.id, kind: "merge" });
+  for (const node of nodes) {
+    if (node.id === null) continue;
+    for (const source of node.depends_on_merged) {
+      if (declared.has(source)) edges.push({ source, target: node.id, kind: "merge" });
     }
-    for (const source of story.depends_on) {
-      if (declared.has(source)) edges.push({ source, target: story.id, kind: "pass" });
+    for (const source of node.depends_on) {
+      if (declared.has(source)) edges.push({ source, target: node.id, kind: "pass" });
     }
   }
 
@@ -76,15 +102,15 @@ export function edgesOf(stories: ShowfloorStory[]): WireEdge[] {
  *
  * A cycle cannot come out of a compiled workgraph, but a bounded walk is what
  * keeps a malformed one from hanging the room rather than degrading it: after
- * `stories.length` passes the ranks stop moving, and whatever they are is what
+ * `nodes.length` passes the ranks stop moving, and whatever they are is what
  * is drawn.
  */
-export function ranksOf(stories: ShowfloorStory[]): ShowfloorStory[][] {
-  const edges = edgesOf(stories);
+export function ranksOf<T extends GraphNode>(nodes: readonly T[]): T[][] {
+  const edges = edgesOf(nodes);
   const rank = new Map<string, number>();
-  for (const story of stories) if (story.id !== null) rank.set(story.id, 0);
+  for (const node of nodes) if (node.id !== null) rank.set(node.id, 0);
 
-  for (let pass = 0; pass < stories.length; pass++) {
+  for (let pass = 0; pass < nodes.length; pass++) {
     let moved = false;
     for (const edge of edges) {
       const next = (rank.get(edge.source) ?? 0) + 1;
@@ -96,11 +122,11 @@ export function ranksOf(stories: ShowfloorStory[]): ShowfloorStory[][] {
     if (!moved) break;
   }
 
-  const columns: ShowfloorStory[][] = [];
-  for (const story of stories) {
-    const depth = story.id === null ? 0 : (rank.get(story.id) ?? 0);
+  const columns: T[][] = [];
+  for (const node of nodes) {
+    const depth = node.id === null ? 0 : (rank.get(node.id) ?? 0);
     while (columns.length <= depth) columns.push([]);
-    columns[depth].push(story);
+    columns[depth].push(node);
   }
   return columns;
 }

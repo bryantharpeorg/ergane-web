@@ -859,13 +859,33 @@
   color: var(--muted);
 }
 
+/* ── the stage assets, worn by two rooms (014 US3) ─────────────────────────
+
+   Every rule from here to the node card's sub-line names `.showfloor` and
+   `.draft`, and it is one rule each rather than two copies on purpose.
+   `DESIGN.md` § The drafting table: "A compiled Work Graph draws with the
+   Showfloor's stage assets and the same two edge strokes, with every node in
+   the unlit form." A copied rule would be a second declaration of one design —
+   the defect 014 US1 named when it made `.desk-frame, .draft-frame` one rule,
+   because § Elevation leaves exactly one shadow in this repository and two
+   places to change it is one place to forget.
+
+   What the drafting table does **not** wear is everything the run puts on: the
+   chip, the ladder and its four fills, the selection outline, the focus ring
+   and the control resets. None of those rules names `.draft`, and none should:
+   a graph that has not dispatched has no state to dress, and DESIGN.md forbids
+   inventing a glyph for the absence of one. The rooms share the geometry;
+   the Showfloor keeps the clothing.
+   ────────────────────────────────────────────────────────────────────────── */
+
 /* § Stage: "The stage scrolls horizontally when a graph outgrows it." The
    scroll is on a wrapper around the canvas and not on the stage itself, so the
    header and the metrics stay put while the graph travels — and so the wrapper
    is the "scrolling ancestor within it" FR-014's containment law allows a wide
    graph to live inside. `overflow-y: hidden` keeps the one axis DESIGN.md
    names; the canvas's own padding is what keeps the cards' shadow off it. */
-.showfloor .dag-scroll {
+.showfloor .dag-scroll,
+.draft .dag-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   min-width: 0;
@@ -902,20 +922,23 @@
    would be inventing a `--transparent` token DESIGN.md does not name
    (constitution VIII). Every other value is `var(--rule)` or `var(--faint)`
    (FR-010). */
-.showfloor .dag-scroll::-webkit-scrollbar {
+.showfloor .dag-scroll::-webkit-scrollbar,
+.draft .dag-scroll::-webkit-scrollbar {
   /* "Thin", said in the one place a WebKit scrollbar's thickness can be said.
      The stage scrolls on one axis, so this is the bar's height. */
   height: 8px;
   background: none;
 }
 
-.showfloor .dag-scroll::-webkit-scrollbar-track {
+.showfloor .dag-scroll::-webkit-scrollbar-track,
+.draft .dag-scroll::-webkit-scrollbar-track {
   background: none;
 }
 
 /* § Shapes: "Rectangles with `2px` radius on cards". The thumb is furniture of
    the same family, so it takes the same corner. */
-.showfloor .dag-scroll::-webkit-scrollbar-thumb {
+.showfloor .dag-scroll::-webkit-scrollbar-thumb,
+.draft .dag-scroll::-webkit-scrollbar-thumb {
   background: var(--rule);
   border-radius: 2px;
 }
@@ -925,7 +948,8 @@
    *both* themes: `--faint` is darker than `--rule` on the light ground and
    lighter than it on the dark one. A literal "brighter" would only be true in
    one of the two, and DESIGN.md names both. */
-.showfloor .dag-scroll::-webkit-scrollbar-thumb:hover {
+.showfloor .dag-scroll::-webkit-scrollbar-thumb:hover,
+.draft .dag-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--faint);
 }
 
@@ -934,7 +958,8 @@
    horizontal bar this scroller actually grows as well as every other
    orientation, and the two zeroes are there because Chromium has historically
    kept a button's box on `display: none` alone. */
-.showfloor .dag-scroll::-webkit-scrollbar-button {
+.showfloor .dag-scroll::-webkit-scrollbar-button,
+.draft .dag-scroll::-webkit-scrollbar-button {
   display: none;
   width: 0;
   height: 0;
@@ -943,7 +968,8 @@
 /* "Compute layout from content — a stage is the size of its graph" (§ Do's).
    `max-content` is that sentence in CSS: no imposed width, no viewport unit, no
    second coordinate space for the wires to disagree with. */
-.showfloor .dag {
+.showfloor .dag,
+.draft .dag {
   position: relative;
   width: max-content;
   min-width: 100%;
@@ -954,23 +980,27 @@
    stacking order — the SVG comes first in the DOM and the ranks below it take
    their own stacking context — and `inset: 0` is what makes the SVG's user
    units the canvas's CSS pixels, which is the space `Wires.tsx` measured in. */
-.showfloor .dag .wires {
+.showfloor .dag .wires,
+.draft .dag .wires {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
 /* § Stage: "merge edges solid 2px olive, pass edges dashed 2px `--rule`". */
-.showfloor .dag .wire {
+.showfloor .dag .wire,
+.draft .dag .wire {
   fill: none;
   stroke-width: 2;
 }
 
-.showfloor .dag .wire.merge {
+.showfloor .dag .wire.merge,
+.draft .dag .wire.merge {
   stroke: var(--olive);
 }
 
-.showfloor .dag .wire.pass {
+.showfloor .dag .wire.pass,
+.draft .dag .wire.pass {
   stroke: var(--rule);
   stroke-dasharray: 5 4;
 }
@@ -978,7 +1008,8 @@
 /* Ranks left→right, "stage rank gap `1.6rem`" (§ Layout). `flex: 0 0 auto`
    throughout: a rank that shrank to fit would move a card out from under the
    wire already measured against it. */
-.showfloor .ranks {
+.showfloor .ranks,
+.draft .ranks {
   position: relative;
   display: flex;
   gap: 1.6rem;
@@ -986,7 +1017,8 @@
   width: max-content;
 }
 
-.showfloor .rank {
+.showfloor .rank,
+.draft .rank {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
@@ -997,7 +1029,8 @@
    mono sub-line)"; § Shapes: 2px radius; § Elevation: the one shadow, on stage
    node cards. A flex column with a gap is what guarantees the five children
    stack and never share a line — the no-overlap law, kept by construction. */
-.showfloor .node {
+.showfloor .node,
+.draft .node {
   flex: 0 0 auto;
   width: 11.5rem;
   display: flex;
@@ -1010,10 +1043,19 @@
   padding: 0.65rem 0.8rem 0.7rem;
   box-shadow: var(--shadow);
   position: relative;
-  /* 005 US4: the card is a `<button>` now, so it arrives wearing the user
-     agent's control clothing. These four lines take it off — the card's own
-     appearance is unchanged from US3, and § Shapes' selection outline and a
-     visible focus ring are what it gains (FR-016). */
+}
+
+/* 005 US4: in the Showfloor the card is a `<button>`, so it arrives wearing the
+   user agent's control clothing, and these four lines take it off — § Shapes'
+   selection outline and a visible focus ring are what it gains (FR-016).
+
+   They moved out of the shared rule above in 014 US3, and the move is the
+   point. The drafting table's card is **not** a control: there is no detail
+   pane to fill, no selection to move, and nothing to pick before anything has
+   run. A `cursor: pointer` there would advertise a verb the room does not have
+   (constitution I) — so what both rooms share is the card's *design*, and what
+   the Showfloor keeps is its clothing as a control. */
+.showfloor .node {
   font: inherit;
   color: var(--ink);
   text-align: left;
@@ -1040,7 +1082,8 @@
   outline-offset: 2px;
 }
 
-.showfloor .node .nid {
+.showfloor .node .nid,
+.draft .node .nid {
   font-family: var(--mono);
   font-weight: 700;
   font-size: var(--t-small);
@@ -1048,7 +1091,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.showfloor .node .ntitle {
+.showfloor .node .ntitle,
+.draft .node .ntitle {
   font-size: var(--t-small);
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -1069,7 +1113,8 @@
   overflow-wrap: anywhere;
 }
 
-.showfloor .node .nsub {
+.showfloor .node .nsub,
+.draft .node .nsub {
   font-family: var(--mono);
   font-size: var(--t-micro);
   color: var(--muted);
