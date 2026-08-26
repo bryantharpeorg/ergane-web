@@ -91,6 +91,7 @@
     { "pattern": "web/src/api/answer.ts", "routes": ["/", "/desk"] },
     { "pattern": "web/src/api/reviewDocument.ts", "routes": ["/review"] },
     { "pattern": "web/src/api/draftDocument.ts", "routes": ["/draft"] },
+    { "pattern": "web/src/layoutLaws.ts", "routes": ["/review"] },
     { "pattern": "web/src/desk/**", "routes": ["/", "/desk"] },
     { "pattern": "web/src/showfloor/**", "routes": ["/showfloor"] },
     { "pattern": "web/src/review/**", "routes": ["/review"] },

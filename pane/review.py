@@ -21,6 +21,14 @@ D3) — and it is guarded by `tests/test_route_manifest.py` and
 serves appears in it (FR-005).  A manifest that can rot in silence is worth
 nothing.
 
+**The served revision is stated on every document** (FR-009, FR-010, plan D5).
+The room reviews the *running service* — the frame renders what this pane is
+serving right now, not a branch the pane built.  So the document names the
+revision this process is standing on and says whether that revision carries the
+epic's landings, because if it does not then everything on the operator's screen
+is about a different surface from the one they think they are looking at.  It is
+stated always, not only when it is bad news; `_served` is where it is read.
+
 **A partially landed epic is refused, by name** (FR-004, plan D4).  A review of
 half an epic produces notes about a surface that is about to change and leaves
 the operator unable to say which half they looked at, so the room does not
@@ -42,7 +50,12 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pane.readers import Reader
 
-from pane.landing import LandingFact, read_changed_files
+from pane.landing import (
+    LandingFact,
+    read_changed_files,
+    read_served_revision,
+    revision_carries,
+)
 from pane.readers import QueryRefused, TransportFailed
 from pane.showfloor import StoryHeading, parse_spec_name, parse_story_headings
 
@@ -287,6 +300,14 @@ class ReviewReaders:
     landing_facts: Callable[[str], dict[str, LandingFact]]
     changed_files: Callable[[str], list[str]]
     workgraph: Callable[[str], dict] | None = None
+    #: The revision this process is serving, as `(revision, branch | None)`
+    #: (011 FR-009).  Optional for the same reason `workgraph` is — a caller
+    #: that binds no such read is a build that cannot answer the question, and
+    #: the room renders the revision as unknown rather than inventing one.
+    served_revision: Callable[[], tuple[str, str | None]] | None = None
+    #: Whether a revision carries a landing commit, as `(commit, revision)`
+    #: (011 FR-010).  Bound beside `served_revision` and useless without it.
+    revision_carries: Callable[[str, str], bool] | None = None
     #: The branch the landing read read.  A setting, never a literal spelt into
     #: a reader (009 plan D3); `None` is a build that did not say.
     landing_branch: str | None = None
@@ -331,6 +352,15 @@ class ReviewReaders:
             workgraph=showfloor.workgraph,
             landing_branch=branch,
             manifest=manifest,
+            # The two served-revision reads, over the same checkout (FR-009,
+            # FR-010).  Deliberately *not* the landing branch: the branch is
+            # where a landing lands, and this is where the running process is
+            # standing.  When they are the same the room says so; when they are
+            # not, that difference is the whole point of asking.
+            served_revision=lambda: read_served_revision(repo),
+            revision_carries=lambda commit, revision: revision_carries(
+                repo, commit, revision
+            ),
         )
 
 
@@ -385,6 +415,7 @@ def assemble_review(
         "story_source": story_source,
         "stories": stories,
         "routes": _reached_routes(stories, manifest),
+        "served": _served(readers, stories, notes),
         "notes": notes,
     }
 
@@ -469,6 +500,95 @@ def _reached_routes(stories: list[dict], manifest: RouteManifest | None) -> list
             }
         )
     return out
+
+
+def _served(
+    readers: ReviewReaders, stories: list[dict], notes: list[dict]
+) -> dict:
+    """The revision this service is serving, and whether it carries this epic.
+
+    **Why the room asks at all** (FR-009, FR-010, plan D5).  The review room
+    reviews the *running service*.  It builds no branch and it renders no
+    screenshot of one — the frame shows what this pane is serving right now.  So
+    if the process is standing on a revision that does not carry the epic under
+    review, every measurement the operator takes is about a different surface
+    from the one they think they are looking at, and no note taken under that
+    mistake is worth anything.  That is a fact the room can read, so it reads it
+    and states it, always — not only when it is bad news.
+
+    **Three answers, and the third is not the second.**  `contains_epic` is True
+    when every story's landing is on the served revision, False when at least
+    one measurably is not, and `None` when the reads did not settle it.  The
+    third is the Unknown Rule (constitution III): a revision that would not read
+    is not a mismatch, and rendering it as one would be this room inventing the
+    very alarm it exists to raise honestly.
+
+    `missing` names the stories measured absent and `unplaced` those the read
+    could not place.  A story with no landing commit at all cannot be placed
+    either — but it cannot reach here, because an epic with an unmerged story is
+    refused before this runs (FR-004); what does reach here is a story whose
+    landing read failed, which is already a note of its own.
+    """
+    revision: str | None = None
+    branch: str | None = None
+
+    if readers.served_revision is not None:
+        try:
+            revision, branch = readers.served_revision()
+        except (TransportFailed, QueryRefused) as exc:
+            _note(notes, exc)
+
+    missing: list[str] = []
+    unplaced: list[str] = []
+
+    for story in stories:
+        commit = story["commit"]
+        if revision is None or readers.revision_carries is None or commit is None:
+            unplaced.append(story["story_key"])
+            continue
+        try:
+            carried = readers.revision_carries(commit, revision)
+        except (TransportFailed, QueryRefused) as exc:
+            _note(notes, exc)
+            unplaced.append(story["story_key"])
+        else:
+            if not carried:
+                missing.append(story["story_key"])
+
+    if revision is None or not stories:
+        contains: bool | None = None
+    elif missing:
+        # Measured absence settles it even with unplaced stories beside it: one
+        # story the served revision does not carry is already an epic it does
+        # not carry, and the operator is already reviewing something else.
+        contains = False
+    elif unplaced:
+        contains = None
+    else:
+        contains = True
+
+    return {
+        "revision": revision,
+        # Cut once, server-side, for the reason `short_commit` is: two
+        # renderings of one revision can disagree about length.
+        "short_revision": None if revision is None else revision[:12],
+        "branch": branch,
+        "contains_epic": contains,
+        "missing": missing,
+        "unplaced": unplaced,
+    }
+
+
+def _note(notes: list[dict], exc: TransportFailed | QueryRefused) -> None:
+    """Name a failed read once, however many times it failed.
+
+    The served-revision check asks git once per story, so a git that has stopped
+    answering would otherwise write the same sentence four times into a room
+    that renders one note per read.
+    """
+    if any(note["read"] == exc.read for note in notes):
+        return
+    notes.append({"read": exc.read, "mode": _mode(exc), "detail": exc.detail})
 
 
 def _story_identity(
