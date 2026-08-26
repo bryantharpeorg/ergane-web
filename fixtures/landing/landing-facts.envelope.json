@@ -1,0 +1,8 @@
+{
+  "captured_at": "2026-08-26T18:44:00Z",
+  "seam": "pane.landing.read_landing_facts over factory.workgraph.landed.landed_facts",
+  "source": "this repository's own dev branch at d4aec99, read with fetch=False",
+  "host": "tharpebox",
+  "ergane_version": "0.2.0",
+  "notes": "Recorded, never invented (constitution V). One entry per spec directory on dev at capture, each mapping story key to the landing the branch carries: commit, kind, merged_at, pr_number, subject. Six fields, all facts; no credential can appear in it and a sweep confirms none does. Re-record with the same seam after a promotion or whenever the demo floor should show newer landings; the document is a snapshot of a real branch, so it ages exactly the way the recorded floor does and is honest about that."
+}
