@@ -803,3 +803,61 @@ operator's own working checkout on every 300-second tick (**N50**,
 `factory/activities/roadmap_activities.py:118`). This room only reads, so it cannot lose the
 operator's work — but the revision under a reader can change within five minutes, and a rendered
 document with no read instant is a claim that has quietly expired. FR-003 exists for that reason.
+
+## D-023 · The review room borrows the operator's browser, and Playwright is deferred with an envelope (decided 2026-08-25)
+
+**Raised by** spec 011's refinement. The operator asked for the room by name and named its mechanism:
+*"ideally it would be associated with a playwright browser session navigating the parts of ergane-web
+that were changed because of the specs/stories."* Refining the spec to `ready` required answering
+whether the pane may drive a browser, and constitution VI has never had to reason about that.
+
+**What a Playwright session in the pane actually costs.** The pane's own process spawns Chromium on
+the operator's host, navigates URLs, executes page scripts and writes screenshot files — every one of
+those reachable behind the single shared bearer token, which today authorizes reads of the floor and
+nothing else. Four questions follow and none of them is rhetorical: does the browser run in the
+pane's process or a sandbox; is the URL set closed and derived or operator-typed; do the screenshots
+ever leave the host; and what does a leaked token now authorize. Principle VI's existing sentences —
+one token, no credential in a page or an event or a log — do not reach any of them, because they were
+written about *reading*.
+
+**Decided: the operator's own browser is the browser.** The room renders a changed route in a
+**same-origin frame** at a width and theme the operator selects, and runs the measurement sweep inside
+that frame from the parent document. The pane spawns no process, reaches no URL of its own, and
+writes no file. All four questions above are answered by not being asked.
+
+This is not a reduction of the ask. The three tracks the operator described — what changed, the thing
+itself, the notes — are all delivered, and the numbers come from `measureLaws`, the harness that
+actually found F1, F2 and F3 on 2026-08-25, rather than from a reimplementation.
+
+**What is genuinely lost:** a server-side screenshot file to attach to a note, and the ability to
+review a route the operator's browser cannot reach. Neither is load-bearing here. Spec 011's own body
+says *"the measurement is the point, not the screenshot"*, and the room reviews this pane — which is
+by definition reachable from the browser that is looking at it.
+
+**The envelope, recorded now so reversing this costs a decision and not a redesign.** Two real futures
+bring Playwright back: reviewing a *built branch* rather than the running service, and reviewing a
+target repo that is not this pane. If either is wanted, a browser-driving room is admissible only
+with **all** of:
+
+1. the browser runs in a sandbox, not in the pane's process;
+2. the URL set is **closed and derived** from the diff under review — never operator-typed, and never
+   taken from anything the pane read rather than computed;
+3. screenshots are written under a declared directory in this repository and never transmitted;
+4. the capability is gated by its own configuration flag, off by default, so a deployment that does
+   not want it cannot be talked into it by a request;
+5. a decision entry supersedes this one and constitution VI gains sentences about execution, not just
+   about credentials.
+
+Anything less is refused. A node that adds a headless browser to satisfy a scenario has reintroduced
+every question this entry closed, which is why spec 011's plan makes it a stop-and-ask rather than a
+judgement call.
+
+**The face.** `DESIGN.md` gains **§ The review room in this world**. Its load-bearing rule is that a
+**measured number is shown, never only a verdict**: the two manual reviews were useful because they
+said "235px of graph hidden at 1280, US4 fully invisible, scrollbar height 0px" rather than "the graph
+looks cut off", and a room that renders a green tick over that measurement has thrown away the thing
+that made the ritual worth automating.
+
+**And one honesty rule with teeth.** The room reviews the *running service*, which may not be serving
+the tree under review. When it is not, the room says so where the operator cannot miss it — otherwise
+every note taken is about something other than the epic named at the top of the page.

@@ -297,6 +297,36 @@ measure and a vocabulary for a check that has not been run.
   unlit form. No node carries a run state, because none has run. Do not add a
   twelfth glyph for "not yet": that is the absence of state, not a state.
 
+### The review room in this world
+
+The fourth room (D-023, spec 011). Three tracks, left to right: what changed, the
+thing itself, the notes. Same tokens, same chips, same tables.
+
+- **A measured number is shown, never only a verdict.** The two manual reviews
+  earned this room by reporting `235px of graph hidden at 1280`, `US4 fully
+  invisible`, `scrollbar height 0px`. A green tick over that measurement throws
+  away the thing that made the ritual worth automating. Numerals right-aligned
+  tabular mono, the unit always present, the law named beside the figure.
+- **The frame is furniture, and it is the widest thing on screen.** The rendered
+  route gets the room's centre and the operator's chosen width; the two side
+  tracks hold at a fixed measure and scroll independently. Nothing overlays the
+  frame — an overlay on the thing under review is a defect the reviewer cannot see
+  past.
+- **The served revision is a header, not a footnote.** Micro uppercase over a
+  hairline at the top of the view, always present. When the served revision does
+  not contain the epic under review, the statement takes a full-width band above
+  the frame in the room's warning face — not a chip, not a tooltip. Every note
+  taken under a mismatch is about something else, and the reviewer must not be
+  able to miss it.
+- **A note renders its coordinates, not its prose first.** Story, route, width,
+  theme, and the figures at capture, in mono; the observation follows. A note
+  whose coordinates are collapsed behind a disclosure is a note nobody will
+  reproduce.
+- **The composed draft is shown as a document, never as a saved thing.** The room
+  writes nothing (spec 011 FR-014). The control says *save this yourself* in those
+  terms — a control that reads like a save button in a room that cannot save is
+  the one lie this room could tell that the operator would not catch.
+
 ### Motion
 
 Exactly one authored motion: the active ladder stop's 1.6s opacity pulse.
