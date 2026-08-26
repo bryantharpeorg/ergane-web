@@ -110,6 +110,26 @@ export interface LawReport {
 }
 
 /**
+ * The four laws, named once (011 US3).
+ *
+ * `§ Layout`'s four are read in two places now — beside the frame, and inside a
+ * note's frozen coordinates — and a law spelt one way on the screen and another
+ * way in the draft the operator saves would be two vocabularies for one thing.
+ * The letters are the ones `data-law` has carried since US2; the names are the
+ * ones the room renders.
+ *
+ * Module scope, not inside `measureLawsIn`: that function is shipped into the
+ * frame through `page.evaluate` and may close over nothing, which is a
+ * constraint on its *body* and not on this file.
+ */
+export const LAWS = [
+  { law: "a", name: "outside its stage", key: "escaped" },
+  { law: "b", name: "past the right edge", key: "past" },
+  { law: "c", name: "overlapping text", key: "overlapping" },
+  { law: "d", name: "painted over text", key: "occluded" },
+] as const;
+
+/**
  * All four laws, measured in one pass over `doc`.
  *
  * One traversal rather than four: the boxes have to come from a single layout,

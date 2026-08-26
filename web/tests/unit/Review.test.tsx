@@ -295,3 +295,79 @@ describe("the room refuses half an epic and names the stories (FR-004)", () => {
     expect(degraded.textContent).toContain("503");
   });
 });
+
+/**
+ * The third track, and the one join the room makes between two of its own
+ * (011 US3: FR-012, FR-013, FR-014).
+ *
+ * `tests/unit/Notes.test.tsx` owns the track. What is proved here is that it is
+ * *in* the room and that the coordinates reaching it are the centre track's own
+ * — the join that makes a note anchored to what the operator is looking at
+ * rather than to something the notes track measured for itself (plan D2).
+ */
+describe("the notes track stands beside the other two (FR-012)", () => {
+  it("renders all three tracks on the document answer", async () => {
+    const container = open("/review/001-the-desk-sees-the-floor", 200, review());
+    await act(async () => {});
+
+    expect(container.querySelector("[data-track='what-changed']")).not.toBeNull();
+    expect(container.querySelector("[data-track='the-thing-itself']")).not.toBeNull();
+    expect(container.querySelector("[data-track='the-notes']")).not.toBeNull();
+  });
+
+  it("takes the route, width and theme the centre track is rendering", async () => {
+    const container = open("/review/001-the-desk-sees-the-floor", 200, review());
+    await act(async () => {});
+
+    const frame = container.querySelector("[data-render-frame]") as HTMLIFrameElement;
+    const where = container.querySelector("[data-capture-where]") as HTMLElement;
+    expect(where.textContent).toContain(frame.getAttribute("data-render-route") as string);
+    expect(where.textContent).toContain(
+      `${frame.getAttribute("data-render-width") as string}px`,
+    );
+    expect(where.textContent).toContain(frame.getAttribute("data-render-theme") as string);
+
+    // And it follows the controls: the coordinates a note would take are the
+    // ones on the screen, not the ones the room opened at.
+    act(() => {
+      (container.querySelector("[data-width-pick='2560']") as HTMLElement).click();
+    });
+    act(() => {
+      (container.querySelector("[data-theme-pick='dark']") as HTMLElement).click();
+    });
+    await act(async () => {});
+
+    const moved = container.querySelector("[data-capture-where]") as HTMLElement;
+    expect(moved.textContent).toContain("2560px");
+    expect(moved.textContent).toContain("dark");
+  });
+
+  it("offers the epic's own stories to anchor a note to", async () => {
+    const container = open("/review/001-the-desk-sees-the-floor", 200, review());
+    await act(async () => {});
+
+    const offered = Array.from(container.querySelectorAll("[data-story-pick]")).map(
+      (pick) => pick.getAttribute("data-story-pick"),
+    );
+    expect(offered).toEqual(
+      (review().stories as { story_key: string }[]).map((story) => story.story_key),
+    );
+  });
+
+  it("draws no notes track on a refusal, because there is nothing to note on", async () => {
+    // A review of half an epic is a review of nothing (FR-004), and a note
+    // taken over one could not say which half it was about.
+    const container = open("/review/001-the-desk-sees-the-floor", 409, {
+      error: "epic_not_landed",
+      spec_dir: "001-the-desk-sees-the-floor",
+      landing_branch: "dev",
+      unmerged: [{ story_key: "US3", title: "A third story" }],
+      served: null,
+      detail: "one story has not merged",
+    });
+    await act(async () => {});
+
+    expect(container.querySelector("[data-refusal]")).not.toBeNull();
+    expect(container.querySelector("[data-track='the-notes']")).toBeNull();
+  });
+});

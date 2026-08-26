@@ -6,8 +6,17 @@
  * reach. US1 built the first of the room's three tracks — what changed — and
  * US2 adds the second: the thing itself, rendered in a same-origin frame at a
  * width and theme the operator picks, beside the four layout laws measured
- * inside it. The third (the notes) is US3's, and nothing is drawn here for it:
- * an element that can never fill is the one thing § Do's and Don'ts names first.
+ * inside it. US3 adds the third and last, the notes — and with it the room's
+ * output, a captured-TBD spec composed in the browser and handed over. The room
+ * still writes nothing: not a file, not a directory, not a spec (FR-014).
+ *
+ * **The live view crosses here and only here.** A note's coordinates are four
+ * parts the centre track holds — route, width, theme, the measured numbers —
+ * and one the notes track holds, the story. So the centre track reports what it
+ * is looking at, this component keeps it, and the notes track freezes a copy at
+ * capture. A notes track that measured the frame for itself would be a second
+ * answer to the question the centre track already answered, and the two would
+ * disagree (plan D2).
  *
  * **The served revision is a header on every render** (FR-009). The room
  * reviews the running service, so the one thing an operator cannot otherwise
@@ -34,6 +43,8 @@ import Masthead from "../Masthead";
 import { readReview } from "../api/reviewDocument";
 import type { ReviewAnswer } from "../api/reviewDocument";
 import { specDirFromReviewPath } from "../routes";
+import Notes from "./Notes";
+import type { ReviewView } from "./notes";
 import { RevisionMismatch, ServedHeader } from "./ServedRevision";
 import TheThingItself from "./TheThingItself";
 import WhatChanged from "./WhatChanged";
@@ -60,6 +71,11 @@ function Frame({ children }: FrameProps): JSX.Element {
 export default function Review(): JSX.Element {
   const specDir = specDirFromReviewPath(window.location.pathname);
   const [answer, setAnswer] = useState<ReviewAnswer | null>(null);
+  // The live view, as the centre track reports it. `setView` is React's own
+  // setter and therefore stable, which is what keeps the report from being its
+  // own trigger: a fresh callback each render would re-fire the effect that
+  // calls it, forever.
+  const [view, setView] = useState<ReviewView | null>(null);
 
   useEffect(() => {
     if (specDir === null) return;
@@ -183,6 +199,14 @@ export default function Review(): JSX.Element {
           <TheThingItself
             routes={answer.document.routes}
             specDir={answer.document.spec_dir}
+            onView={setView}
+          />
+          <Notes
+            specDir={answer.document.spec_dir}
+            epicName={answer.document.name}
+            stories={answer.document.stories}
+            served={answer.document.served}
+            view={view}
           />
         </div>
       </main>

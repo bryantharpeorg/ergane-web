@@ -269,12 +269,27 @@ describe("the Showfloor has no verb at all (constitution I, FR-017)", () => {
  * turns it red, which is the point: D-023's safety argument is that this room
  * spawns nothing and writes nothing, and an argument nothing enforces is a
  * sentence in a decision log.
+ *
+ * **One named change, 011 US3, and it is the Showfloor's change again.** US1
+ * wrote "no `<textarea>` anywhere in the room" while the room had no note to
+ * take; US3 gives it the one the operator asked for by name — *"something with
+ * a text box that allows feedback"* — so "there is no text box" stops being the
+ * guarantee, exactly as "there are no buttons" stopped being the Showfloor's
+ * when 005 US4 gave the node card a selection. What replaces it is stricter
+ * than a relaxation: **exactly one `<textarea>`, in exactly one file, and no
+ * `<form>`, `<input>` or `<select>` anywhere** — plus a new sweep below for the
+ * ways a browser can persist something without a request, because FR-014 says
+ * *no file, no directory, no spec* and a download or a `localStorage` write
+ * would be a room keeping what it promised only to show.
  */
 const reviewFiles = import.meta.glob("../../src/review/**/*.{ts,tsx}", {
   query: "?raw",
   import: "default",
   eager: true,
 }) as Record<string, string>;
+
+/** The one file in the room permitted a text box, and its one kind. */
+const NOTE_FIELD = "review/Notes.tsx";
 
 describe("the review room writes nothing (011 FR-014, constitution I)", () => {
   it("sweeps a room that is really there", () => {
@@ -285,10 +300,54 @@ describe("the review room writes nothing (011 FR-014, constitution I)", () => {
     ).toBe(true);
   });
 
-  it("renders no form and no input anywhere in the room", () => {
+  it("renders no form, no input and no select anywhere in the room", () => {
     for (const [path, source] of Object.entries(reviewFiles)) {
-      for (const control of ["<form", "<input", "<select", "<textarea", "onSubmit"]) {
+      for (const control of ["<form", "<input", "<select", "onSubmit"]) {
         expect(code(source), `${path} must not render ${control}`).not.toContain(control);
+      }
+    }
+  });
+
+  it("renders a text box in exactly one file, and it is the notes track's", () => {
+    // The one place an operator types in this room, and the operator asked for
+    // it by name. A second one would be a second thing to prove harmless, and a
+    // text box anywhere else in the room would have nothing to anchor to: a
+    // note's five coordinates are the notes track's to freeze (FR-012).
+    for (const [path, source] of Object.entries(reviewFiles)) {
+      if (path.endsWith(NOTE_FIELD)) continue;
+      expect(code(source), `${path} must not render a text box`).not.toContain("<textarea");
+    }
+
+    const notes = code(
+      reviewFiles[
+        Object.keys(reviewFiles).find((path) => path.endsWith(NOTE_FIELD)) as string
+      ],
+    );
+    expect(notes, `${NOTE_FIELD} is in the sweep`).toBeDefined();
+    expect(notes).toContain("<textarea");
+    expect([...notes.matchAll(/<textarea/g)]).toHaveLength(1);
+  });
+
+  it("keeps nothing: no file, no directory, no store (FR-014)", () => {
+    // FR-014 is absolute and it is not only about requests. A browser can put
+    // something on the operator's disk without issuing one — a download
+    // attribute over an object URL, a file-system picker — and it can persist
+    // between sessions without a disk at all. The room does none of it: the
+    // notes live in a component's state for as long as the tab is open, and the
+    // composed draft is *shown*, for the operator to save or not save.
+    for (const [path, raw] of Object.entries(reviewFiles)) {
+      const source = code(raw);
+      for (const pattern of [
+        "download",
+        "new Blob",
+        "createObjectURL",
+        "showSaveFilePicker",
+        "localStorage",
+        "sessionStorage",
+        "indexedDB",
+        "document.cookie",
+      ]) {
+        expect(source, `${path} must not contain ${pattern}`).not.toContain(pattern);
       }
     }
   });

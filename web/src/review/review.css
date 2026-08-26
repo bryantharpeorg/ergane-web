@@ -363,10 +363,26 @@
    not hand itself an exemption from one of them to make a column fit. */
 .rv-tracks {
   display: grid;
-  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr) minmax(0, 21rem);
   gap: 1.4rem;
   align-items: start;
   min-width: 0;
+}
+
+/* Three tracks side by side need room for all three, and the middle one is the
+   frame. Below 100rem the notes take the whole of a second row rather than
+   squeezing the render into a column narrower than the numbers beside it --
+   § The review room gives the frame the room's centre, and a notes column that
+   took a quarter of a 1280px room would be taking it from there. The tracks are
+   still left to right; there are just two rows of them. */
+@media (max-width: 100rem) {
+  .rv-tracks {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  }
+
+  .rv-notes {
+    grid-column: 1 / -1;
+  }
 }
 
 .rv-changed {
@@ -579,4 +595,204 @@
     flex: 1 1 auto;
     width: 100%;
   }
+}
+
+/* ── The notes ─────────────────────────────────────────────────────────────
+   § The review room: "A note renders its coordinates, not its prose first."
+   Story, route, width, theme and the figures at capture in mono, then the
+   observation -- a note whose coordinates are collapsed behind a disclosure is
+   a note nobody will reproduce. Nothing here is a disclosure. */
+.rv-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+/* The capture panel: a sunken well on the track, matching the Desk's reply
+   field, because it is the same act -- the operator saying something. */
+.rv-capture {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.8rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  min-width: 0;
+}
+
+/* What the note about to be taken would carry. The same line the recorded note
+   renders, so the operator reads the coordinates before committing them and
+   again afterwards, in one shape. */
+.rv-capture-where {
+  margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.rv-said {
+  width: 100%;
+  background: var(--sunken);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.5rem 0.7rem;
+  font-family: var(--sans);
+  font-size: var(--t-small);
+  color: var(--ink);
+  min-height: 4.5em;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.rv-said:focus {
+  border-color: var(--accent);
+}
+
+.rv-record,
+.rv-compose,
+.rv-copy {
+  align-self: flex-start;
+  font-family: var(--sans);
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+}
+
+/* The compose control is not the accent: it reveals a document, it does not
+   act. Reserving the filled face for the one control that changes this room's
+   state keeps "shown as a document, never as a saved thing" true to the eye as
+   well as in the copy. */
+.rv-compose,
+.rv-copy {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--rule);
+  font-weight: 500;
+}
+
+.rv-compose:hover,
+.rv-copy:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.rv-compose[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-w);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.rv-record:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rv-record:focus-visible,
+.rv-compose:focus-visible,
+.rv-copy:focus-visible,
+.rv-said:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rv-note-count {
+  margin: 0;
+  color: var(--faint);
+}
+
+.rv-note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.rv-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--accent);
+  border-radius: 2px;
+  min-width: 0;
+}
+
+.rv-note-where {
+  margin: 0;
+  font-size: var(--t-tag);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* The figures, frozen at capture. `--faint` and not `--muted`: they are
+   provenance for the sentence under them, not the sentence. */
+.rv-note-measured,
+.rv-note-laws {
+  margin: 0;
+  color: var(--faint);
+  overflow-wrap: anywhere;
+}
+
+.rv-note-said {
+  margin: 0.15rem 0 0;
+  font-size: var(--t-small);
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rv-draft-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.rv-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.rv-draft-hint {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+.rv-copied {
+  margin: 0;
+  color: var(--faint);
+}
+
+/* The document itself. A well, scrolling on its own in both axes -- the one
+   place in this room a long line may go past the edge, and it goes past the
+   edge of a scroller and not of the page (law (b)'s own exemption, taken
+   deliberately and named here rather than inherited by accident). */
+.rv-draft-body {
+  margin: 0;
+  max-height: 26rem;
+  overflow: auto;
+  padding: 0.7rem 0.8rem;
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  font-size: var(--t-micro);
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre;
+  min-width: 0;
 }
