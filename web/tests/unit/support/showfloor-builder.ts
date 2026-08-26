@@ -14,6 +14,13 @@
  * The stop keys, labels and statuses are `pane/showfloor.py`'s
  * `LADDER_STOPS` and `STOP_*` words verbatim, so a builder that drifted from
  * the document contract would be visible as a name that does not exist there.
+ *
+ * **`tests/smoke/showfloor.spec.ts` reads this file too** (013 US3). The gate
+ * run's timeline reaches no width the smoke suite sweeps unless the room is
+ * handed a document carrying one, and the point of a single builder is that the
+ * shape the browser is handed in a unit test and the shape it is handed in a
+ * real browser are the same shape. A second set of records written over there
+ * could drift from the assembler while both suites stayed green.
  */
 
 import type {
