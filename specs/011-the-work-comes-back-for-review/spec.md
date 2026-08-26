@@ -1,6 +1,36 @@
 ---
-state: ready
+state: landed
 depends_on_landed: [013-the-gates-show-their-work]
+# Attested landed 2026-08-26. US1 0a0dea35b54f (#77), US2 e43a418d29af (#90),
+# US3 4b14f376f3d1 (#91) - all three observed on dev by content, not by a
+# merged flag.
+#
+# THIS EPIC WAS LOST ONCE AND FINISHED CLEAN, AND THE DIFFERENCE BETWEEN THE TWO
+# RUNS IS THE WHOLE ARGUMENT FOR SPEC 016. On the night of 2026-08-25 US2 burned
+# its entire ladder and US3 was cascade-killed behind it, on eleven smoke
+# failures with nothing wrong with the diff: the review room read real git under
+# `PANE_DEMO=1`, the runner's checkout was shallow, every epic read "never
+# landed", and the room refused all of them. 016 was written from that loss and
+# landed at 13d22b12e3d2 (#88) at 4:06 PM CT. US2 and US3 were re-dispatched
+# after it. Both landed on ATTEMPT 1 WITH ZERO RECOVERY CYCLES.
+#
+# Re-dispatch 4:41 PM CT, complete 5:52 PM CT: 1h11m for the two remaining
+# serial stories. US2 agent build 17m, landed 5:07 PM (merged 2026-08-26T22:11:33Z).
+# US3 agent build 23m, landed 5:52 PM (merged 2026-08-26T22:52:06Z). Landing
+# overhead ~11m a story, of which US3 lost 10m to the forge simply not starting
+# its checks - PR opened 22:35:45Z, first check run created 22:45:13Z, against
+# 4m for US2 on the same repository forty minutes earlier.
+#
+# US1 landed on its own, overnight, at 12:59 AM CT (#77), before the loss.
+#
+# WHAT THE OPERATOR ASKED FOR IS WHAT LANDED. The standing instruction was that
+# 011's original intent be completed even if that meant writing the gap spec
+# first. It did mean that, 016 is that spec, and the review room is now three
+# stories whole: the room reads one document, refuses a half-landed epic in
+# words (409) and an unknown spec in words (404), names the revision it is
+# serving, and proves the review path spawns nothing - `tests/spawnwatch.py`
+# watches it at runtime rather than trusting an import scan.
+#
 # Flipped `ready` 2026-08-25, 11:36 PM CT. The hold is discharged: D-023 landed on
 # dev at 14020d9 (#74), so the Playwright substitution and `DESIGN.md` § The review
 # room are on the branch. READ THE PLAYWRIGHT NOTE BELOW BEFORE READING THE SPEC --
