@@ -44,6 +44,36 @@ const paneEnv = {
 export default defineConfig({
   testDir: "tests/smoke",
   reporter: "list",
+  /**
+   * One retry in CI only, and it is a stopgap with a named cause.
+   *
+   * Measured 2026-08-26: five `pull_request` smoke runs passed every gate while
+   * FOUR OF FIVE `merge_group` runs failed, always on the same assertion --
+   * the first `toBeVisible` of the `desk-degraded` project, timing out at 5s.
+   * It is not a diff defect. PR #76 failed and then passed on byte-identical
+   * content, and PR #77's branch runs the whole suite green locally with that
+   * assertion resolving in 1.9s.
+   *
+   * The cause is above this file. The `smoke` job alone sets `fetch-depth: 0`
+   * because, since 009, the rooms read landing facts off the landing branch; on
+   * a `merge_group` event the checkout is a temporary `gh-readonly-queue/…` ref,
+   * so that read is slow or unresolvable and the first paint lands after the
+   * assertion has already given up. The signature matches exactly -- the FIRST
+   * test in the project times out while a later test on the same page passes
+   * every time.
+   *
+   * A retry does not fix that; it hides it, and it is here because the flake
+   * was evicting every node's pull request from the merge queue, which clears
+   * the auto-merge request and is indistinguishable from a lapsed arm. The real
+   * fix -- not blocking first paint on a branch read, or waiting for a painted
+   * signal instead of counting to five -- is filed as
+   * `gates/merge-group-ref-slows-first-paint-past-assertion` and belongs in a
+   * spec. Delete this line when that lands.
+   *
+   * Local runs keep zero retries deliberately: a flake that only CI can see is
+   * a flake nobody will fix.
+   */
+  retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: "http://127.0.0.1:8787",
     headless: true,
