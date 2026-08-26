@@ -1,6 +1,10 @@
 ---
-state: draft
+state: ready
 depends_on_landed: []
+# Flipped `ready` 2026-08-26, 2:37 PM CT, by the operator, the moment the spec
+# itself landed at 7abd22f (#86). Nothing gates it: `depends_on_landed` is empty
+# and the recorded fixture it needs is committed alongside it.
+#
 # WRITTEN 2026-08-26 FROM A DEFECT THAT COST A NIGHT. Spec 011's US2 died with
 # its whole ladder overnight, and US3 was cascade-killed behind it, because
 # eleven smoke tests failed on a floor with nothing wrong with it. The trigger
