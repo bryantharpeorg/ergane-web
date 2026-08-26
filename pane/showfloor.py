@@ -517,9 +517,11 @@ class ShowfloorReaders:
         from `fixtures/`, so a room's answer never depends on the git history of
         the machine that ran it; a reader that has none reads the repository the
         corpus lives in, exactly as before, and that path is untouched (FR-004).
-        `specs/` is  The branch is the caller's
-        setting (`Settings.landing_branch`, D-011's `dev` by default); a caller
-        that passes none takes that same default rather than a name typed here.
+        (`specs/` is a directory *of* the target repository, so its parent is
+        the checkout whose landing branch carries the landings.)  The branch is
+        the caller's setting (`Settings.landing_branch`, D-011's `dev` by
+        default); a caller that passes none takes that same default rather than
+        a name typed here.
         Its reader outlives this binding on purpose (`pane.landing.reader_for`):
         the branch scan is expensive and pure, so it is memoised on the head for
         the process, and only the *head resolution* is this assembly's own.
