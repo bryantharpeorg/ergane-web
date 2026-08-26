@@ -56,7 +56,7 @@ if TYPE_CHECKING:
     from pane.readers import Reader
 
 from pane.landing import LANDING_READ
-from pane.readers import QueryRefused, TransportFailed
+from pane.readers import QueryRefused, TransportFailed, recorded_git_reads
 from pane.sweep import sweep
 
 # --- the ladder: DESIGN.md § The status ladder, as a table ----------------
@@ -512,9 +512,12 @@ class ShowfloorReaders:
         matched by `epic_id == spec_dir`; a spec with no epic gets `None`,
         undispatched rather than degraded.
 
-        The landing half reads the repository the corpus lives in — `specs/` is
-        a directory *of* the target repository, so its parent is the checkout
-        whose landing branch carries the landings.  The branch is the caller's
+        **The landing half is the one read a recording can stand in for** (016
+        FR-001, plan D1).  A reader that has one — the demo floor's — answers it
+        from `fixtures/`, so a room's answer never depends on the git history of
+        the machine that ran it; a reader that has none reads the repository the
+        corpus lives in, exactly as before, and that path is untouched (FR-004).
+        `specs/` is  The branch is the caller's
         setting (`Settings.landing_branch`, D-011's `dev` by default); a caller
         that passes none takes that same default rather than a name typed here.
         Its reader outlives this binding on purpose (`pane.landing.reader_for`):
@@ -528,11 +531,16 @@ class ShowfloorReaders:
         archive = archive_root if archive_root is not None else root.parent / "docs" / "dags"
         branch = landing_branch or DEFAULT_LANDING_BRANCH
         bound = _BoundReads(reader, archive)
+        recorded = recorded_git_reads(reader)
         return cls(
             workgraph=bound.workgraph,
             epic_status=bound.epic_status,
             reference_instant=getattr(reader, "reference_instant", None),
-            landing_facts=AssemblyLanding(reader_for(root.parent, branch)).facts,
+            landing_facts=(
+                recorded.landing_facts
+                if recorded is not None
+                else AssemblyLanding(reader_for(root.parent, branch)).facts
+            ),
             landing_branch=branch,
             node_history=bound.node_history,
         )

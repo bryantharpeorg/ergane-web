@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 import sqlite3
 
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from pane import attention_store
 from pane.attention_store import StoredItem
@@ -171,6 +171,46 @@ class Reader(Protocol):
     async def aclose(self) -> None:
         """Close any long-lived resources held by the reader."""
         ...
+
+
+@runtime_checkable
+class RecordedGitReads(Protocol):
+    """A reader that has recordings of the two reads git would otherwise answer.
+
+    Neither read is on the `Reader` protocol, and that is deliberate: both are
+    made *by the pane*, over the checkout it serves, rather than asked of the
+    factory — `landing_facts` walks the landing branch and `changed_files` reads
+    one commit's file list, both through `pane/landing.py` over ergane's own git
+    helper (constitution II).  A reader either has a recording of them or it does
+    not, so this is a capability a caller asks about and never a method a live
+    reader has to grow a stub for.
+
+    016 is why it exists.  Every other document a room reads in demo mode comes
+    from `fixtures/`; these two reached real git in **both** modes, so a room's
+    answer depended on the git history of the machine running it — and a shallow
+    checkout made the review room refuse every epic on a healthy floor.
+    """
+
+    def landing_facts(self, spec_dir: str) -> dict[str, Any]:
+        """Return `{story_key: LandingFact}` for one spec, from a recording."""
+        ...
+
+    def changed_files(self, commit: str) -> list[str]:
+        """Return the paths one landing commit changed, from a recording."""
+        ...
+
+
+def recorded_git_reads(reader: Any) -> RecordedGitReads | None:
+    """The reader's recordings of the two git reads, or None for a live one.
+
+    The binding demo mode swaps (016 plan D1).  `pane/landing.py` is left alone
+    on purpose: that module's whole job is to *be* the live read, and a read that
+    sometimes is not one would be lying about what it is.  What changes is which
+    callable the assembly is handed — `ShowfloorReaders.from_reader` and
+    `ReviewReaders.from_reader` ask this question, and a reader that answers
+    `None` gets the git-backed read it has always got, unchanged (FR-004).
+    """
+    return reader if isinstance(reader, RecordedGitReads) else None
 
 
 class LiveReader:
