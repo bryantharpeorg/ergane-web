@@ -18,6 +18,8 @@
  *   FR-003);
  * * a directory that is not there renders a note carrying the path it tried,
  *   and no trio at all (US1-S4, FR-004);
+ * * each exported checker's answer reaches the DOM under that checker's own
+ *   name, and no composite verdict reaches it at all (014 US2, FR-006/008/009);
  * * the room answers 401 without the token, like every other route (US1-S5,
  *   FR-005) — asserted through a request that deliberately carries none;
  * * and § Layout's four containment laws report zero violations over the whole
@@ -87,6 +89,48 @@ test("the trio reads together, stamped with what was read and when", async ({
   // no degraded note for it.
   if (!states.includes("absent")) return;
   await expect(page.locator("[data-draft-note]")).toHaveCount(0);
+});
+
+/** The three checkers whose answers the room carries, in seam order (US2). */
+const CHECKERS = ["derive_workgraph", "check_prompt_assembly", "check_slice_coverage"];
+
+test("each check answers in its own name, and nothing totals them", async ({
+  page,
+  request,
+}) => {
+  const specDir = await aSpecOnDisk(request);
+  await page.goto(`/draft/${encodeURIComponent(specDir)}`);
+  await page.waitForSelector("[data-draft-checks]");
+
+  // FR-006/FR-008: one row per checker, each under the name of the function
+  // that answered. Which answers they carry depends on the spec the rail
+  // happened to name, so nothing here asserts a verdict — only attribution.
+  const named = await page
+    .locator("[data-check]")
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-check")));
+  expect(named).toEqual(CHECKERS);
+
+  for (const checker of CHECKERS) {
+    const row = page.locator(`[data-check="${checker}"]`);
+    await expect(row.locator("[data-check-name]")).toHaveText(checker);
+    // The seam the name belongs to, so the attribution points somewhere real.
+    await expect(row.locator("[data-check-seam]")).toContainText("factory.workgraph.");
+    // DESIGN.md's three answers and no fourth.
+    const answer = await row
+      .locator("[data-check-answer]")
+      .getAttribute("data-check-answer");
+    expect(["passed", "refused", "not_run"]).toContain(answer);
+  }
+
+  // FR-009: exactly one answer per check, and the sentence that stands where a
+  // verdict would. A fourth chip anywhere would be the composite this room is
+  // forbidden to render.
+  await expect(page.locator("[data-check-answer]")).toHaveCount(CHECKERS.length);
+  await expect(page.locator("[data-verdict-unavailable]")).toContainText(
+    "ergane spec validate",
+  );
+  await expect(page.locator("[data-verdict]")).toHaveCount(0);
+  await expect(page.locator("[data-checks-summary]")).toHaveCount(0);
 });
 
 test("a directory that is not there degrades honestly and draws no trio", async ({

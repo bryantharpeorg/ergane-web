@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import type { DraftDocument } from "../api/draftDocument";
 import Masthead from "../Masthead";
+import Checks from "./Checks";
 import DocumentColumn from "./DocumentColumn";
 import DraftNote from "./DraftNote";
 import ReadStamp from "./ReadStamp";
@@ -26,8 +27,12 @@ import { specDirFromDraftPath } from "../routes";
  * what the backend said about the read. It does not parse a `## Work Graph` out
  * of `spec.md` and does not decide whether the spec is valid: `derive_workgraph`
  * is the only thing that knows what a Work Graph means, and a second parser in
- * this repository is D-005 by construction (plan D1). US2 and US3 add the
- * checks and the stage; this story adds the page they land on.
+ * this repository is D-005 by construction (plan D1).
+ *
+ * **And it totals nothing.** US2 adds `Checks`, which is a list of what each
+ * exported checker said under that checker's own name, and the one thing this
+ * room never renders is a composite verdict over them (FR-009). US3 adds the
+ * stage.
  */
 function Frame({ children }: { children: ReactNode }): JSX.Element {
   return (
@@ -58,8 +63,12 @@ export default function Draft(): JSX.Element {
         const initial = (await response.json()) as DraftDocument;
         // A body that is not a draft document is not a trio of one: it is a
         // read that answered something else, and the room says it could not
-        // read rather than rendering whatever arrived.
-        if (!cancelled && Array.isArray(initial?.documents)) setDoc(initial);
+        // read rather than rendering whatever arrived. Both lists are named,
+        // because a document with no `checks` would render a Checks section
+        // with nothing in it — an empty list is "no checker said anything",
+        // which is a claim, and this would be a body that made none.
+        if (!cancelled && Array.isArray(initial?.documents) && Array.isArray(initial?.checks))
+          setDoc(initial);
         else if (!cancelled) setErrorStatus(0);
       })
       .catch(() => {
@@ -124,6 +133,10 @@ export default function Draft(): JSX.Element {
         {doc.degraded.map((note, index) => (
           <DraftNote key={`${note.read}-${index}`} note={note} />
         ))}
+        {/* Above the trio: the checks are about the spec as a whole, and the
+            answer to "what will run" is what the operator opened the room for
+            (014's Context). */}
+        <Checks checks={doc.checks} verdictUnavailable={doc.verdict_unavailable} />
         {/* FR-004: no trio at all when the directory could not be read. Three
             empty columns is what a sketch looks like, and this is not a sketch
             — it is a spec that is not there. */}
