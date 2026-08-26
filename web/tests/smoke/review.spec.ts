@@ -58,8 +58,22 @@ interface Reviewable {
 async function reviewable(page: Page): Promise<Reviewable> {
   const showfloor = await page.request.get("/api/showfloor");
   expect(showfloor.status(), "the floor answers with the token").toBe(200);
-  const rail = ((await showfloor.json()).rail ?? []) as Array<{ spec_dir: string }>;
+  const rail = ((await showfloor.json()).rail ?? []) as Array<{
+    spec_dir: string;
+    stories_landed?: number;
+    stories_total?: number;
+    notes?: unknown[];
+  }>;
   expect(rail.length, "this floor has specs on it").toBeGreaterThan(0);
+
+  // The Showfloor's own count of the same landings, for the refusal below.
+  // It rides the same `landed_facts` read the review room does but through a
+  // different call path, so the two disagreeing localises the fault: both zero
+  // means the shared git read found nothing, and only the review room failing
+  // means the fault is its own.
+  const showfloorSays = rail
+    .map((e) => `${e.spec_dir}=${e.stories_landed ?? "?"}/${e.stories_total ?? "?"}`)
+    .join(" ");
 
   // What each spec answered, kept so the refusal below can show its work.
   //
@@ -99,7 +113,8 @@ async function reviewable(page: Page): Promise<Reviewable> {
 
   throw new Error(
     `no epic on this floor is fully landed and reaches a framed room. ` +
-      `Walked ${rail.length} spec(s): ${seen.join("; ")}`,
+      `Walked ${rail.length} spec(s): ${seen.join("; ")}. ` +
+      `The Showfloor, reading the same landings by another path, says: ${showfloorSays}`,
   );
 }
 
