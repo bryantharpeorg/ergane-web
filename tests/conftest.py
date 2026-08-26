@@ -17,12 +17,24 @@ importing it with no `PANE_TOKEN` set raises the startup refusal T054 added.  Th
 `credentials` fixture below is the seam tests read the values through; the
 module-level call is only what makes them early enough — conftest is imported
 before any test module, so the whole suite inherits them.
+
+**And the same file installs the hermetic observer** (009 US3, FR-009).  For the
+same reason: conftest is imported before any test module, so installing
+`tests/hermetic.py`'s audit hook here is what puts the *whole* suite under it,
+and the `reads_no_host_state` fixture below is what makes every test assert the
+property rather than one test asserting it for everybody.
 """
 
 import os
 import secrets
 import tempfile
 from pathlib import Path
+
+import hermetic
+
+#: Installed above the `pane` imports for the same reason the credentials are
+#: minted above them: an audit hook sees only what happens after it is added.
+hermetic.install()
 
 
 def _mint_into_environment() -> dict[str, str]:
@@ -70,6 +82,24 @@ from pane.config import Settings  # noqa: E402
 
 #: Unset again the moment the import is done.  See `_scratch_store_for_the_import`.
 del os.environ["PANE_ATTENTION_DB"]
+
+
+@pytest.fixture(autouse=True)
+def reads_no_host_state(request):
+    """Fail any test that touches a path outside the run (009 FR-008/FR-009).
+
+    Autouse and unconditional, so the claim "the suite reads no host state" is
+    made by every test in it and cannot rot back in one file at a time.  What
+    counts as inside the run — the repository, the scratch tree the run built
+    for itself, the interpreter's installation, the machine's read-only system
+    directories — is `tests/hermetic.py`'s to define, and
+    `tests/test_reads_no_host_state.py` is what proves this catches a read that
+    is outside.
+    """
+    with hermetic.watching() as observed:
+        yield
+    if observed:
+        pytest.fail(hermetic.report(observed, request.node.nodeid), pytrace=False)
 
 
 def bearer(token: str) -> dict[str, str]:
