@@ -1,0 +1,939 @@
+/**
+ * One epic, one row — content, ladder reuse, and the terminal case
+ * (006 US2-S1, US2-S2, US2-S4; FR-004, FR-005, FR-007).
+ *
+ * **Succeeds `tests/unit/NodeChevron.test.tsx`**, deleted in this story's diff
+ * along with its subject, and the milestone-bar world with it. That file
+ * asserted four things about the first world's per-story glyph, and all four
+ * are re-asserted here against the cell that replaced it — the last describe
+ * block names them one by one. What it cannot re-assert is the glyph's *eleven
+ * distinct fills*: D-015 retired the fills for § Chips' words, so eleven states
+ * now reach nine words, and what is proven instead is that all eleven reach the
+ * row, each keeping its own `data-state` and each carrying a word (§ Named
+ * Rules: state is never colour alone).
+ *
+ * **The floor and the document, paired two ways.** The recorded Fixture floor
+ * was captured against another repository (`fixtures/floor/floor-live.json`
+ * carries `ergane-test`'s specs root), so under `PANE_DEMO=1` no rail entry
+ * answers for its epics and the honest render is the one with no ladders. Both
+ * pairings are asserted here: the joined one, which is what an operator's own
+ * floor produces and what FR-004 describes, and the unjoined one, which is what
+ * the demo shows and where FR-005's "derives nothing" has teeth — a row that
+ * quietly made a ladder up would be indistinguishable from a joined row.
+ *
+ * Every node state, `awaiting_operator` flag and `terminal_reason` below is
+ * read out of a recorded `epic_status` answer under `fixtures/`; nothing about
+ * the factory is invented (constitution V). The *ladders* are built with
+ * `support/showfloor-builder.ts`, which is this repository's own join of those
+ * recordings and is where 005 and 008 already build them.
+ *
+ * **012 US2 adds one describe block at the foot and edits nothing above it.**
+ * The row draws the dependency each story's graph declares, which it could not
+ * do before US1 gave the Desk a graph to read. The corpus it draws from is the
+ * recorded scanner graph already imported here — the one compiled graph under
+ * `fixtures/workgraphs/` that carries *both* edge kinds and two genuinely
+ * edgeless stories, so US2-S1 and US2-S2 are asserted over a recording rather
+ * than over a topology written to make them pass (constitution V).
+ */
+
+import { describe, expect, it } from "vitest";
+import { createRoot } from "react-dom/client";
+import { act } from "react";
+import EpicRow, { entryForEpic, storyForCard, terminalReasons } from "../../src/desk/EpicRow";
+import type { EpicEntry, NodeCard, NodeState } from "../../src/api/floorDocument";
+import type { RailEntry, ShowfloorDocument } from "../../src/api/showfloorDocument";
+import { entryOf, ladderOf, storyOf } from "./support/showfloor-builder";
+
+import polledRaw from "../../../fixtures/epic-status/002-expense-notes/002-expense-notes-013-us1=MERGED-MERGED_us2=MERGED-MERGED.json?raw";
+import landingRaw from "../../../fixtures/epic-status/landing/final.json?raw";
+import pagedRaw from "../../../fixtures/epic-status/paged/paged.json?raw";
+import questionRaw from "../../../fixtures/epic-status/question/waiting-operator.json?raw";
+import skewRaw from "../../../fixtures/epic-status/skew/status-names-us3.json?raw";
+import killedRaw from "../../../fixtures/epic-status/killed/killed.json?raw";
+import scannerGraphRaw from "../../../fixtures/workgraphs/077-a-scanner-the-operator-chooses-runs-in-the-loop.json?raw";
+
+/* ── the recorded halves ───────────────────────────────────────────────── */
+
+interface LiveNode {
+  state: string;
+  awaiting_operator?: boolean;
+  terminal_reason?: string | null;
+}
+
+/** The `nodes` map of one recorded `epic_status` answer. */
+function recorded(raw: string): Record<string, LiveNode> {
+  return (JSON.parse(raw) as { nodes?: Record<string, LiveNode> }).nodes ?? {};
+}
+
+/** One node card of the floor document, as `pane/floor_document.py` joins it. */
+function cardOf(id: string, live: LiveNode | null, storyKey: string | null): NodeCard {
+  return {
+    id,
+    declared: storyKey !== null,
+    story_key: storyKey,
+    persona: "implementer",
+    spec_ref: null,
+    depends_on: null,
+    depends_on_merged: null,
+    state: (live?.state ?? "unknown") as NodeState,
+    attempt: 1,
+    awaiting_operator: live?.awaiting_operator ?? false,
+    landing_state: null,
+    pr_number: null,
+    verified: false,
+  };
+}
+
+function epicOf(
+  epicId: string,
+  scene: string,
+  epicState: string,
+  cards: NodeCard[],
+): EpicEntry {
+  return {
+    epic_id: epicId,
+    workflow_id: `epic-${epicId}`,
+    scene,
+    epic_state: epicState,
+    nodes: cards,
+    status_seam: "EpicWorkflow.epic_status",
+    workgraph_seam: "workgraph",
+  };
+}
+
+/** Every node id the recorded scanner workgraph declares, in its own order. */
+const SCANNER_STORIES = (
+  JSON.parse(scannerGraphRaw) as { nodes: { id: string; story_key?: string | null }[] }
+).nodes.map((node) => ({ id: node.id, key: node.story_key ?? node.id.toUpperCase() }));
+
+/**
+ * The six epics the Fixture floor serves, in the order it serves them
+ * (`pane/fixture_floor.py`'s `SCENES`): the polled epic whose two stories
+ * merged, the landing epic whose three did, the paged one, the one waiting on
+ * an answer, the scanner whose status read was refused so every story's state
+ * is `unknown`, and the skew scene where the answer names a story the graph
+ * does not.
+ */
+const FIXTURE_EPICS: EpicEntry[] = [
+  epicOf("002-expense-notes", "polled", "COMPLETED", [
+    cardOf("us1", recorded(polledRaw).us1, "US1"),
+    cardOf("us2", recorded(polledRaw).us2, "US2"),
+  ]),
+  epicOf("fx-landing-f0a0d6", "landing", "COMPLETED", [
+    cardOf("us1", recorded(landingRaw).us1, null),
+    cardOf("us2", recorded(landingRaw).us2, null),
+    cardOf("us3", recorded(landingRaw).us3, null),
+  ]),
+  epicOf("fx-paged-5e2e8a", "paged-while-verifying", "RUNNING", [
+    cardOf("us1", recorded(pagedRaw).us1, null),
+  ]),
+  epicOf("fx-question-e8c371", "question", "PAUSED", [
+    cardOf("us1", recorded(questionRaw).us1, null),
+  ]),
+  epicOf(
+    "077-a-scanner-the-operator-chooses-runs-in-the-loop",
+    "refusal",
+    "unknown",
+    SCANNER_STORIES.map((story) => cardOf(story.id, null, story.key)),
+  ),
+  epicOf("fx-landing-f0a0d6", "skew", "COMPLETED", [
+    cardOf("us1", recorded(skewRaw).us1, "US1"),
+    cardOf("us2", recorded(skewRaw).us2, "US2"),
+    cardOf("us3", recorded(skewRaw).us3, null),
+  ]),
+];
+
+/* ── the document that answers for them ────────────────────────────────── */
+
+/** A landed story: all six stops done, `merged` in the chip. */
+const merged = (id: string) =>
+  storyOf(id, `story ${id}`, ladderOf({ state: "MERGED", stopKey: "merged", chip: "merged", done: true }));
+
+/**
+ * One rail entry per epic id, as `assemble_showfloor` builds it for a corpus
+ * and a floor of the same repository — the pairing FR-004 describes and the
+ * one an operator's own Desk has.
+ */
+const RAIL: RailEntry[] = [
+  entryOf({
+    spec_dir: "002-expense-notes",
+    epic_id: "002-expense-notes",
+    state: "ready",
+    chip: "landed",
+    stories_landed: 2,
+    stories_total: 2,
+    stories: [merged("us1"), merged("us2")],
+  }),
+  entryOf({
+    spec_dir: "fx-landing-f0a0d6",
+    epic_id: "fx-landing-f0a0d6",
+    state: "ready",
+    chip: "landed",
+    stories_landed: 3,
+    stories_total: 3,
+    stories: [merged("us1"), merged("us2"), merged("us3")],
+  }),
+  entryOf({
+    spec_dir: "fx-paged-5e2e8a",
+    epic_id: "fx-paged-5e2e8a",
+    state: "ready",
+    chip: "waiting on you",
+    stories_landed: 0,
+    stories_total: 1,
+    stories: [
+      storyOf(
+        "us1",
+        "the paged story",
+        ladderOf({
+          state: "VERIFYING",
+          stopKey: "verifying",
+          chip: "waiting on you",
+          awaiting: true,
+        }),
+      ),
+    ],
+  }),
+  entryOf({
+    spec_dir: "fx-question-e8c371",
+    epic_id: "fx-question-e8c371",
+    state: "ready",
+    chip: "waiting on you",
+    stories_landed: 0,
+    stories_total: 1,
+    stories: [
+      storyOf(
+        "us1",
+        "the story that asked",
+        ladderOf({
+          state: "WAITING_OPERATOR",
+          stopKey: "building",
+          chip: "waiting on you",
+          awaiting: true,
+        }),
+      ),
+    ],
+  }),
+  entryOf({
+    spec_dir: "077-a-scanner-the-operator-chooses-runs-in-the-loop",
+    epic_id: "077-a-scanner-the-operator-chooses-runs-in-the-loop",
+    state: "ready",
+    // The status read was refused, so the document has no state to report and
+    // says so in the chip's absence rather than in a word of its own.
+    chip: null,
+    stories_landed: 0,
+    stories_total: SCANNER_STORIES.length,
+    stories: SCANNER_STORIES.map((story) =>
+      storyOf(story.id, `story ${story.id}`, ladderOf({ state: null, stopKey: null, chip: null })),
+    ),
+  }),
+];
+
+const showfloor: ShowfloorDocument = {
+  reference_instant: "2026-08-22T17:20:00",
+  specs_root: "specs",
+  rail: RAIL,
+  degraded: [],
+};
+
+/** What the demo really serves: a document whose rail answers for no epic. */
+const unjoined: ShowfloorDocument = {
+  ...showfloor,
+  rail: RAIL.map((entry) => entryOf({ ...entry, epic_id: null })),
+};
+
+/* ── rendering ─────────────────────────────────────────────────────────── */
+
+const containers: HTMLElement[] = [];
+
+function render(epic: EpicEntry, document_: ShowfloorDocument | null = showfloor): HTMLElement {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  containers.push(container);
+  act(() => {
+    createRoot(container).render(<EpicRow epic={epic} showfloor={document_} />);
+  });
+  return container;
+}
+
+const stories = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll("[data-story]"));
+const stops = (element: Element) =>
+  Array.from(element.querySelectorAll("[data-ladder] i")).map(
+    (bar) => bar.getAttribute("data-stop-status") ?? "",
+  );
+const chipOf = (element: Element) =>
+  (element.querySelector("[data-chip]")?.textContent ?? "").trim();
+
+/* ── the row (FR-004) ──────────────────────────────────────────────────── */
+
+describe("the fixture floor's six epics (US2-S1, FR-004)", () => {
+  it("renders each epic as one row carrying id, chip, a ladder per story, and spend", () => {
+    for (const epic of FIXTURE_EPICS) {
+      const container = render(epic);
+      const rows = container.querySelectorAll("article.epic");
+      expect(rows.length, `${epic.scene}: one row`).toBe(1);
+
+      const row = rows[0];
+      expect(row.getAttribute("data-epic-id")).toBe(epic.epic_id);
+      // § Typography: "mono for identity and data … spec ids".
+      const name = row.querySelector("[data-epic-name]")!;
+      expect(name.textContent).toBe(epic.epic_id);
+      expect(name.className).toContain("num");
+
+      // The epic's chip, from the document, with the story count § Epic rail
+      // pairs it with.
+      const chip = row.querySelector("[data-epic-chip]")!;
+      expect(chip.textContent, `${epic.scene}: the epic's chip`).not.toBe("");
+
+      // One mini-ladder per story, and exactly six stops in each.
+      expect(stories(container).length, `${epic.scene}: one cell per story`).toBe(
+        epic.nodes.length,
+      );
+      for (const cell of stories(container)) {
+        expect(stops(cell).length, `${epic.scene}: six stops`).toBe(6);
+      }
+
+      // Spend to date, under the Unknown Rule: the word, in italic muted, never
+      // a `0` and never an empty cell.
+      const spend = row.querySelector("[data-epic-spend]")!;
+      expect(spend.querySelector(".unknown")?.textContent).toBe("unknown");
+      expect(spend.textContent).toContain("spend to date");
+    }
+  });
+
+  it("labels every mini-ladder by its story_key, or by the node's own id where the factory named none", () => {
+    const polled = render(FIXTURE_EPICS[0]);
+    expect(stories(polled).map((cell) => cell.getAttribute("data-story-key"))).toEqual([
+      "US1",
+      "US2",
+    ]);
+    expect(
+      stories(polled).map((cell) => cell.querySelector("[data-story-label]")?.textContent),
+    ).toEqual(["US1", "US2"]);
+
+    // The landing scene's answer names three stories no workgraph declares, so
+    // neither document has a key for them: the cell wears the node's own id
+    // rather than a blank, and says the key is absent in `data-story-key`.
+    const landing = render(FIXTURE_EPICS[1], unjoined);
+    expect(stories(landing).map((cell) => cell.hasAttribute("data-story-key"))).toEqual([
+      false,
+      false,
+      false,
+    ]);
+    expect(
+      stories(landing).map((cell) => cell.querySelector("[data-story-label]")?.textContent),
+    ).toEqual(["us1", "us2", "us3"]);
+  });
+
+  it("takes the key from the document where the floor's answer carried none", () => {
+    // The landing scene again, this time with a document that answers for it:
+    // the graph declares `US1`–`US3` and the pane labels the cells with the
+    // keys rather than with the node ids the answer happened to use.
+    const answered: ShowfloorDocument = {
+      ...showfloor,
+      rail: [
+        entryOf({
+          spec_dir: "fx-landing-f0a0d6",
+          epic_id: "fx-landing-f0a0d6",
+          chip: "landed",
+          stories_landed: 3,
+          stories_total: 3,
+          stories: [merged("us1"), merged("us2"), merged("us3")],
+        }),
+      ],
+    };
+
+    const container = render(FIXTURE_EPICS[1], answered);
+    expect(
+      stories(container).map((cell) => cell.querySelector("[data-story-label]")?.textContent),
+    ).toEqual(["US1", "US2", "US3"]);
+    expect(stories(container).map((cell) => cell.getAttribute("data-story-key"))).toEqual([
+      "US1",
+      "US2",
+      "US3",
+    ]);
+  });
+
+  it("pairs the epic's chip with the document's own story count", () => {
+    expect(chipOf(render(FIXTURE_EPICS[0]).querySelector(".epic-id")!)).toBe("landed 2/2");
+    expect(chipOf(render(FIXTURE_EPICS[2]).querySelector(".epic-id")!)).toBe(
+      "waiting on you 0/1",
+    );
+    // A spec the document has no word for is `unknown` — never a word of the
+    // Desk's own choosing (the Unknown Rule).
+    expect(chipOf(render(FIXTURE_EPICS[4]).querySelector(".epic-id")!)).toBe("unknown 0/5");
+  });
+
+  it("carries no milestone bar, no dispatch diamond and no chevron glyph in the DOM", () => {
+    // FR-004's negative half, over every epic of the floor: the first world's
+    // three state pictures are gone from the markup, not merely restyled.
+    for (const epic of FIXTURE_EPICS) {
+      const container = render(epic);
+      for (const gone of [
+        ".bar",
+        ".track",
+        ".fill",
+        ".diamonds",
+        ".diamond",
+        ".ms",
+        ".token",
+        ".token-tag",
+        ".chev",
+        ".node-cell",
+      ]) {
+        expect(container.querySelectorAll(gone).length, `${epic.scene}: ${gone}`).toBe(0);
+      }
+      // And the milestone track's five captions with them.
+      for (const caption of ["dispatch", "PASSED", "PR_OPEN", "ENQUEUED", "MERGED"]) {
+        expect(container.textContent, `${epic.scene}: the ${caption} caption`).not.toContain(
+          caption,
+        );
+      }
+    }
+  });
+});
+
+/* ── the ladders are the document's (FR-005) ───────────────────────────── */
+
+describe("the ladders are the document's own (US2-S2, FR-005)", () => {
+  it("renders the document's stops even where they contradict a naive reading of state", () => {
+    // The floor says MERGED; the document says the story is building, and its
+    // ladder is one stop in. A Desk deriving its own picture from `state` would
+    // draw six done bars and a `merged` chip. The document wins, in both.
+    const floorSaysMerged = epicOf("d-1", "contradiction", "RUNNING", [
+      cardOf("us1", { state: "MERGED" }, "US1"),
+    ]);
+    const documentSaysBuilding: ShowfloorDocument = {
+      ...showfloor,
+      rail: [
+        entryOf({
+          spec_dir: "d-1",
+          epic_id: "d-1",
+          chip: "building",
+          stories_landed: 0,
+          stories_total: 1,
+          stories: [
+            storyOf(
+              "us1",
+              "still building",
+              ladderOf({ state: "RUNNING", stopKey: "building", chip: "building" }),
+            ),
+          ],
+        }),
+      ],
+    };
+
+    const container = render(floorSaysMerged, documentSaysBuilding);
+    expect(stops(container.querySelector("[data-story]")!)).toEqual([
+      "done",
+      "active",
+      "ahead",
+      "ahead",
+      "ahead",
+      "ahead",
+    ]);
+    expect(chipOf(container.querySelector("[data-story]")!)).toBe("building");
+    expect(
+      container.querySelector("[data-story] [data-chip]")?.getAttribute("data-chip-source"),
+    ).toBe("document");
+    // The floor's own word is still reported, verbatim, on the element — the
+    // row hides neither document.
+    expect(container.querySelector("[data-story]")?.getAttribute("data-state")).toBe("MERGED");
+  });
+
+  it("renders the document's stops the other way round too", () => {
+    // The mirror case, so the first cannot pass by drawing "building" always:
+    // the floor says RUNNING and the document says every stop is done.
+    const floorSaysRunning = epicOf("d-2", "contradiction", "RUNNING", [
+      cardOf("us1", { state: "RUNNING" }, "US1"),
+    ]);
+    const documentSaysDone: ShowfloorDocument = {
+      ...showfloor,
+      rail: [
+        entryOf({
+          spec_dir: "d-2",
+          epic_id: "d-2",
+          chip: "landed",
+          stories_landed: 1,
+          stories_total: 1,
+          stories: [merged("us1")],
+        }),
+      ],
+    };
+
+    const container = render(floorSaysRunning, documentSaysDone);
+    expect(stops(container.querySelector("[data-story]")!)).toEqual(Array(6).fill("done"));
+    expect(chipOf(container.querySelector("[data-story]")!)).toBe("merged");
+  });
+
+  it("draws no ladder at all for a story the document does not carry", () => {
+    // The demo's own pairing. Nothing is derived to fill the gap: the ladder's
+    // slot says `unknown` in the Unknown Rule's words, the cell says where the
+    // absence is (`data-ladder-source`), and the chip falls back to the state
+    // the floor itself reported rather than to silence.
+    const container = render(FIXTURE_EPICS[0], unjoined);
+    const cell = container.querySelector("[data-story]")!;
+
+    expect(container.querySelectorAll("[data-ladder]").length).toBe(0);
+    expect(cell.getAttribute("data-ladder-source")).toBe("absent");
+    expect(cell.querySelector("[data-chip]")?.getAttribute("data-chip-source")).toBe(
+      "floor-state",
+    );
+    // MERGED in the recorded answer, `merged` in § Chips' words — the floor's
+    // own state, said rather than swallowed, and no stop drawn for it.
+    expect(chipOf(cell)).toBe("merged");
+    expect(container.querySelector("article")?.getAttribute("data-ladders")).toBe("absent");
+
+    // Said once for the epic, not once per story: the document answers for the
+    // epic or it does not, and six copies of one word is how a real unknown
+    // gets missed.
+    const notes = container.querySelectorAll("[data-no-ladders]");
+    expect(notes.length).toBe(1);
+    expect(notes[0].textContent).toBe(
+      "no ladder: the showfloor document carries no entry for this epic",
+    );
+    expect(container.querySelectorAll("[data-ladder-unread]").length).toBe(0);
+
+    // And the epic's own chip has no word either: the document that would have
+    // given it one does not answer for this epic.
+    expect(chipOf(container.querySelector(".epic-id")!)).toBe("unknown");
+  });
+
+  it("marks the one story a present document has no ladder for", () => {
+    // The skew case: the answer names `us3`, the graph declares two stories, so
+    // the document carries ladders for `us1` and `us2` and none for the third.
+    // The gap is that story's, so the marker is that story's — and the row's
+    // "no entry for this epic" line is absent, because there is one.
+    const skewed: ShowfloorDocument = {
+      ...showfloor,
+      rail: [
+        entryOf({
+          spec_dir: "fx-landing-f0a0d6",
+          epic_id: "fx-landing-f0a0d6",
+          chip: "landed",
+          stories_landed: 2,
+          stories_total: 2,
+          stories: [merged("us1"), merged("us2")],
+        }),
+      ],
+    };
+
+    const container = render(FIXTURE_EPICS[5], skewed);
+    const cells = stories(container);
+    expect(cells.map((cell) => cell.getAttribute("data-ladder-source"))).toEqual([
+      "document",
+      "document",
+      "none",
+    ]);
+    expect(cells[2].querySelector("[data-ladder-unread]")?.textContent).toBe("unknown");
+    expect(cells[2].getAttribute("title")).toBe(
+      "the showfloor document carries no ladder for this story",
+    );
+    expect(container.querySelectorAll("[data-no-ladders]").length).toBe(0);
+  });
+
+  it("keeps the awaited story's own words when the document carries no ladder", () => {
+    // The paged scene: VERIFYING and awaited, on a row joined to no graph.
+    //
+    // **012 US2 changes the word this asserts and nothing else about it**
+    // (FR-007, and the naming discipline 006 FR-003 set). It read `undeclared`,
+    // which was 001's word for a card the graph does not declare — but this row
+    // read no graph at all, so that word was the pane's answer to "no graph",
+    // which is the rendering FR-007 forbids and plan D4 names. What the pane
+    // was actually told here is `awaiting_operator`, and that is now the word.
+    // The subject has not moved an inch: the same paged, VERIFYING story of the
+    // same scene, still carrying the fact the chip alone cannot — the marker
+    // beside it — and still reading a word rather than a colour.
+    const container = render(FIXTURE_EPICS[2], unjoined);
+    const cell = container.querySelector("[data-story]")!;
+    expect(chipOf(cell)).toBe("waiting on you");
+    expect(cell.hasAttribute("data-paged")).toBe(true);
+    expect(cell.getAttribute("data-state")).toBe("VERIFYING");
+    // And the graph the row does not have is named where it belongs: once, on
+    // the row, in words that are not `UNDECLARED`.
+    expect(container.querySelector("article.epic")!.getAttribute("data-graph")).toBe("unread");
+  });
+
+  it("matches a floor node to the document's story by id and by folded story key", () => {
+    const entry = entryForEpic(showfloor, "002-expense-notes");
+    expect(entry?.spec_dir).toBe("002-expense-notes");
+    // The two seams spell the same story two ways: `us1` on the floor, `US1` in
+    // the compiled graph.
+    expect(storyForCard(entry, cardOf("us1", null, "US1"))?.id).toBe("us1");
+    expect(storyForCard(entry, cardOf("us2", null, null))?.id).toBe("us2");
+    expect(storyForCard(entry, cardOf("us9", null, "US9"))).toBeNull();
+    // And an epic no entry answers for gets null, never a near match.
+    expect(entryForEpic(showfloor, "fx-nothing")).toBeNull();
+    expect(entryForEpic(null, "002-expense-notes")).toBeNull();
+  });
+});
+
+/* ── the terminal case (FR-007) ────────────────────────────────────────── */
+
+describe("a story whose ladder froze (US2-S4, FR-007)", () => {
+  /** The recorded killed answer: one story, KILLED on its sixth attempt. */
+  const killedNode = recorded(killedRaw).us1;
+  const killedEpic = epicOf("001-the-desk-sees-the-floor", "killed", "KILLED", [
+    cardOf("us1", killedNode, "US1"),
+  ]);
+
+  function documentWith(reason: string | null): ShowfloorDocument {
+    return {
+      ...showfloor,
+      rail: [
+        entryOf({
+          spec_dir: "001-the-desk-sees-the-floor",
+          epic_id: "001-the-desk-sees-the-floor",
+          chip: "killed",
+          stories_landed: 0,
+          stories_total: 1,
+          stories: [
+            storyOf(
+              "us1",
+              "The Desk sees the floor",
+              ladderOf({
+                state: "KILLED",
+                stopKey: null,
+                chip: "killed",
+                frozen: true,
+                terminalReason: reason,
+              }),
+            ),
+          ],
+        }),
+      ],
+    };
+  }
+
+  it("shows the frozen ladder, the killed chip, and the reason on the row's title", () => {
+    const reason = "operator killed the epic";
+    const container = render(killedEpic, documentWith(reason));
+    const cell = container.querySelector("[data-story]")!;
+
+    // Frozen is neither done nor ahead: all six stops carry the document's own
+    // `frozen`, and the ladder says so on the element as well as in its fills.
+    expect(stops(cell)).toEqual(Array(6).fill("frozen"));
+    expect(cell.querySelector("[data-ladder]")?.getAttribute("data-ladder-frozen")).toBe("true");
+
+    // Never colour alone: the word is on the chip, in § Chips' alarm row.
+    expect(chipOf(cell)).toBe("killed");
+    expect(cell.querySelector("[data-chip]")?.getAttribute("data-chip-tone")).toBe("dead");
+
+    // And the reason is reachable from the row itself, verbatim.
+    const row = container.querySelector("article.epic")!;
+    expect(row.getAttribute("title")).toBe(`US1: ${reason}`);
+    expect(cell.getAttribute("title")).toBe(`US1: ${reason}`);
+    expect(row.getAttribute("data-epic-chip")).toBeNull();
+    expect(chipOf(container.querySelector(".epic-id")!)).toBe("killed 0/1");
+  });
+
+  it("says unknown where the factory froze a story and gave no reason", () => {
+    // The recorded `killed.json` is exactly that case: KILLED, six attempts,
+    // `terminal_reason: null`. The pane knows the story is dead and does not
+    // know why, and the Unknown Rule is what it says so with.
+    expect(killedNode.terminal_reason ?? null).toBeNull();
+
+    const container = render(killedEpic, documentWith(null));
+    expect(container.querySelector("article.epic")?.getAttribute("title")).toBe("US1: unknown");
+  });
+
+  it("collects every frozen story of the epic, and nothing from a live one", () => {
+    const entry = entryOf({
+      spec_dir: "e",
+      epic_id: "e",
+      stories: [
+        storyOf("us1", "one", ladderOf({ state: "FAILED", stopKey: null, chip: "failed", frozen: true, terminalReason: "gates failed three times" })),
+        storyOf("us2", "two", ladderOf({ state: "RUNNING", stopKey: "building", chip: "building" })),
+        storyOf("us3", "three", ladderOf({ state: "KILLED", stopKey: null, chip: "killed", frozen: true, terminalReason: null })),
+      ],
+    });
+
+    expect(terminalReasons(entry)).toBe("US1: gates failed three times · US3: unknown");
+    expect(terminalReasons(entryOf({ spec_dir: "e", stories: [merged("us1")] }))).toBeNull();
+    expect(terminalReasons(null)).toBeNull();
+  });
+});
+
+/* ── succeeding NodeChevron.test.tsx ───────────────────────────────────── */
+
+describe("the story cell, succeeding the chevron it replaced", () => {
+  const ELEVEN: NodeState[] = [
+    "PENDING",
+    "KEY_ISSUED",
+    "RUNNING",
+    "VERIFYING",
+    "PASSED",
+    "PR_OPEN",
+    "ENQUEUED",
+    "MERGED",
+    "FAILED",
+    "KILLED",
+    "WAITING_OPERATOR",
+  ];
+
+  const withCard = (card: NodeCard) =>
+    render(epicOf("fx-one", "one", "RUNNING", [card]), unjoined);
+
+  it("carries all eleven states, each keeping its own word and its own state", () => {
+    // Succeeds "renders all eleven states distinctly". The eleven no longer wear
+    // eleven *pictures* — D-015 retired the glyph fills — so what is asserted is
+    // that all eleven arrive, each on an element that reports the factory's own
+    // spelling, and each carrying a word rather than a colour (§ Named Rules).
+    const seen = new Set<string>();
+    for (const state of ELEVEN) {
+      const cell = withCard(cardOf("us1", { state }, "US1")).querySelector("[data-story]")!;
+      expect(cell.getAttribute("data-state"), state).toBe(state);
+      const word = chipOf(cell);
+      expect(word, `${state} carries a word`).not.toBe("");
+      seen.add(`${state} | ${word}`);
+    }
+    expect(seen.size).toBe(11);
+  });
+
+  it("marks a paged VERIFYING story as paged, never as WAITING_OPERATOR", () => {
+    // Succeeds "marks paged VERIFYING node as paged, never WAITING_OPERATOR".
+    const cell = withCard(
+      cardOf("us1", { state: "VERIFYING", awaiting_operator: true }, "US1"),
+    ).querySelector("[data-story]")!;
+
+    expect(cell.getAttribute("data-state")).toBe("VERIFYING");
+    expect(cell.hasAttribute("data-paged")).toBe(true);
+    expect(cell.textContent).toContain("paged");
+  });
+
+  it("renders declared=false as undeclared, on a row that read a graph", () => {
+    // Succeeds "renders declared=false as undeclared". `undeclared` is not one
+    // of § Chips' six words, so it falls to the Unknown Rule's italic muted.
+    //
+    // **012 US2 adds the row's precondition and keeps the subject** (FR-007,
+    // named here the way 006 FR-003 asks). `undeclared` is a claim about a
+    // graph — this story is not in it — and only a row that read one can make
+    // it. The card under test is unchanged; what the row around it now has is
+    // a second, declared story, which is what gives the row a graph to be
+    // missing from. The case where it has none is the next test, and the two
+    // together are the whole of FR-007.
+    const container = render(
+      epicOf("fx-one", "one", "RUNNING", [
+        { ...cardOf("us2", { state: "MERGED" }, "US2"), depends_on: [], depends_on_merged: [] },
+        cardOf("us1", { state: "VERIFYING" }, null),
+      ]),
+      unjoined,
+    );
+    const cell = stories(container)[1];
+
+    expect(cell.hasAttribute("data-undeclared")).toBe(true);
+    expect(chipOf(cell)).toBe("undeclared");
+    expect(cell.querySelector("[data-chip]")?.getAttribute("data-chip-tone")).toBe("unknown");
+  });
+
+  it("never renders undeclared on a row that read no graph (012 FR-007)", () => {
+    // The same card, on a row with nothing declared: the pane cannot know the
+    // story is missing from a graph it never read, so it says what it *was*
+    // told — the floor's own state — and names the missing graph once, on the
+    // row. This is plan D4's line: `UNDECLARED` never becomes the rendering
+    // for "no graph".
+    const container = withCard(cardOf("us1", { state: "VERIFYING" }, null));
+    const cell = container.querySelector("[data-story]")!;
+
+    expect(cell.hasAttribute("data-undeclared")).toBe(true);
+    expect(chipOf(cell)).toBe("verifying");
+    expect(container.textContent).not.toContain("undeclared");
+    expect(container.querySelector("[data-no-graph]")).not.toBeNull();
+  });
+
+  it("keeps the paged marker when the story is also undeclared", () => {
+    // Succeeds "keeps paged marker when also undeclared".
+    const cell = withCard(
+      cardOf("us1", { state: "VERIFYING", awaiting_operator: true }, null),
+    ).querySelector("[data-story]")!;
+
+    expect(cell.hasAttribute("data-undeclared")).toBe(true);
+    expect(cell.hasAttribute("data-paged")).toBe(true);
+    expect(cell.getAttribute("data-state")).toBe("VERIFYING");
+    expect(cell.textContent).toContain("paged");
+  });
+});
+
+/* ── the dependency the graph declares (012 US2, FR-006, FR-007) ─────────── */
+
+/**
+ * Until 012 US1 the Desk's workgraph read failed for every epic it had ever
+ * shown, so a row knew no edge and drew none — which is what the operator meant
+ * by *"it doesn't actually render the graph"*. It has a graph now, and these
+ * are the two things it may say about one story and the one thing it may not.
+ *
+ * The material is `fixtures/workgraphs/077-…json`, already imported above: a
+ * recorded `ergane spec derive` output whose five stories carry a pass edge, a
+ * merge edge, a story with both, and two with none at all. Nothing about the
+ * shape of a graph is invented here (constitution V).
+ */
+describe("the dependency each story's graph declares (US2-S1, US2-S2)", () => {
+  const SCANNER_NODES = (
+    JSON.parse(scannerGraphRaw) as {
+      nodes: {
+        id: string;
+        story_key: string | null;
+        depends_on: string[];
+        depends_on_merged: string[];
+      }[];
+    }
+  ).nodes;
+
+  /** One card as `pane/floor_document.py` joins it from a *declared* graph node. */
+  const declaredCard = (node: (typeof SCANNER_NODES)[number]): NodeCard => ({
+    ...cardOf(node.id, null, node.story_key),
+    depends_on: node.depends_on,
+    depends_on_merged: node.depends_on_merged,
+  });
+
+  const scannerRow = () =>
+    render(
+      epicOf(
+        "077-a-scanner-the-operator-chooses-runs-in-the-loop",
+        "refusal",
+        "unknown",
+        SCANNER_NODES.map(declaredCard),
+      ),
+      unjoined,
+    );
+
+  const depsOf = (cell: Element) =>
+    Array.from(cell.querySelectorAll("[data-dep]")).map((dep) => ({
+      kind: dep.getAttribute("data-dep-kind"),
+      id: dep.getAttribute("data-dep-id"),
+      text: (dep.textContent ?? "").trim(),
+    }));
+
+  it("draws each story's declared dependency, both edge kinds apart (FR-006)", () => {
+    // The premise, measured off the recording rather than assumed: this graph
+    // really does declare edges of both kinds, so a row that drew nothing would
+    // be drawing less than the factory gave it.
+    const declaredEdges = SCANNER_NODES.flatMap((node) => [
+      ...node.depends_on,
+      ...node.depends_on_merged,
+    ]);
+    expect(declaredEdges.length).toBeGreaterThan(0);
+
+    const cells = stories(scannerRow());
+    expect(cells.length).toBe(SCANNER_NODES.length);
+
+    for (const [index, node] of SCANNER_NODES.entries()) {
+      const cell = cells[index];
+      const expected = [
+        ...node.depends_on_merged.map((id) => ({ kind: "merge", id, text: `after ${id}` })),
+        ...node.depends_on.map((id) => ({ kind: "pass", id, text: `once ${id} passes` })),
+      ];
+      expect(depsOf(cell), `${node.id}: the edges its graph declares`).toEqual(expected);
+    }
+  });
+
+  it("says `after us2` for a merge edge and `once us3 passes` for a pass edge", () => {
+    // § Stage tells the two apart in stroke — "merge edges solid 2px olive,
+    // pass edges dashed 2px `--rule`" — and this row has no wires, so it tells
+    // them apart in words (§ Named Rules: never colour alone). us4 is the one
+    // recorded story that carries one of each, so the two readings sit side by
+    // side on one cell and cannot be confused with each other.
+    const us4 = stories(scannerRow())[3];
+    expect(us4.getAttribute("data-story-key")).toBe("US4");
+    expect(us4.getAttribute("data-depends")).toBe("declared");
+    expect(depsOf(us4).map((dep) => dep.text)).toEqual(["after us2", "once us3 passes"]);
+  });
+
+  it("reads UNDECLARED for a story whose graph genuinely declares no edge (FR-007)", () => {
+    // us1 and us2 of the recording are edgeless: nothing waits for anything,
+    // which is the ordinary and permanent shape of a first story. That is what
+    // `UNDECLARED` means and it keeps meaning it.
+    const cells = stories(scannerRow());
+    for (const index of [0, 1]) {
+      const node = SCANNER_NODES[index];
+      expect([...node.depends_on, ...node.depends_on_merged]).toEqual([]);
+      expect(cells[index].getAttribute("data-depends"), node.id).toBe("undeclared");
+      expect(
+        (cells[index].querySelector("[data-dep-none]")?.textContent ?? "").trim(),
+      ).toBe("undeclared");
+      expect(depsOf(cells[index])).toEqual([]);
+    }
+  });
+
+  it("says it on the row, not on each story, when the graph carries the epic at all", () => {
+    // A graph was joined, so the row makes no claim that one was not.
+    const row = scannerRow().querySelector("article.epic")!;
+    expect(row.getAttribute("data-graph")).toBe("read");
+    expect(row.querySelector("[data-no-graph]")).toBeNull();
+  });
+
+  it("never reads UNDECLARED for a graph that could not be read (FR-007)", () => {
+    // The landing scene as the demo really serves it: `epic_status` answered
+    // and the workgraph read did not, so every card is the floor's alone and
+    // both dependency lists are absent rather than empty. This is the case
+    // plan D4 forbids dressing as `UNDECLARED` — a gap in what the pane was
+    // told is not a fact about the work — and the row says so once instead.
+    const cards = [
+      cardOf("us1", recorded(landingRaw).us1, null),
+      cardOf("us2", recorded(landingRaw).us2, null),
+      cardOf("us3", recorded(landingRaw).us3, null),
+    ];
+    expect(cards.every((card) => card.depends_on === null)).toBe(true);
+
+    const container = render(
+      epicOf("fx-landing-f0a0d6", "landing", "COMPLETED", cards),
+      unjoined,
+    );
+    const row = container.querySelector("article.epic")!;
+
+    for (const cell of stories(container)) {
+      expect(cell.getAttribute("data-depends")).toBe("unread");
+      expect(cell.querySelector("[data-dep-none]")).toBeNull();
+      expect(cell.querySelector("[data-depends-edges]")).toBeNull();
+    }
+    // Not one `UNDECLARED` reading anywhere on the row.
+    expect(row.querySelectorAll('[data-depends="undeclared"]').length).toBe(0);
+
+    // And the reason is on the row, once, in words that are not `UNDECLARED`.
+    expect(row.getAttribute("data-graph")).toBe("unread");
+    const note = row.querySelector("[data-no-graph]")!;
+    expect(note).not.toBeNull();
+    expect(note.textContent).toContain("no graph");
+    expect(note.textContent).not.toContain("undeclared");
+  });
+
+  it("keeps the skew story's gap on the story and the declared ones drawn", () => {
+    // The other half of FR-007: the graph *was* read and simply does not
+    // declare us3 (the recorded `skew` scene). us1 and us2 keep the dependency
+    // the graph gave them, us3 makes no dependency claim at all, and the row
+    // does not say it has no graph — because it has one.
+    const container = render(
+      epicOf("fx-landing-f0a0d6", "skew", "COMPLETED", [
+        declaredCard(SCANNER_NODES[2]),
+        declaredCard(SCANNER_NODES[3]),
+        cardOf("us9", recorded(skewRaw).us3, null),
+      ]),
+      unjoined,
+    );
+    const row = container.querySelector("article.epic")!;
+    const cells = stories(container);
+
+    expect(cells[0].getAttribute("data-depends")).toBe("declared");
+    expect(cells[1].getAttribute("data-depends")).toBe("declared");
+    expect(cells[2].getAttribute("data-depends")).toBe("unread");
+    expect(row.getAttribute("data-graph")).toBe("read");
+    expect(row.querySelector("[data-no-graph]")).toBeNull();
+  });
+
+  it("derives no edge of its own: the card's lists are the whole of it", () => {
+    // The row has no dependency table and cannot grow one. A card whose graph
+    // declares an edge to a story that is not on this row still draws that
+    // edge, verbatim, because the graph said so — inventing a *filter* here
+    // would be the same class of derivation as inventing an edge.
+    const cell = stories(
+      render(
+        epicOf("fx-one", "one", "RUNNING", [
+          { ...cardOf("us2", null, "US2"), depends_on: [], depends_on_merged: ["us1"] },
+        ]),
+        unjoined,
+      ),
+    )[0];
+
+    expect(depsOf(cell)).toEqual([{ kind: "merge", id: "us1", text: "after us1" }]);
+  });
+});

@@ -22,7 +22,7 @@ from factory.cli.nouns import build
 
 from pane import attention_store
 from pane.attention_store import StoredItem
-from pane.readers import EpicRef, FloorRead, TransportFailed
+from pane.readers import EVIDENCE_READ, EpicRef, FloorRead, TransportFailed
 
 
 # The recorded deliveries the demo floor is seeded from, in the order the
@@ -315,6 +315,27 @@ class FixtureReader:
             if entry.get("escalation_id") == correlation_id:
                 return entry
         return None
+
+    def node_history(self, epic_id: str, node_id: str) -> list[dict]:
+        """The recorded verification history for one node of one epic.
+
+        `verification/<epic_id>/<node_id>.json` — one recorded
+        `factory.verify.store.node_history` answer per node, as the seam
+        returned it.  **No such document is recorded yet**: the evidence store
+        is written on the operator's host by a real build, and this repository
+        does not invent one (constitution V).  Until one is captured the read
+        takes `load_document`'s missing-document rule and comes back as a
+        transport failure naming the path it looked for — which is what the
+        section then says, in words, instead of drawing a gate run nobody ran.
+
+        `PANE_DEMO_TRANSPORT_FAIL=epics` drives the same failure deliberately,
+        because the evidence is the epic's and fails with it.
+        """
+        self._check_fail("epics", EVIDENCE_READ)
+        doc, _ = load_document(
+            self.root / "verification" / epic_id / f"{node_id}.json", read=EVIDENCE_READ
+        )
+        return doc
 
     def list_findings(self) -> list[dict]:
         self._check_fail("health", "list_findings")

@@ -88,7 +88,14 @@ export interface AttentionItem {
 
 export interface DegradedEntry {
   section: "floor" | "epics" | "attention" | "health" | "spend_to_date";
-  mode: "transport" | "refusal";
+  /**
+   * Four modes, because four different things went wrong (constitution III's
+   * "transport failure and query refusal are two different failure modes and
+   * are rendered differently", extended twice by 012). `unparseable` is a graph
+   * that was found and will not parse (US1, FR-005); `mismatch` is a graph that
+   * parsed and is about some other epic's stories (US2, spec Edge Cases).
+   */
+  mode: "transport" | "refusal" | "unparseable" | "mismatch";
   epic_id: string | null;
   read: string;
   detail: string;

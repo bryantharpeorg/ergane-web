@@ -1,33 +1,115 @@
-@font-face {
-  font-family: "Red Hat Display";
-  font-style: normal;
-  font-weight: 300 900;
-  font-display: swap;
-  src: url("/fonts/RedHatDisplay.woff2") format("woff2");
+/* The pane's stylesheet: the second world's token layer, then the Desk's
+   component rules on top of it.
+
+   `DESIGN.md` is the authority (constitution VIII); D-015 replaced its content
+   on 2026-08-24, and this file is where that replacement lands. Two things left
+   with the first world and are named here so they are not quietly restored:
+
+   * **Every face declaration is deleted.** The four vendored Red Hat files stay
+     under `web/public/` as history, but nothing loads them — § Typography is
+     system stacks only, and FR-007 makes "no font file, no remote asset" a
+     measured assertion rather than a preference. The sweep named below is
+     literal, so this paragraph may not spell the at-rule it forbids.
+   * **The first world's palette is gone.** 005 kept its *names* alive one layer
+     down in `styles/tokens.css`, aliased onto the tokens below, so that the
+     Desk could render in the new world's colours before anyone had time to
+     restyle it. **006 US1 finishes that job and the alias layer goes with it**
+     (the file's own words: "when 006 rewrites those rules against § Colors
+     directly, this file goes with them"). Every Desk rule below now names a
+     § Colors token, a § Typography ramp step or a § Layout measure directly:
+     no `--panel`, no `--walnut`, no `--fs-clock`, no `--s4`, and no colour
+     literal anywhere outside the three token blocks — which
+     `tests/unit/deskWorld.test.ts` sweeps for.
+
+   § Colors' three-block pattern is binding and is swept by
+   `tests/unit/tokens2.test.ts`: the full set on bare `:root`, redefined under
+   `prefers-color-scheme: dark` guarded `:root:not([data-theme="light"])` — so
+   an explicit light choice beats a dark OS — and again under
+   `:root[data-theme="dark"]`, so an explicit dark choice beats a light one. No
+   colour is defined only inside a theme block. */
+
+:root {
+  color-scheme: light dark;
+  /* § Typography › The ramp: "Base 15.5px". Every rem below is this. */
+  font-size: 15.5px;
+
+  /* § Colors, light */
+  --ground: #EDF0F2; /* page ground */
+  --surface: #FFFFFF; /* cards, rail, panes */
+  --sunken: #E3E8EB; /* wells, code, empty ladder stops */
+  --ink: #14202A; /* text */
+  --muted: #566873; /* secondary text */
+  --faint: #7D8F9A; /* tertiary, provenance */
+  --rule: #C7D1D7; /* borders */
+  --hairline: #D8E0E4; /* inner grids */
+  --accent: #0E6F79; /* the one accent: selection, links, "now" */
+  --accent-w: #DCEDEF; /* accent wash */
+  --olive: #5A6B2F; /* done / merged / landed */
+  --olive-w: #EBEFD9; /* done wash */
+  --gold: #7E5D12; /* waiting on the operator */
+  --gold-w: #F4EBD4; /* waiting wash */
+  --alarm: #9E3319; /* killed, failed, regressed */
+  --alarm-w: #F6E3DD; /* alarm wash */
+  --shadow: 0 1px 2px rgba(20,32,42,.05), 0 8px 24px -12px rgba(20,32,42,.14); /* the one shadow, on cards */
+
+  /* § Typography: system stacks only — nothing downloads. */
+  --serif: ui-serif, "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* § Typography › The ramp. A size off this ramp is a defect. */
+  --t-micro: 0.66rem;
+  --t-chip: 0.62rem;
+  --t-tag: 0.74rem;
+  --t-small: 0.82rem;
+  --t-body: 0.9rem;
+  --t-title: 1.15rem;
+  --t-name: 1.2rem;
+  --t-display: 1.6rem;
 }
 
-@font-face {
-  font-family: "Red Hat Text";
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("/fonts/RedHatText.woff2") format("woff2");
+/* The OS's preference, unless the operator said light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0D1418;
+    --surface: #131E24;
+    --sunken: #0A1013;
+    --ink: #D8E3E8;
+    --muted: #8A9EA9;
+    --faint: #6B7F8A;
+    --rule: #27373F;
+    --hairline: #1E2C33;
+    --accent: #46B7C1;
+    --accent-w: #102D31;
+    --olive: #A9BC62;
+    --olive-w: #20260F;
+    --gold: #D3A845;
+    --gold-w: #2B2210;
+    --alarm: #E2795A;
+    --alarm-w: #2E1710;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
 }
 
-@font-face {
-  font-family: "Red Hat Text";
-  font-style: italic;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("/fonts/RedHatText-italic.woff2") format("woff2");
-}
-
-@font-face {
-  font-family: "Red Hat Mono";
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("/fonts/RedHatMono.woff2") format("woff2");
+/* The operator's own choice, in the other direction. */
+:root[data-theme="dark"] {
+  --ground: #0D1418;
+  --surface: #131E24;
+  --sunken: #0A1013;
+  --ink: #D8E3E8;
+  --muted: #8A9EA9;
+  --faint: #6B7F8A;
+  --rule: #27373F;
+  --hairline: #1E2C33;
+  --accent: #46B7C1;
+  --accent-w: #102D31;
+  --olive: #A9BC62;
+  --olive-w: #20260F;
+  --gold: #D3A845;
+  --gold-w: #2B2210;
+  --alarm: #E2795A;
+  --alarm-w: #2E1710;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
 }
 
 * {
@@ -39,79 +121,104 @@ html {
   color: var(--ink);
 }
 
+/* § Colors: "`body` takes `background: var(--ground)` explicitly." */
 body {
   margin: 0;
-  font-family: var(--text);
-  font-size: var(--fs-body);
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--t-body);
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
 
+/* § Typography: "serif for things with names … section headings". */
 h1,
 h2,
 h3 {
-  font-family: var(--display);
+  font-family: var(--serif);
   font-weight: 600;
-  letter-spacing: -0.01em;
   margin: 0;
-  color: var(--walnut);
+  color: var(--ink);
   text-wrap: balance;
 }
 
+/* § Typography: "mono for identity and data … numerals — always
+   `font-variant-numeric: tabular-nums`". */
 .num {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
 
+/* § Typography › The ramp, the `micro` step: "mono, uppercase, `.09em`
+   tracking — grid labels, legends, section kickers". */
 .micro {
-  font-size: var(--fs-micro);
-  letter-spacing: 0.06em;
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--muted);
   font-weight: 500;
 }
 
 a {
-  color: var(--teal-ink);
+  color: var(--accent);
 }
 
+/* ── The app frame (§ Layout) ─────────────────────────────────────────────
+   "full-bleed surface card, `max-width: 96rem`, centred; never a hard content
+   cap below 96rem". The cap is on the frame and on nothing inside it, which is
+   what makes the interior fluid — the Desk's content region takes whatever the
+   frame has (006 FR-001, measured at 1280/1600/2560 in `desk-world.spec.ts`).
+   The first world's `max-width: 1280px` on the Desk itself is what this
+   replaces. */
+.desk-room {
+  min-height: 100vh;
+  background: var(--ground);
+}
+
+.desk-frame {
+  width: 100%;
+  max-width: 96rem;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+/* § Layout: "The appbar is one row: brand, room nav with a 2px accent underline
+   on the active room, and the attention badge pushed to the far edge." The
+   Showfloor dresses the same component under `.showfloor .mast`; these are the
+   shell's own rules, and the Desk's. */
 .mast {
   display: flex;
-  align-items: baseline;
-  gap: var(--s5);
-  padding: var(--s4) var(--s6) var(--s3);
+  align-items: center;
+  gap: 1.4rem;
+  padding: 0.7rem 1.3rem;
+  background: var(--surface);
   border-bottom: 1px solid var(--rule);
 }
 
 .mast .mark {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: var(--fs-headline);
-  color: var(--walnut);
-  letter-spacing: 0.02em;
-}
-
-.mast .mark::before {
-  content: "";
-  display: inline-block;
-  width: 0.55em;
-  height: 0.55em;
-  background: var(--teal);
-  transform: rotate(45deg);
-  margin-right: 0.6em;
-  vertical-align: 0.05em;
+  font-family: var(--mono);
+  font-size: var(--t-body);
+  letter-spacing: 0.06em;
+  color: var(--ink);
 }
 
 .mast nav {
   display: flex;
-  gap: var(--s4);
-  font-family: var(--display);
-  font-weight: 500;
+  gap: 1rem;
+  font-family: var(--sans);
+  font-size: var(--t-body);
 }
 
 .mast nav a {
-  color: var(--ink-soft);
+  color: var(--muted);
   text-decoration: none;
   padding-bottom: 2px;
   border-bottom: 2px solid transparent;
@@ -119,15 +226,15 @@ a {
 
 .mast nav a[aria-current] {
   color: var(--ink);
-  border-bottom-color: var(--teal);
+  border-bottom-color: var(--accent);
 }
 
 .mast .floorline {
   margin-left: auto;
-  font-size: var(--fs-small);
-  color: var(--ink-soft);
+  font-size: var(--t-tag);
+  color: var(--muted);
   display: flex;
-  gap: var(--s3);
+  gap: 0.7rem;
   align-items: center;
 }
 
@@ -135,11 +242,14 @@ a {
   font-style: italic;
 }
 
+/* The floorline's read marker. It was a breathing dot in the first world; § Motion
+   allows exactly one authored motion and it is the ladder's, so the dot holds
+   still and says what it means in the words beside it. */
 .live {
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
-  color: var(--teal-ink);
+  color: var(--accent);
   font-weight: 500;
 }
 
@@ -148,438 +258,375 @@ a {
   width: 0.5em;
   height: 0.5em;
   border-radius: 50%;
-  background: var(--teal);
-  animation: breathe 2.4s var(--ease-out) infinite;
-}
-
-@keyframes breathe {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.6); opacity: 0.55; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .live::before { animation: none; }
+  background: var(--accent);
 }
 
 @media (max-width: 900px) {
-  .mast { flex-wrap: wrap; padding: var(--s3) var(--s4); }
+  .mast { flex-wrap: wrap; padding: 0.7rem 1rem; }
   .mast .floorline { margin-left: 0; width: 100%; flex-wrap: wrap; }
 }
 
-.chev {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s2);
-  font-family: var(--display);
-  font-size: var(--fs-small);
+/* ── § Chips ──────────────────────────────────────────────────────────────
+   "Mono `.62rem` 600 uppercase, `.08em` tracking, `padding .24em .55em`,
+   `border: 1px solid currentColor`, squared. The full vocabulary — a chip
+   outside this table is a defect."
+
+   The words come from the shared mapping in `showfloor/ladder.ts`, so the Desk
+   and the stage cannot dress one word two ways; these are the Desk's copy of
+   the six rows, scoped to the room because `showfloor.css` scopes its own to
+   its. `unknown` is not a seventh row: it is the Unknown Rule's italic muted,
+   worn by a word the vocabulary does not name. */
+.desk .chip {
+  font-family: var(--mono);
+  font-size: var(--t-chip);
   font-weight: 600;
-  letter-spacing: 0.02em;
   text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.24em 0.55em;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-.chev i {
-  display: inline-block;
-  width: 0.95em;
-  height: 0.95em;
-  transform: skewX(-20deg);
-  border: 2px solid currentColor;
-  border-radius: 1px;
-  flex-shrink: 0;
+.desk .chip.landed { color: var(--olive); background: var(--olive-w); }
+.desk .chip.building { color: var(--accent); background: var(--accent-w); }
+.desk .chip.ready { color: var(--muted); background: var(--sunken); }
+.desk .chip.draft { color: var(--faint); background: transparent; border-style: dashed; }
+.desk .chip.wait { color: var(--gold); background: var(--gold-w); }
+.desk .chip.dead { color: var(--alarm); background: var(--alarm-w); }
+.desk .chip.unknown {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  font-style: italic;
+  text-transform: none;
 }
 
-.chev .cap { color: var(--ink); }
+/* ── Waiting on you (the attention strip) ─────────────────────────────────
+   001 decided what an item shows and 003 gave it the one verb; D-015 decides
+   what it looks like. Order, wording and controls are untouched here. */
+.attention { padding: 1.4rem 0 1.3rem; border-bottom: 1px solid var(--hairline); }
+.attention-head { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1rem; }
+.attention-head h1 { font-size: var(--t-name); }
+.attention-head .count { font-size: var(--t-name); font-weight: 700; color: var(--muted); }
+.attention .empty { font-style: italic; color: var(--muted); margin: 0; }
+.attention .items { display: flex; flex-direction: column; gap: 0.8rem; }
 
-.st-PENDING i { border-style: dashed; border-color: var(--aqua-ink); }
-.st-PENDING .cap { color: var(--aqua-ink); }
-
-.st-KEY_ISSUED i { border-color: var(--aqua-ink); background: repeating-linear-gradient(135deg, var(--aqua-ink) 0 2px, transparent 2px 5px); }
-.st-KEY_ISSUED .cap { color: var(--aqua-ink); }
-
-.st-RUNNING i { background: var(--teal); border-color: var(--teal-ink); animation: breathe 2.4s var(--ease-out) infinite; }
-.st-RUNNING .cap { color: var(--teal-ink); }
-
-.st-VERIFYING i { background: var(--mustard); border-color: var(--mustard-ink); }
-.st-VERIFYING .cap { color: var(--mustard-ink); }
-
-.chev.paged i { outline: 2px solid var(--orange); outline-offset: 2px; }
-.chev.paged .paged-label,
-.chev.waiting .waiting-label {
-  color: var(--orange-ink);
-  font-family: var(--text);
-  font-weight: 500;
-  font-size: var(--fs-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.st-PASSED i { border-color: var(--olive); background: transparent; }
-.st-PASSED .cap { color: var(--olive-ink); }
-
-.st-PR_OPEN i { background: linear-gradient(to right, var(--olive) 50%, var(--panel) 50%); border-color: var(--olive); }
-.st-PR_OPEN .cap { color: var(--olive-ink); }
-
-.st-ENQUEUED i { background: linear-gradient(to right, var(--olive) 78%, var(--panel) 78%); border-color: var(--olive); }
-.st-ENQUEUED .cap { color: var(--olive-ink); }
-
-.st-MERGED i { background: var(--olive); border-color: var(--olive-ink); }
-.st-MERGED .cap { color: var(--olive-ink); }
-
-.st-FAILED i { background: var(--panel); border-color: var(--ink); position: relative; }
-.st-FAILED i::before,
-.st-FAILED i::after {
-  content: "";
-  position: absolute;
-  left: 10%;
-  top: 50%;
-  width: 80%;
-  height: 2px;
-  background: var(--ink);
-}
-.st-FAILED i::before { transform: rotate(45deg); }
-.st-FAILED i::after { transform: rotate(-45deg); }
-.st-FAILED .cap { color: var(--ink); }
-
-.st-KILLED i { background: var(--panel-deep); border-color: var(--ink-soft); opacity: 0.5; }
-.st-KILLED .cap { color: var(--ink-soft); text-decoration: line-through; }
-
-.st-WAITING_OPERATOR i { background: var(--orange); border-color: var(--orange-ink); border-radius: 50% 50% 2px 2px; transform: skewX(0deg); }
-.st-WAITING_OPERATOR .cap { color: var(--orange-ink); }
-
-.st-unknown i { border-style: dashed; border-color: var(--ink-soft); }
-.st-unknown .cap { color: var(--ink-soft); }
-
-.st-undeclared i { border: 2px dashed var(--ink-soft); }
-.st-undeclared .cap { color: var(--ink-soft); }
-
-@media (prefers-reduced-motion: reduce) {
-  .st-RUNNING i { animation: none; }
-}
-
-.attention { padding: var(--s5) 0 var(--s4); border-bottom: 1px solid var(--rule); }
-.attention-head { display: flex; align-items: baseline; gap: var(--s4); margin-bottom: var(--s4); }
-.attention-head h1 { font-size: var(--fs-display); }
-.attention-head .count { font-size: var(--fs-display); color: var(--ink-soft); }
-.attention .empty { font-style: italic; color: var(--ink-soft); margin: 0; }
-.attention .items { display: flex; flex-direction: column; gap: var(--s4); }
+/* § Shapes: rectangles, 2px radius on cards. § Elevation: flat — the one shadow
+   is the frame's, so a card inside it is told by its rule and its bar. */
 .attention .item {
   display: grid;
-  grid-template-columns: 250px 1fr auto;
-  gap: var(--s5);
-  padding: var(--s4) var(--s5);
-  background: var(--panel);
+  grid-template-columns: 15rem minmax(0, 1fr) auto;
+  gap: 1.4rem;
+  padding: 0.7rem 0.8rem;
+  background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  box-shadow: inset 3px 0 0 transparent;
+  border-left: 3px solid var(--rule);
+  border-radius: 2px;
 }
-.attention .item.high { border-color: var(--orange); box-shadow: inset 3px 0 0 var(--orange); }
-.attention .item.medium { box-shadow: inset 3px 0 0 var(--mustard); }
-.attention .item.low { box-shadow: inset 3px 0 0 var(--aqua); }
+
+/* Gold is § Colors' one word for "waiting on the operator", so the two kinds
+   that ask something wear it and the one that asks nothing does not. The first
+   world's three-hue ranking ladder retired with it; the rank itself is DOM
+   order, which `rank.ts` still decides and `desk.spec.ts` still asserts. */
+.attention .item.high,
+.attention .item.medium { border-left-color: var(--gold); }
+.attention .item.low { border-left-color: var(--rule); }
+
 .attention .clock-col,
 .attention .body-col,
-.attention .answer-col { display: flex; flex-direction: column; gap: var(--s2); }
+.attention .answer-col { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
 .attention .kind {
-  font-family: var(--display);
-  font-size: var(--fs-small);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
+  color: var(--muted);
 }
-.attention .item.high .kind { color: var(--orange-ink); }
-.attention .item.medium .kind { color: var(--mustard-ink); }
-.attention .item.low .kind { color: var(--aqua-ink); }
+/* The countdown: the `display` step, mono and tabular, so the digits do not
+   dance as they tick (§ Typography). Ticking is a text update, not an
+   animation — the countdown anchor rule, unchanged from 001. */
 .attention .clock {
   font-family: var(--mono);
-  font-size: var(--fs-clock);
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-size: var(--t-display);
+  font-weight: 700;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
-.attention .item.high .clock { color: var(--orange-ink); }
-.attention .clock.expired { text-transform: uppercase; }
-.attention .no-deadline { font-style: italic; color: var(--ink-soft); }
-/* DESIGN.md § Typography › Clock: a Notice's clock slot reads "no clock" at
-   1.25rem — the Readout step, not the Clock step. */
+.attention .item.high .clock { color: var(--gold); }
+.attention .clock.expired { text-transform: uppercase; color: var(--muted); }
+.attention .no-deadline { font-style: italic; color: var(--muted); font-size: var(--t-small); }
+/* A Notice's clock slot reads "no clock" a step below the clock itself: there
+   is no deadline to count, and the slot says so rather than standing empty. */
 .attention .no-clock {
   font-family: var(--mono);
-  font-size: var(--fs-readout);
-  line-height: 1;
-  color: var(--ink-soft);
+  font-size: var(--t-title);
+  line-height: 1.1;
+  color: var(--muted);
 }
-/* DESIGN.md § Components › Attention Item: a Notice's answer column carries one
-   italic tinted-slate line and no control of any kind. */
-.attention .asks-nothing { font-style: italic; color: var(--ink-soft); }
-.attention .until { font-size: var(--fs-small); color: var(--ink-soft); }
-.attention .where { font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); }
-/* DESIGN.md § Components › Attention Item › Body column: the factory's ruling on
-   the last answer, Small olive-ink 500. Every refusal renders the same way in
-   the same place — never in red (§ Colors › The No-Red Rule) and never as a
-   field error (§ Inputs / Fields › Error: none). */
+/* A Notice's answer column carries one italic line and no control of any kind. */
+.attention .asks-nothing { font-style: italic; color: var(--muted); font-size: var(--t-small); }
+.attention .until { font-size: var(--t-tag); color: var(--faint); }
+.attention .where { font-family: var(--mono); font-size: var(--t-tag); color: var(--faint); }
+/* The factory's ruling on the last answer, in the body column where it has
+   always been. Never in red and never as a field error: a refusal is the
+   factory speaking, not the operator mistyping. */
 .attention .ruling-line {
   margin: 0;
-  font-size: var(--fs-small);
+  font-size: var(--t-small);
   font-weight: 500;
-  color: var(--olive-ink);
+  color: var(--olive);
 }
-/* § Typography › The Factory Speaks in Mono Rule: the ruling word is the
-   factory's, so it is set in mono, uppercase exactly as the factory wrote it. */
+/* § Typography: the ruling word is the factory's, so it is set in mono,
+   uppercase exactly as the factory wrote it. */
 .attention .ruling,
 .attention .ruling-id { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* The one retriable case, beside the controls it keeps live. */
-.attention .retriable { font-size: var(--fs-small); color: var(--olive-ink); }
+.attention .retriable { font-size: var(--t-small); color: var(--olive); }
 /* A join the pane could not make, named where its answer would have been. */
-.attention .join-degraded { font-size: var(--fs-small); font-style: italic; color: var(--ink-soft); }
-/* DESIGN.md § Components › Attention Item › Body column and its Body segmentation
-   rule. The factory writes the evidence with its own line structure, so the pane
+.attention .join-degraded { font-size: var(--t-tag); font-style: italic; color: var(--muted); }
+/* The factory writes the evidence with its own line structure, so the pane
    keeps it rather than reflowing a gate's output into prose. */
 .attention .prose { margin: 0; max-width: 68ch; white-space: pre-wrap; }
 /* One block per choice the payload names: the consequence of pressing a button
    can be read on its own instead of found inside a paragraph. Structure only —
-   a spacing step and the rule stroke, no colour, face or radius DESIGN.md does
-   not name (constitution VIII), and the choice a block explains is carried by
-   its `data-choice`, never by colour alone (§ Colors). */
+   a spacing step and the hairline, no colour, face or radius DESIGN.md does not
+   name, and the choice a block explains is carried by its `data-choice`, never
+   by colour alone. */
 .attention .body-col .block { margin: 0; }
-.attention .prose.choice { padding-left: var(--s3); border-left: 1px solid var(--rule); }
-/* The factory's own lead-in to the choice list, set in the Micro step DESIGN.md
-   § Typography names it in ("what each button does") — its words, not the
-   pane's. */
-.attention .micro.block { margin-top: var(--s1); }
-.attention .answer-col { min-width: 220px; align-items: flex-start; justify-content: center; }
+.attention .prose.choice { padding-left: 0.7rem; border-left: 1px solid var(--hairline); }
+/* The factory's own lead-in to the choice list, in the micro step — its words,
+   not the pane's. */
+.attention .micro.block { margin-top: 0.25rem; }
+.attention .answer-col { min-width: 14rem; align-items: flex-start; justify-content: center; }
 
-/* DESIGN.md § Components › Buttons. Tight corners, a 1.5px border, Display 600
-   at 0.8125rem, and the payload beneath the face as a mono block. Teal is the
-   only fill; there is no third variant and no other control on the Desk. */
+/* The one verb, and the only controls in the pane. § Named Rules: "A button
+   background may only be `--accent`." § Shapes: 2px. § Elevation: no second
+   shadow, and § Motion: no hover that moves. */
 .attention .btn {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.15em;
   width: 100%;
-  padding: 0.5em 0.9em;
-  border-radius: var(--radius);
-  border: 1.5px solid;
-  font-family: var(--display);
-  font-size: var(--fs-small);
+  padding: 0.4em 0.8em;
+  border-radius: 2px;
+  border: 1px solid;
+  font-family: var(--sans);
+  font-size: var(--t-small);
   font-weight: 600;
   text-align: left;
   cursor: pointer;
 }
 .attention .btn .payload {
   font-family: var(--mono);
-  font-size: var(--fs-micro);
+  font-size: var(--t-micro);
   font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 .attention .btn.answer {
-  background: var(--teal);
-  border-color: var(--teal-ink);
-  color: var(--white);
-  box-shadow: 0 2px 6px rgba(42, 42, 38, 0.12), 0 10px 24px -12px rgba(42, 42, 38, 0.18);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
 }
-.attention .btn.answer .payload { color: rgba(255, 255, 255, 0.8); }
-.attention .btn.answer:hover:not(:disabled) { background: var(--teal-ink); }
+.attention .btn.answer .payload { color: var(--surface); opacity: 0.8; }
 .attention .btn.choice {
-  background: var(--panel);
-  border-color: var(--ink);
+  background: var(--surface);
+  border-color: var(--rule);
   color: var(--ink);
 }
-.attention .btn.choice .payload { color: var(--ink-soft); }
-.attention .btn.choice:hover:not(:disabled) {
-  background: var(--panel-deep);
-  transform: translateY(-1px);
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-/* DESIGN.md § Components › Buttons › Disabled: while a settlement is out for
-   this item, every control reads unpressable and none of them moves. */
+.attention .btn.choice .payload { color: var(--muted); }
+.attention .btn.choice:hover:not(:disabled) { border-color: var(--accent); }
+/* While a settlement is out for this item, every control reads unpressable. */
 .attention .btn:disabled,
 .attention .reply:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  transform: none;
 }
 .attention .btn:focus-visible,
 .attention .reply:focus-visible {
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-/* DESIGN.md § Inputs / Fields › Reply textarea. */
+/* The reply field: a sunken well on the card, not a raised control. */
 .attention .reply {
   width: 100%;
-  background: var(--white);
-  border: 1.5px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 0.5rem 0.75rem;
-  font-family: var(--text);
-  font-size: var(--fs-small);
+  background: var(--sunken);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.5rem 0.7rem;
+  font-family: var(--sans);
+  font-size: var(--t-small);
   color: var(--ink);
   min-height: 4.5em;
   resize: vertical;
 }
-.attention .reply:focus { border-color: var(--teal); }
-
-@media (prefers-reduced-motion: reduce) {
-  .attention .btn.choice:hover:not(:disabled) { transform: none; transition: none; }
-}
+.attention .reply:focus { border-color: var(--accent); }
 
 @media (max-width: 900px) {
   .attention .item { grid-template-columns: 1fr; }
 }
 
-.floor { padding: var(--s5) 0; }
-.floor-head { display: flex; align-items: baseline; gap: var(--s4); margin-bottom: var(--s4); }
-.floor-head h2 { font-size: var(--fs-display); }
-.floor-head .summary { font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); }
+/* ── The floor ────────────────────────────────────────────────────────────
+   § The Desk in this world: "Epic rows without collisions: each epic is one
+   row — id, chip, six-stop ladder per story as small inline rails, spend — with
+   label slots that cannot overlap".
+
+   The first world's picture is gone from this stylesheet with the components
+   that drew it (006 US2, FR-004): the milestone track, its five absolutely
+   positioned diamond captions and the token tag that rode along it are what the
+   2026-08-24 review measured colliding on every epic row. Nothing below is
+   positioned. The row is a three-column grid, the stories are a wrapping flex
+   row, and every label is a flow child of a cell that sizes to it — so two runs
+   of text sharing a coordinate is not a state this layout has (plan D2). */
+.floor { padding: 1.4rem 0; }
+.floor-head { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.8rem; }
+.floor-head h2 { font-size: var(--t-name); }
+.floor-head .summary { font-family: var(--mono); font-size: var(--t-tag); color: var(--muted); }
 
 .epic {
   display: grid;
-  grid-template-columns: 250px 1fr 300px;
-  grid-template-rows: auto auto;
-  gap: var(--s4) var(--s5);
-  padding: var(--s4) 0;
-  border-top: 1px solid var(--rule);
+  grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr) minmax(7rem, 9rem);
+  gap: 0.7rem 1.6rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--hairline);
+  align-items: start;
 }
-.epic:last-child { border-bottom: 1px solid var(--rule); }
-.epic-left { display: flex; flex-direction: column; gap: var(--s2); }
-.epic-name { font-family: var(--display); font-weight: 600; font-size: var(--fs-body); color: var(--walnut); }
-.epic-meta { font-size: var(--fs-micro); color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
-.epic-personas { font-size: var(--fs-small); color: var(--ink-soft); }
+.epic:last-child { border-bottom: 1px solid var(--hairline); }
 
-.bar { position: relative; width: 100%; height: 56px; }
-.bar .track {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 4px;
-  margin-top: -2px;
-  background: var(--panel-deep);
-  border-radius: var(--radius);
-}
-.bar .fill {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  height: 4px;
-  margin-top: -2px;
-  background: var(--olive);
-  border-radius: var(--radius);
-}
-.bar .diamonds { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
-.bar .ms {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transform: translateX(-50%);
-}
-.bar .diamond {
-  width: 12px;
-  height: 12px;
-  background: var(--panel);
-  border: 2px solid var(--rule);
-  transform: rotate(45deg);
-  margin-bottom: var(--s2);
-}
-.bar .diamond.done { background: var(--olive); border-color: var(--olive); }
-.bar .ms .label { color: var(--ink-soft); white-space: nowrap; }
-.bar .diamond.done + .label { color: var(--olive-ink); }
-.bar .token {
-  position: absolute;
-  top: 50%;
-  width: 16px;
-  height: 16px;
-  margin-top: -8px;
-  margin-left: -8px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px var(--panel);
-}
-.bar .token.in-flight { background: var(--teal); }
-.bar .token.verifying { background: var(--mustard); }
-.bar .token.waiting { background: var(--orange); }
-.bar .token .chip {
-  position: absolute;
-  top: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  padding: 0.2em 0.5em;
-  background: var(--panel);
-  border-radius: var(--chip);
+.epic-id { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; min-width: 0; }
+.epic-name {
   font-family: var(--mono);
-  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: var(--t-small);
+  color: var(--ink);
+  overflow-wrap: anywhere;
 }
+.epic-state { color: var(--faint); }
 
-.epic-readouts {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--s3);
-  align-content: center;
+/* One story: key, ladder, chip — three flow items on one baseline, wrapping as
+   a whole when the row runs out of width rather than sliding over a neighbour. */
+.epic .stories { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; align-items: center; }
+.story { display: inline-flex; align-items: center; gap: 0.45rem; max-width: 100%; }
+.story .skey { font-size: var(--t-tag); color: var(--faint); text-transform: uppercase; }
+.story .paged-label { color: var(--gold); }
+/* 012 FR-006: what a story waits for, in the § Typography `micro` step
+   `.epic-state` already wears — flowed beside the chip, never positioned, and
+   `--faint` because it is provenance and not state (§ Typography's "tertiary,
+   provenance"). Two edges wrap as two flow items rather than sliding over the
+   story beside them; nothing here paints a background, so it has nothing to
+   paint over. */
+.story .deps { display: inline-flex; flex-wrap: wrap; gap: 0.1rem 0.5rem; color: var(--faint); }
+/* Said once per row, in the Unknown Rule's clothing, because it is an unknown:
+   the document carries no entry for this epic, so there is no ladder to draw. */
+.epic-note { font-size: var(--t-tag); font-style: italic; color: var(--muted); }
+/* The Unknown Rule's word standing where a ladder would be — the `tag` step, so
+   it reads at the size of the story key beside it. Scoped to that marker alone:
+   a chip whose word the vocabulary does not name is also `.unknown`, and § Chips
+   fixes its size at `.62rem`. */
+.story [data-ladder-unread] { font-size: var(--t-tag); }
+
+/* § The status ladder: "six `4px`-tall bars with `3px` gaps: done stops olive,
+   the active stop accent, waiting-on-you gold, ahead `--sunken`" — the stage's
+   rail at the size a row can carry six of. A frozen ladder is neither done nor
+   ahead: its bars rest at `--sunken` and the chip beside them says `killed`. */
+.mini { display: inline-flex; gap: 3px; align-items: center; }
+.mini i {
+  width: 11px;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--sunken);
 }
-.epic-readouts .ro { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
-.epic-readouts .v { font-family: var(--mono); font-size: 1.25rem; line-height: 1; color: var(--ink); }
-.epic-readouts .k { color: var(--ink-soft); }
-.epic .nodes { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
-.node-cell { display: inline-flex; align-items: center; gap: var(--s2); }
-.node-id { font-family: var(--mono); font-size: var(--fs-small); color: var(--ink-soft); }
+.mini i.done { background: var(--olive); }
+.mini i.now { background: var(--accent); }
+.mini i.hold { background: var(--gold); }
+
+.epic-spend { display: flex; flex-direction: column; align-items: flex-end; text-align: right; min-width: 0; }
+.epic-spend .v { font-size: var(--t-small); line-height: 1.2; color: var(--ink); }
+.epic-spend .k { color: var(--faint); }
 
 @media (max-width: 900px) {
   .epic { grid-template-columns: 1fr; }
-  .epic-readouts .ro { align-items: flex-start; text-align: left; }
-  .bar .ms .label { display: none; }
-  .bar { margin: 0 32px; }
+  .epic-spend { align-items: flex-start; text-align: left; }
 }
 
+/* ── Tables (§ The Desk in this world) ────────────────────────────────────
+   "micro uppercase headers over a hairline, cells `.5rem .8rem`, numerals
+   right-aligned tabular mono." Both tables are one treatment; the spend strip
+   keeps its four decided metrics and the health strip its three severities. */
 .lower {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--s6);
-  margin-top: var(--s5);
-  padding-top: var(--s5);
-  border-top: 1px solid var(--rule);
+  gap: 1.8rem;
+  margin-top: 1.4rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--hairline);
 }
 .health h2,
-.spend h2 { font-size: var(--fs-headline); margin-bottom: var(--s3); }
-.health table,
-.spend table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
-.health th,
-.health td,
-.spend th,
-.spend td { padding: 0.5rem 0.75rem 0.5rem 0; border-bottom: 1px solid var(--rule); text-align: left; }
-.health th.right,
-.health td.right,
-.spend th.right,
-.spend td.right { text-align: right; padding-right: 0; }
-.health .sev,
-.spend .sev-tag { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
-.health .critical,
-.sev-tag.critical { color: var(--orange-ink); }
-.health .warning,
-.sev-tag.warning { color: var(--mustard-ink); }
-.health .info,
-.sev-tag.info { color: var(--aqua-ink); }
-.health .num { font-family: var(--mono); text-align: right; }
-.health .finding-list { margin-top: var(--s3); display: flex; flex-direction: column; gap: var(--s2); }
-.health .finding { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: baseline; }
-.health .finding .refs { font-family: var(--mono); font-size: var(--fs-micro); color: var(--ink-soft); }
-/* The spend strip is one row per persona (DESIGN.md, The Spend Strip's shape),
-   so each row is led by a row header rather than a cell; it reads as a body
-   cell, not as a column head. */
-.spend tbody th { font-weight: 400; }
-.spend .total th,
-.spend .total td { border-top: 2px solid var(--rule); font-weight: 600; }
-.unknown { font-style: italic; color: var(--ink-soft); }
-
-.degraded {
-  background: var(--panel-deep);
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
-  margin: var(--s3) 0;
+.spend h2 { font-size: var(--t-title); margin-bottom: 0.7rem; }
+.desk table { width: 100%; border-collapse: collapse; font-size: var(--t-small); }
+.desk th,
+.desk td {
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
 }
-.degraded .lead { font-family: var(--display); font-weight: 600; font-size: var(--fs-display); color: var(--walnut); margin: 0 0 var(--s2) 0; }
-.degraded p { margin: 0; font-size: var(--fs-small); }
+.desk thead th {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+}
+/* "numerals right-aligned tabular mono" — a numeral cell, and the header that
+   sits over it. A row's leading `th` is its label, so it stays to the left. */
+.desk td.num,
+.desk th.right,
+.desk td.right { text-align: right; }
+.health .sev,
+.spend .sev-tag {
+  font-family: var(--mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+/* Severity is the finding's own word, and it is a word before it is a colour. */
+.health .critical .sev,
+.sev-tag.critical { color: var(--alarm); }
+.health .warning .sev,
+.sev-tag.warning { color: var(--gold); }
+.health .info .sev,
+.sev-tag.info { color: var(--muted); }
+.health .finding-list { margin-top: 0.7rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.health .finding { display: flex; flex-wrap: wrap; gap: 0.4rem 0.7rem; align-items: baseline; }
+.health .finding .refs { font-family: var(--mono); font-size: var(--t-micro); color: var(--faint); }
+/* The spend strip is one row per persona, so each row is led by a row header
+   rather than a cell; it reads as a body cell, not as a column head. */
+.spend tbody th { font-weight: 400; font-family: var(--mono); }
+.spend .total th,
+.spend .total td { border-top: 1px solid var(--rule); font-weight: 600; }
+.spend .note { margin: 0.5rem 0 0; }
+/* The Unknown Rule, binding: a NULL from the factory renders as the word
+   `unknown` in italic muted — never `0`, a dash, or an empty cell. */
+.unknown { font-style: italic; color: var(--muted); }
+
+/* ── Degraded reads (constitution III) ────────────────────────────────────
+   Named in place, in a tonal well: § Elevation's "wells and grids are tonal
+   (`--sunken`, hairlines)". Transport and refusal differ in their words, not in
+   their hue — there is no alarm colour on a read the pane could not make. */
+.degraded {
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0.7rem 0.8rem;
+  margin: 0.7rem 0;
+}
+.degraded .lead { font-weight: 600; font-size: var(--t-body); color: var(--ink); margin: 0 0 0.4rem 0; }
+.degraded p { margin: 0; font-size: var(--t-small); }
 .degraded .read,
 .degraded .detail { color: var(--ink); word-break: break-word; }
 
@@ -587,10 +634,74 @@ a {
   .lower { grid-template-columns: 1fr; }
 }
 
-.desk { max-width: 1280px; margin: 0 auto; padding: 0 var(--s6) var(--s7); }
-.desk .loading { font-style: italic; color: var(--ink-soft); margin: var(--s5) 0; }
-.desk .quiet { font-style: italic; color: var(--ink-soft); padding: var(--s4); border: 1px solid var(--rule); border-radius: var(--radius); }
+/* § Layout's spacing rhythm: "section padding 1.3–1.8rem". No `max-width` here
+   and none below it — the cap is the frame's (FR-001). */
+.desk { padding: 0 1.6rem 1.8rem; }
+.desk .loading { font-style: italic; color: var(--muted); margin: 1.4rem 0; }
+.desk .quiet {
+  font-style: italic;
+  color: var(--muted);
+  padding: 0.8rem;
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+}
 
 @media (max-width: 900px) {
-  .desk { padding: 0 var(--s4) var(--s6); }
+  .desk { padding: 0 1rem 1.4rem; }
+}
+
+/* § Motion: "Exactly one authored motion: the active ladder stop's 1.6s opacity
+   pulse … Nothing else moves." The Desk authors none of its own — the first
+   world's breathing dot, its chevron pulse and its hovering button all left
+   with it — and this block is the standing guarantee for whatever arrives
+   later: US2 brings the ladder to these rows, and its one pulse will stop here
+   when the reader asks it to. `desk-world.spec.ts` measures both settings. */
+@media (prefers-reduced-motion: reduce) {
+  .desk-room *,
+  .desk-room *::before,
+  .desk-room *::after {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* --- The stale fold (006 US3, DESIGN.md § The Desk in this world) ----------
+   Expired is a fact, not an emergency: the fold is quiet by construction —
+   muted, no rank colour on its edge, no motion — so that the eye keeps going
+   to the live clocks above it. Every value here is a token DESIGN.md names. */
+.attention .stale { margin-top: 1rem; border-top: 1px solid var(--hairline); padding-top: 0.8rem; }
+.attention .stale-summary {
+  cursor: pointer;
+  font-size: var(--t-small);
+  color: var(--muted);
+  list-style: none;
+}
+/* The disclosure triangle, drawn as text so both themes get the same mark. */
+.attention .stale-summary::-webkit-details-marker { display: none; }
+.attention .stale-summary::before { content: "▸ "; color: var(--faint); }
+.attention .stale[open] > .stale-summary::before { content: "▾ "; }
+.attention .stale-count { font-weight: 700; }
+.attention .stale-items { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.6rem; }
+/* One line: kind, id, how long ago the deadline passed — laid out in a row so
+   a collapsed item cannot grow to a second line at any frame width. */
+.attention .stale-line {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  font-size: var(--t-small);
+  list-style: none;
+}
+.attention .stale-line::-webkit-details-marker { display: none; }
+.attention .stale-item .kind { color: var(--muted); }
+.attention .stale-item .ago { color: var(--faint); font-family: var(--mono); }
+/* Opened, it is the item again: the factory's expiry and its text, verbatim. */
+.attention .stale-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0 0.6rem 1rem;
+  border-left: 1px solid var(--hairline);
+  margin-top: 0.4rem;
 }

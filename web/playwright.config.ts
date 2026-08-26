@@ -56,6 +56,15 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // 006 US1: the Desk's clothing, measured — the frame it fills at three
+      // widths and the tokens, chips and tables it wears in both themes. Its
+      // own file so that `desk.spec.ts`, a suite FR-003 requires to pass
+      // unchanged, stays untouched; the same fixture-backed backend on 8787.
+      name: "desk-world",
+      testMatch: /desk-world\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "desk-degraded",
       testMatch: /desk-degraded\.spec\.ts/,
       use: {
@@ -66,6 +75,14 @@ export default defineConfig({
     {
       name: "showfloor",
       testMatch: /showfloor\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      // 005 US2: `shell.spec.ts` matched no project and so was collected by no
+      // gate — the defect 001 US1-S1 exists to prevent, found while replacing
+      // the first world's assertions in it. Same backend as the Desk's.
+      name: "shell",
+      testMatch: /shell\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
     {

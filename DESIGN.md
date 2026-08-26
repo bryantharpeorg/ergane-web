@@ -1,366 +1,297 @@
 ---
-name: Ergane pane
-description: A launch-telemetry mission timeline in a mid-century modern palette on a light sage ground; state is always glyph + caption, never colour alone.
-colors:
-  ground: "#E3E8E0"
-  panel: "#F4F6F1"
-  panel-deep: "#D2D9CE"
-  ink: "#23292A"
-  ink-soft: "#5C6962"
-  rule: "#BDC7BA"
-  walnut: "#3E4A3C"
-  teal: "#1F7A78"
-  teal-ink: "#0E4F4D"
-  mustard: "#D9A521"
-  mustard-ink: "#7A5A06"
-  olive: "#6E7F3E"
-  olive-ink: "#415022"
-  clay: "#B9774F"
-  clay-ink: "#7A4A2B"
-  aqua: "#8FB8C9"
-  aqua-ink: "#3E6C80"
-  white: "#FFFFFF"
-typography:
-  clock:
-    fontFamily: "Red Hat Mono, SF Mono, ui-monospace, Menlo, Consolas, monospace"
-    fontSize: "clamp(1.9rem, 2.6vw, 2.6rem)"
-    fontWeight: 400
-    lineHeight: 1
-    letterSpacing: "-0.02em"
-  display:
-    fontFamily: "Red Hat Display, Avenir Next, Segoe UI, system-ui, sans-serif"
-    fontSize: "1.5rem"
-    fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: "-0.01em"
-  headline:
-    fontFamily: "Red Hat Display, Avenir Next, Segoe UI, system-ui, sans-serif"
-    fontSize: "1.125rem"
-    fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: "-0.01em"
-  body:
-    fontFamily: "Red Hat Text, Avenir Next, Segoe UI, system-ui, sans-serif"
-    fontSize: "0.95rem"
-    fontWeight: 400
-    lineHeight: 1.45
-    letterSpacing: "normal"
-  small:
-    fontFamily: "Red Hat Text, Avenir Next, Segoe UI, system-ui, sans-serif"
-    fontSize: "0.8125rem"
-    fontWeight: 400
-    lineHeight: 1.45
-    letterSpacing: "normal"
-  caption:
-    fontFamily: "Red Hat Display, Avenir Next, Segoe UI, system-ui, sans-serif"
-    fontSize: "0.8125rem"
-    fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: "0.02em"
-  micro:
-    fontFamily: "Red Hat Text, Avenir Next, Segoe UI, system-ui, sans-serif"
-    fontSize: "0.6875rem"
-    fontWeight: 500
-    lineHeight: 1.3
-    letterSpacing: "0.06em"
-  mono:
-    fontFamily: "Red Hat Mono, SF Mono, ui-monospace, Menlo, Consolas, monospace"
-    fontSize: "0.8125rem"
-    fontWeight: 400
-    lineHeight: 1.45
-    letterSpacing: "normal"
-rounded:
-  tight: "3px"
-  track: "2px"
-  chip: "999px"
-spacing:
-  s1: "0.25rem"
-  s2: "0.5rem"
-  s3: "0.75rem"
-  s4: "1rem"
-  s5: "1.5rem"
-  s6: "2rem"
-  s7: "3rem"
-components:
-  button-answer:
-    backgroundColor: "{colors.teal}"
-    textColor: "{colors.white}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.tight}"
-    padding: "0.5em 0.9em"
-  button-answer-hover:
-    backgroundColor: "{colors.teal-ink}"
-    textColor: "{colors.white}"
-  button-choice:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.ink}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.tight}"
-    padding: "0.5em 0.9em"
-  button-choice-hover:
-    backgroundColor: "{colors.panel-deep}"
-    textColor: "{colors.ink}"
-  input-reply:
-    backgroundColor: "{colors.white}"
-    textColor: "{colors.ink}"
-    typography: "{typography.small}"
-    rounded: "{rounded.tight}"
-    padding: "0.5rem 0.75rem"
-  attention-item:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.tight}"
-    padding: "1rem 1.5rem"
-  degraded-well:
-    backgroundColor: "{colors.panel-deep}"
-    textColor: "{colors.ink}"
-    typography: "{typography.small}"
-    rounded: "{rounded.tight}"
-    padding: "0.75rem 1rem"
-  comp-tag:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.ink-soft}"
-    typography: "{typography.micro}"
-    rounded: "{rounded.tight}"
-    padding: "0.4em 0.6em"
+description: A mission-control ledger on a cool grey ground, both themes; one epic on stage at a time, its stories told as status ladders; state is always a worded chip, never colour alone.
 ---
 
-# Design System: Ergane pane
+# Design System: Ergane pane — the second world
 
-<!-- Audience: headless implementer agents building web/ from specs in a sandbox with no network.
-     Every value here is literal. Where this file and .impeccable/mocks/tokens.css disagree, this file wins
-     (one known disagreement: the font @import; see Typography). -->
+**Authority.** This document is the pane's visual authority under constitution
+VIII. It is the **second** world: D-015 (2026-08-24) replaced the first — the
+light-sage mid-century world D-012 recorded — after the operator approved the
+`Showfloor Redrawn` proposal. The approved comp is committed at
+`.impeccable/mocks/showfloor-redrawn.html`; the first world's comps remain
+beside it as history (`desk.html`, `showfloor.html`, `tokens.css` are the old
+world and are **not** authorities anymore). Where a spec's scenario and this
+document disagree on an *appearance*, this document wins; on *what is shown*,
+the spec wins.
+
+**Why the world changed.** The first build proved the old world's central
+staging idea wrong at the root: one full stage per epic, stacked, produced six
+screens of mostly-empty canvas, a landing rail and legend per epic, and graphs
+laid out beside their own boxes. The second world's unit is the **selection** —
+one epic on stage, chosen from a rail, explained in a pane — and its signature
+is the **status ladder**: every story wears the same six stops from ready to
+merged, so the whole floor reads as progress bars a glance can sweep.
 
 ## Overview
 
-**Creative North Star: "The Mission Timeline"**
-
-The pane is launch telemetry for a software factory. An operator glances at it from the terminal beside it and needs one second to know whether anything is waiting on them. So the Desk opens on a row of T-minus clocks, not a grid of metric cards, and every running epic below it reads along one shared milestone bar (PASSED, PR_OPEN, ENQUEUED, MERGED). The Showfloor is the same world seen as a transit map: stories are stations on a route, the landing run is one shared line on the right edge, and the brightest moving thing on the page is a token travelling that line. A jam at ENQUEUED is a place you can point to.
-
-The material is mid-century modern on a light sage ground: cool green-cast neutrals, graphite ink, deep-moss headings, and four state hues (teal, mustard, olive, clay) that are muted enough to sit in an enterprise room. It is flat, hairline-ruled, tight-cornered, and dense; the one shadow in the system sits under the one thing you can press. Motion exists in exactly three places, all of which stop under `prefers-reduced-motion`.
-
-State is the product, so state is never colour alone. Every one of the eleven node states is carried by a glyph (a skewed square, filled, half-filled, hatched, crossed, or dashed) and a one-word caption. Unknown values are written as the word "unknown" in soft italic, never a fabricated zero. Degradation is said in so many words inside a moss-grey well. Rejected outright: cream or beige grounds, red anywhere, generic cards-of-metrics, gradient text, glass blur decoration, and neon-on-black.
-
-**Key Characteristics:**
-- Light sage ground (`ground`) with near-white mist panels (`panel`) and hairline rules; never cream, beige, or neutral grey.
-- Four muted mid-century state hues, each paired with a darker "-ink" tone for text; teal is the single tame primary.
-- Eleven node states, each a skewed-square glyph plus an uppercase caption; two edge kinds drawn distinctly.
-- One shared milestone bar on the Desk and one shared landing line on the Showfloor.
-- Flat tonal layering; one shadow token, reserved for pressable things.
-- Three authored motions only (live-dot breathe, RUNNING glow, landing-line token travel), all gated by `prefers-reduced-motion`.
-- One verb (Answer) on the Desk; no controls on the Showfloor.
+The pane is an operator's ledger, not a dashboard of gauges: white cards on a
+cool blue-grey ground, hairline grids, mono numerals, serif only where a thing
+has a *name*. It is calm at rest and speaks in chips. Exactly one element
+pulses — the ladder stop that is running now — and it stops under
+`prefers-reduced-motion`. The one verb (Answer) lives at the Desk; the
+Showfloor never grows a button.
 
 ## Colors
 
-A cool, green-cast mid-century palette: sage ground, graphite ink, and four muted state hues that read as telemetry, not alarm.
+Both themes are binding. Tokens are defined on `:root` (light), redefined under
+`@media (prefers-color-scheme: dark)` guarded as `:root:not([data-theme="light"])`,
+and again under `:root[data-theme="dark"]`, so an explicit choice beats the OS
+in both directions. `body` takes `background: var(--ground)` explicitly. No
+colour may have its only definition inside a theme block.
 
-### Primary
-- **Teal** (`teal`, #1F7A78): the one accent. Live dot, the RUNNING station fill, the mark's diamond, the active nav underline, the Answer button, focus rings, the Desk's in-flight milestone token. The only hue used as a button background.
-- **Teal Ink** (`teal-ink`, #0E4F4D): text on teal's behalf: links, the "live floor" label, RUNNING captions, Answer hover.
-
-### Secondary (the three other state hues)
-- **Mustard** (`mustard`, #D9A521) / **Mustard Ink** (`mustard-ink`, #7A5A06): VERIFYING, and attention rank medium (a Question). Fill for the VERIFYING station and chevron; ink for its caption, the Question kind label, the `warning` severity.
-- **Olive** (`olive`, #6E7F3E) / **Olive Ink** (`olive-ink`, #415022): the landing run. PASSED, PR_OPEN, ENQUEUED, MERGED glyph strokes and fills, the milestone bar's done diamonds and fill, the `depends_on_merged` double rail, the landing line, the queue token, and the factory's RESOLVED ruling text.
-- **Clay** (`clay`, #B9774F) / **Clay Ink** (`clay-ink`, #7A4A2B): WAITING_OPERATOR and attention rank high (an Escalation). Muted terracotta; it is the warmest hue in the system and it is never red. Fill for the WAITING_OPERATOR station, the paged ring, the Showfloor attention badge dot, the high-rank clock digits, the `critical` severity. In tokens.css these are named `--orange` / `--orange-ink`; keep those CSS names, the role is clay.
-
-### Tertiary
-- **Aqua** (`aqua`, #8FB8C9) / **Aqua Ink** (`aqua-ink`, #3E6C80): upstream, not yet live. PENDING (dashed) and KEY_ISSUED (hatched) glyph strokes, attention rank low (a Notice), the `info` severity.
-
-### Neutral
-- **Sage** (`ground`, #E3E8E0): the page ground, `<html>` background. Cool, green-cast; this is the brand commitment ("not cream, not beige").
-- **Mist** (`panel`, #F4F6F1): panels, attention items, choice buttons, milestone diamonds at rest, station fills at rest, the halo around tokens.
-- **Moss Grey** (`panel-deep`, #D2D9CE): wells and tracks: the milestone bar track, the degraded-state well, choice-button hover, the KILLED station fill.
-- **Graphite** (`ink`, #23292A): body text, clock digits, the FAILED glyph, station strokes at rest, the `depends_on_merged` rail on non-merged routes.
-- **Tinted Slate** (`ink-soft`, #5C6962): secondary text, table headers, micro labels, the dashed `depends_on` route, the KILLED glyph. It has a green cast; never substitute a neutral grey.
-- **Hairline** (`rule`, #BDC7BA): 1px borders, dividers, table rules, milestone diamond strokes at rest.
-- **Deep Moss** (`walnut`, #3E4A3C): h1/h2/h3 and the ERGANE mark. Despite the CSS name it is a deep moss, not brown.
-- **White** (`white`, #FFFFFF): text on teal (Answer button) and the reply textarea background only.
+| token | light | dark | job |
+|---|---|---|---|
+| `--ground` | `#EDF0F2` | `#0D1418` | page ground |
+| `--surface` | `#FFFFFF` | `#131E24` | cards, rail, panes |
+| `--sunken` | `#E3E8EB` | `#0A1013` | wells, code, empty ladder stops |
+| `--ink` | `#14202A` | `#D8E3E8` | text |
+| `--muted` | `#566873` | `#8A9EA9` | secondary text |
+| `--faint` | `#7D8F9A` | `#6B7F8A` | tertiary, provenance |
+| `--rule` | `#C7D1D7` | `#27373F` | borders |
+| `--hairline` | `#D8E0E4` | `#1E2C33` | inner grids |
+| `--accent` | `#0E6F79` | `#46B7C1` | the one accent: selection, links, "now" |
+| `--accent-w` | `#DCEDEF` | `#102D31` | accent wash |
+| `--olive` | `#5A6B2F` | `#A9BC62` | done / merged / landed |
+| `--olive-w` | `#EBEFD9` | `#20260F` | done wash |
+| `--gold` | `#7E5D12` | `#D3A845` | waiting on the operator |
+| `--gold-w` | `#F4EBD4` | `#2B2210` | waiting wash |
+| `--alarm` | `#9E3319` | `#E2795A` | killed, failed, regressed |
+| `--alarm-w` | `#F6E3DD` | `#2E1710` | alarm wash |
+| `--shadow` | `0 1px 2px rgba(20,32,42,.05), 0 8px 24px -12px rgba(20,32,42,.14)` | `0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6)` | the one shadow, on cards |
 
 ### Named Rules
-**The Never-Colour-Alone Rule.** Every hue that means something is doubled by a glyph and a caption (node states), a word (attention kind: Escalation / Question / Notice; severity: critical / warning / info), or a label (milestones). A reader with no colour perception loses nothing. Test: remove all `color`/`fill`/`background` declarations and every state must still be readable.
 
-**The No-Red Rule.** Nothing in the pane is red. The highest-attention hue is clay (#B9774F) and the FAILED state is graphite (#23292A) with a cross glyph. Do not introduce a red, crimson, or "danger" token for any reason, including error states.
-
-**The Ink-Pair Rule.** Each state hue is a pair: the base fills shapes (glyphs, stations, dots, tokens); the `-ink` tone colours text. Never set text in a base hue and never fill a shape with an ink tone (the one exception is the PENDING / KEY_ISSUED / PASSED outline glyphs, whose stroke is the ink or base as listed in the glyph table).
-
-**The Attention Ranking Rule.** Attention items rank high / medium / low and each rank owns a hue: high = Escalation = clay, medium = Question = mustard, low = Notice = aqua. The rank is carried by the kind word in the item's `-ink` tone and by a 3px inset stripe on the item's left edge; a high item also takes a clay 1px border.
+- **State is never colour alone.** Every state-bearing element carries its word:
+  chips say `merged`, ladder stops pair with the detail pane's named steps.
+- **Semantic hues are not the accent.** Olive/gold/alarm carry state; teal
+  carries attention and selection. A button background may only be `--accent`.
+- **Washes take their own hue's ink.** Text on `--gold-w` is `--gold`, never
+  `--ink` — chips are `border: 1px solid currentColor` over the wash.
 
 ## Typography
 
-**Display Font:** Red Hat Display (with "Avenir Next", "Segoe UI", system-ui, sans-serif)
-**Body Font:** Red Hat Text (with "Avenir Next", "Segoe UI", system-ui, sans-serif)
-**Label/Mono Font:** Red Hat Mono (with "SF Mono", ui-monospace, Menlo, Consolas, monospace)
+**System stacks only — nothing downloads.** The first world's vendored OFL
+faces under `web/public/fonts/` are retired from these surfaces (the files may
+remain in the tree; nothing may load them). No remote stylesheet, ever.
 
-**Character:** a geometric humanist family doing three jobs: Display for headings, captions, and buttons; Text for prose; Mono for every identifier, clock, count, and figure. The mono is what makes the pane read like the terminal beside it.
+```
+--serif: ui-serif, "Iowan Old Style", Georgia, "Times New Roman", serif;
+--sans:  ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+--mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+```
 
-### Fonts policy (binding)
-- **Self-host. Never load a remote stylesheet.** The comps (`.impeccable/mocks/tokens.css`) pull the three faces through a Google Fonts `@import`; that is a comp shortcut and it violates PRODUCT.md ("No CDN scripts or remote stylesheets"). Product code must not contain any `@import url(https://...)`, `<link rel="stylesheet" href="https://...">`, or `<link rel="preconnect">` to a font host.
-- Ship Red Hat Display (weights 500, 600, 700), Red Hat Text (400, 500, and 400 italic), and Red Hat Mono (400, 500) as `.woff2` files under `web/public/fonts/`. The Red Hat fonts are licensed under the SIL Open Font License 1.1; include the OFL text beside the files.
-- Declare them with `@font-face` in the global stylesheet with `font-display: swap`, using the family names exactly as above so the declared stacks resolve. If a face is unavailable in the build sandbox, the declared fallbacks (`"Avenir Next", "Segoe UI", system-ui, sans-serif` and `"SF Mono", ui-monospace, Menlo, Consolas, monospace`) must carry the page without layout change; never substitute a different web font.
-- Body is antialiased (`-webkit-font-smoothing: antialiased`).
+Roles: **serif** for things with names (spec names, detail titles, section
+headings); **mono** for identity and data (spec ids, story ids, chips, labels,
+timestamps, numerals — always `font-variant-numeric: tabular-nums`); **sans**
+for running prose.
 
-### Hierarchy
-- **Clock** (Red Hat Mono 400, `clamp(1.9rem, 2.6vw, 2.6rem)`, line-height 1, letter-spacing -0.02em, `font-variant-numeric: tabular-nums`): the T-minus digits of an attention item, rendered `−HH:MM:SS`. A Notice's clock slot reads "no clock" at 1.25rem. A high-rank clock is clay-ink; others graphite.
-- **Display** (Red Hat Display 600, 1.5rem, letter-spacing -0.01em, deep moss, `text-wrap: balance`): section heads ("Waiting on you", "The floor") and Showfloor epic names.
-- **Headline** (Red Hat Display 600, 1.125rem, deep moss): lower Desk section heads (Health, Spend to date); the ERGANE mark is the same size at weight 700 with letter-spacing 0.02em.
-- **Body** (Red Hat Text 400, 0.95rem, line-height 1.45, graphite): attention prose and notices; max measure 68ch.
-- **Small** (Red Hat Text 400, 0.8125rem): tables, the "until" line, personas, metadata, the reply textarea.
-- **Caption** (Red Hat Display 600, 0.8125rem, letter-spacing 0.02em): state chevron captions, the attention kind word, buttons, the nav (weight 500). On the Showfloor SVG the station caption is Red Hat Display 600 at 11px, uppercase, letter-spacing 0.04em.
-- **Readout** (Red Hat Mono 400, `--fs-readout: 1.25rem`, tabular-nums, line-height 1): the three figures at the right of an epic timeline row and a Notice's "no clock" slot. The only step between Body and Display.
-- **Micro** (Red Hat Text 500, 0.6875rem, letter-spacing 0.06em, uppercase, tinted slate): table headers, milestone labels, readout keys, "what each button does". On the Showfloor SVG the equivalent label is 10px.
-- **Mono** (Red Hat Mono 400, 0.8125rem, tabular-nums): correlation ids, `esc:<12hex>:<CHOICE>` payloads, counts, node ids (12px weight 500 in the SVG), readout values (the **Readout** step, `--fs-readout: 1.25rem`), table figures, and any text the factory wrote verbatim (error strings).
+### The ramp
 
-### Named Rules
-**The Factory Speaks in Mono Rule.** Anything the factory wrote or counted (ids, payloads, states in `UPPER_SNAKE`, figures, error messages, timestamps) is set in Red Hat Mono with tabular numerals. Prose the pane writes is Red Hat Text. Never the other way round.
+Base `15.5px`. Steps, by role — a size off this ramp is a defect:
 
-**The Caption Case Rule.** State captions and micro labels are uppercase with tracking (0.02em to 0.08em). Prose is never uppercase and never tracked.
+| step | size | use |
+|---|---|---|
+| `micro` | `.66rem` mono, uppercase, `.09em` tracking | grid labels, legends, section kickers |
+| `tag` | `.74rem` mono | chips (`.62rem` inside chips), timestamps, sub-lines |
+| `small` | `.82rem` | node titles, table cells, kv values |
+| `body` | `.9rem` | detail prose, findings |
+| `title` | `1.15rem` serif 600 | detail-pane title |
+| `name` | `1.2rem` serif 600 | spec name beside its id |
+| `display` | `1.6rem` mono 700 | the spec id — the biggest thing on the stage |
 
 ## Layout
 
-Two rooms share one masthead: the ERGANE mark (teal rotated-square diamond, 0.55em, before the word), the Desk / Showfloor nav (active page has a 2px teal underline), and a right-aligned floor line (live dot, host, count of running epics, last read time). Masthead padding is `1rem 2rem 0.75rem` with a 1px hairline beneath; on the Showfloor it is sticky at the top on the sage ground.
-
-**Desk.** A single column, max-width 1280px, centred, horizontal padding 2rem, bottom padding 3rem. Order is fixed: the attention strip (padding `1.5rem 0 1rem`, hairline beneath), then the floor (one timeline row per running epic), then a degraded well if any epic refused its query, then a two-column lower band (Health | Spend) with a 2rem gap. An attention item is a three-column grid `250px 1fr auto` with a 1.5rem gap; an epic row is `250px 1fr 300px`, 1rem vertical padding, hairline above (and below the last). The milestone bar is 56px tall; its track is 4px. Readouts right-align in three columns. Node chevrons wrap beneath the row in a flex line with a `0.5rem 1rem` gap.
-
-**Showfloor.** A stage with padding `1.5rem 2rem 3rem` and a 2rem gap between routes. Each route is a grid `220px 1fr` (epic name and a meta paragraph on the left, the map on the right) with a hairline above. The map is an SVG of min-width 1040px inside a horizontally scrolling wrapper; stations sit 160px apart on a row, 140px between rows, the landing line lives at x=930 with its four stations 64px apart, and a same-rank pair stacks in one column joined by a vertical rail. Station squares are 40px (16px on the landing line) with `skewX(-12deg)`.
-
-**Rhythm.** The spacing scale is `0.25 / 0.5 / 0.75 / 1 / 1.5 / 2 / 3rem`. Dividers are hairlines, not whitespace; density is high and intentional.
-
-**Responsive.** One breakpoint at `max-width: 900px`: the masthead wraps and its floor line drops to a full-width second line; Desk padding tightens to `0 1rem 2rem`; attention items and epic rows collapse to one column; readouts left-align; the milestone bar gains 32px side margins and hides its labels (the diamonds remain); the lower band stacks; the Showfloor route grid stacks and the map scrolls horizontally.
+- **App frame**: full-bleed surface card, `max-width: 96rem`, centred; never a
+  hard content cap below 96rem. The appbar is one row: brand, room nav with a
+  2px accent underline on the active room, and the attention badge pushed to
+  the far edge.
+- **Showfloor grid**: `17rem` epic rail · `1fr` stage · `26rem` detail pane.
+  Below `1180px` the detail pane drops to a full-width row beneath; below
+  `820px` the rail stacks above the stage.
+- **The detail track is a story's track, not a permanent one** (2026-08-25).
+  While no story is selected the pane holds nothing but the room's own
+  explanation, and `26rem` of stage is a poor price for two sentences: the
+  track collapses to `0` and the stage takes the width. Picking a story
+  restores it. The stage is the room's subject; the pane is what a pick
+  earns.
+- **Containment is a design law.** No element carrying text may cross the
+  viewport's right edge except inside an ancestor whose `overflow-x` scrolls,
+  and every stage element sits inside its stage's box. No two text leaves may
+  overlap. **And no element with an opaque background may paint over a text
+  leaf that is not its own** (2026-08-25, D-018) — the first three laws measure
+  glyph geometry through a `Range` over each leaf, which is correct and is
+  exactly why they cannot see a box painted on top of readable text. A degraded
+  note once rendered with its heading cut mid-word, in both themes, while all
+  three passed. These are committed test assertions, not aspirations.
+- Spacing rhythm: card padding `.65–.8rem`, section padding `1.3–1.8rem`,
+  stage rank gap `1.6rem`, rail row padding `.6rem 1.2rem`.
 
 ## Elevation & Depth
 
-Flat tonal layering. Depth is carried by three neutral steps (sage ground, mist panel, moss-grey well) and 1px hairlines; nothing floats. The system has exactly one shadow token and the comps apply it to nothing at rest; it is reserved for a pressable element that needs lift. Tokens on the milestone bar and landing line get a 3px or 4px halo in the panel colour (`box-shadow: 0 0 0 4px` / SVG `stroke-width: 3`) so they read above the track: that is a cut-out, not a shadow.
-
-### Shadow Vocabulary
-- **Press** (`box-shadow: 0 2px 6px rgba(42, 42, 38, 0.12), 0 10px 24px -12px rgba(42, 42, 38, 0.18)`): the only shadow; permitted on a pressable control only (the Answer button at rest or on hover). Never on panels, items, tables, or maps.
-
-### Named Rules
-**The One-Shadow Rule.** Surfaces are flat. The single shadow token exists for the one thing you can press; if a surface cannot be pressed, it cannot carry a shadow.
-
-**The Well Rule.** A state that needs to stand apart without alarm (a refused query, a degraded seam) sits in a moss-grey well (`panel-deep`, 3px radius, padding `0.75rem 1rem`) with a bold Display lead-in, in words. No icon, no hue.
+Flat with one lift: `--shadow` on stage node cards and the app frame. Nothing
+else floats; wells and grids are tonal (`--sunken`, hairlines). No
+backdrop-filter, no glass, no gradient anywhere.
 
 ## Shapes
 
-Tight mid-century geometry. Corners are 3px everywhere (panels, items, buttons, wells, textarea); the only pill is the chip radius (999px), reserved for chips if any are introduced (none exist in the comps). The signature silhouette is the skewed square: stations are squares under `skewX(-12deg)`, chevron glyphs are squares under `skewX(-20deg)`, and milestone markers are 12px squares rotated 45deg into diamonds (the same diamond is the mark). Borders are 1px hairlines (`rule`) on panels and 1.5px graphite on buttons. Tracks and rails are rounded to 2px. The WAITING_OPERATOR glyph is the one organic shape, a bell (`border-radius: 50% 50% 2px 2px`), because it is the one state that pages a human.
+Rectangles with `2px` radius on cards, `0` on chips. Selection is a 3px accent
+left bar on rail rows and a 2px accent outline on the selected node card.
 
 ## Components
 
-### Buttons (Desk only; the Showfloor has none)
-Character: compact, type-led, one accent.
-- **Shape:** tight corners (3px), 1.5px border, padding `0.5em 0.9em`, Red Hat Display 600 at 0.8125rem.
-- **Answer (primary):** teal (#1F7A78) fill, teal-ink border, white text. Hover: teal-ink fill. Used for the Answer submit and for the first escalation choice.
-- **Choice (secondary):** mist fill, graphite 1.5px border, graphite text, left-aligned. Hover: moss-grey fill and `translateY(-1px)` over `0.18s cubic-bezier(0.16, 1, 0.3, 1)`. The `esc:<12hex>:<CHOICE>` payload sits under the label as a block in Red Hat Mono 400 at 0.6875rem, tinted slate (white at 80% on the Answer variant).
-- **Focus:** `outline: 2px solid #1F7A78; outline-offset: 2px`. Always visible on keyboard focus; Answer is keyboard-reachable.
-- **Disabled:** opacity 0.45, `cursor: not-allowed`, no transform.
+### Chips (state vocabulary)
 
-### Inputs / Fields
-- **Reply textarea:** white fill, 1.5px hairline border, 3px radius, padding `0.5rem 0.75rem`, Red Hat Text at 0.8125rem, min-height 4.5em, resize vertical. Placeholder says what happens: "Reply to the node. Sent as your identity; the factory rules on it."
-- **Focus:** border turns teal and a 2px teal outline at 1px offset appears.
-- **Error:** none; the factory's ruling is rendered as text in the item, not as a field error.
+Mono `.62rem` 600 uppercase, `.08em` tracking, `padding .24em .55em`,
+`border: 1px solid currentColor`, squared. The full vocabulary — a chip outside
+this table is a defect:
 
-### Navigation
-- **Masthead:** the mark, then Desk / Showfloor in Red Hat Display 500, tinted slate, no underline; the current room is graphite with a 2px teal bottom border. The floor line on the right is 0.8125rem tinted slate with the live dot (0.5em teal circle, breathing). On the Showfloor an attention badge ("2 waiting on you → Desk") sits at the far right in clay-ink with a clay bell dot; it is a link, the Showfloor's only one.
-- **Mobile:** the masthead wraps; the floor line takes a full-width line beneath.
-
-### Attention Item (signature)
-Character: a clock with its answer beside it.
-- **Container:** mist panel, 1px hairline, 3px radius, padding `1rem 1.5rem`, grid `250px 1fr auto`.
-- **Rank stripe:** `box-shadow: inset 3px 0 0 <rank hue>` on the left edge. High (Escalation) = clay and the border itself turns clay; medium (Question) = mustard; low (Notice) = aqua. The kind word in the clock column repeats the rank in the matching ink tone.
-- **Clock column:** kind word (Caption), the T-minus clock (Clock), then the "until" line (Small, tinted slate) stating the absolute expiry and the consequence ("until 12:45:43Z · then KILL the node").
-- **Body column:** a mono "where" line (epic / story · attempt · correlation id), prose, and for an Escalation a micro label "What each button does" followed by one sentence per choice. The factory's ruling on the last answer lands here as Small olive-ink 500 text ("Your last answer on 8d1e… was RESOLVED — waiting workflow signalled."); refusals (UNKNOWN, ALREADY_RESOLVED, EXPIRED, UNAUTHORIZED, SIGNAL_FAILED) render the same way in the same place.
-- **Body segmentation rule (binding, added 2026-08-24).** "One sentence per choice" is a structural requirement, not a stylistic hope, and the first build satisfied it nowhere: a real escalation rendered as **1,334 characters in a single paragraph with seven emoji inline**. So the rule is stated measurably. An Escalation's evidence is segmented into **one block per choice token the payload carries** (`esc:<12hex>:<CHOICE>`), in the payload's own order, and **no rendered text block exceeds 400 characters**. A payload naming no choices — a Question, a Notice — renders as exactly one block; the segmenter degrades, it does not crash. Segmenting is **never** editing: the concatenated rendered text must equal the payload's evidence byte-for-byte after whitespace normalisation, emoji included, because constitution III forbids softening what the factory said and a layout that rewrites is a softening.
-- **Answer column:** min-width 220px. Escalation: a stack of choice buttons, the first as Answer-primary. Question: the reply textarea and one Answer button. Notice: italic tinted-slate text "Asks for nothing; no answer exists." and no control.
-- **Countdown anchor rule:** the clock counts down to the factory-written `expires_at` and nothing else. Never derive an expiry from the pane's own clock or from "received at". Ticking is a text update (`aria-live="polite"`), not an animation, so it is unaffected by `prefers-reduced-motion`.
-
-### Epic Timeline Row and the Milestone Bar (signature)
-Character: every epic reads the same way.
-- **Row:** grid `250px 1fr 300px`; left column is the epic name (Display 600 at body size) over the epic id and state in mono micro, then the persona line; the middle is the bar; the right is three readouts (mono 1.25rem value over a micro key): stories left, attempts on the tracked story, spend to date.
-- **Bar:** 56px tall. A 4px moss-grey track with an olive fill from the left. Five milestones at 0% / 34% / 56% / 78% / 100%: dispatch, PASSED, PR_OPEN, ENQUEUED, MERGED, each a 12px diamond (mist fill, 2px hairline stroke; done = olive fill and stroke, label olive-ink) under a micro label.
-- **Milestone bar rule:** the bar tracks the furthest-behind open story: the fill and the primary token sit where the least-advanced not-yet-merged story is, so the bar can only read "done" when every story is. Other open stories may place additional tokens. (The comps label one row "furthest-along"; that is a comp inconsistency and not the rule.)
-- **Token:** a 16px circle with a 4px mist halo; teal for a story in flight, mustard (`.verifying`) for VERIFYING, clay (`.waiting`) for one waiting on the operator or paged. Beneath it a mono micro chip on mist names the story and why it is there ("us4 · paged", "us2 · queued 4m").
-- **Node line:** beneath the row, every story as a state chevron + mono story id.
-- **Quiet floor:** when nothing runs, a hairline-bounded italic line in tinted slate says so; never a blank.
-
-### State Chevrons and Stations: the eleven-state glyph grammar (signature)
-One glyph family carries node state in both rooms. On the Desk it is a 0.95em inline glyph (`.chev i`) beside an uppercase Red Hat Display 600 caption at 0.8125rem; on the Showfloor it is a 40px SVG station (`skewX(-12deg)`, 2px stroke) with the story id in mono above and an uppercase 11px caption below. Base shape is a square skewed -20deg (Desk) / -12deg (Showfloor). Caption colour is always the state's ink tone.
-
-| State | Glyph (fill / stroke) | Caption |
+| chip | colours | worn by |
 |---|---|---|
-| PENDING | empty; 2px dashed aqua-ink outline (Desk: 2px inset aqua-ink, 1px radius) | pending |
-| KEY_ISSUED | diagonal 45deg hatch in aqua-ink on mist (Desk: `repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 5px)`) | key issued |
-| RUNNING | solid teal fill, teal-ink stroke; glows (see Motion) | running |
-| VERIFYING | solid mustard fill, mustard-ink stroke | verifying |
-| VERIFYING + paged | VERIFYING glyph plus a dashed clay ring 8px outside it (Desk: `outline: 2px solid clay; outline-offset: 2px` and the word "paged" appended in clay-ink micro) | verifying · paged |
-| PASSED | empty; 2px olive outline | passed |
-| PR_OPEN | left half olive, right half mist; 2px olive outline | pr open |
-| ENQUEUED | 78% olive from the left, rest mist; 2px olive outline | enqueued |
-| MERGED | solid olive fill, olive-ink stroke | merged |
-| FAILED | mist fill with a graphite 2px X across it; graphite stroke | failed |
-| KILLED | moss-grey fill, tinted-slate stroke (Desk: tinted slate at 50% opacity and the caption struck through) | killed |
-| WAITING_OPERATOR | solid clay fill, clay-ink stroke; on the Desk the glyph is a clay bell (`border-radius: 50% 50% 2px 2px`) | waiting on you |
+| `landed` / `merged` | olive on olive-w | landed specs, merged stories |
+| `building` / `verifying` / `queue` | accent on accent-w | live work |
+| `ready` | muted on sunken | reviewed, waiting its turn |
+| `draft` | faint, transparent, **dashed border** | unreviewed specs |
+| `waiting on you` | gold on gold-w | `awaiting_operator`, open escalations |
+| `killed` / `failed` | alarm on alarm-w | terminal states, regressed findings |
 
-Rules: the paged-while-verifying case keeps the VERIFYING state and adds the ring and the word; it is never rendered as WAITING_OPERATOR. A supplementary micro line under a Showfloor caption carries the detail ("attempt 3 of 6", "question · 6h 58m", "attempt 1 · 12m"). Captions are lowercase in the source and uppercased by CSS.
+### The status ladder (signature)
 
-### Route Map and Landing Line (Showfloor signature)
-- **Edge kinds, drawn distinctly:** `depends_on_merged` (unlocks on merge) is a solid double rail: a 4px stroke (graphite, or olive once the upstream story is merged) with a 1.5px sage stroke drawn over it to split it in two. `depends_on` (unlocks on verification) is a single 1.5px tinted-slate stroke with `stroke-dasharray: 4 5`. A legend naming both is drawn once per map in 10px micro.
-- **Same rank:** stories of equal rank share one column, stacked 140px apart and joined by a vertical rail, labelled "same rank" in micro.
-- **Landing line:** one olive 3px vertical line at the right edge of every map (with a 1px sage centre stroke), labelled "landing line", with four 16px stations bottom to top: PASSED, PR_OPEN, ENQUEUED, MERGED (MERGED shows a count, "MERGED ×3"). A story on the landing run is a 7px-radius token (teal; olive `.queue` once ENQUEUED) with a 3px mist stroke, placed between the stations it is between, labelled in micro with the story id and its situation ("us4 · held", "ENQUEUED · 4M"). A story short of the line is drawn at the end of its route with a hairline connector.
-- **Refused query:** an epic the orchestrator will not describe is a route with no stations and an italic quiet line saying so. A quiet floor says so in the same voice.
-- **No controls:** nothing on the Showfloor is a button, form, or input. The attention badge in the masthead is the one link.
+Six stops, always six, in order: **ready · building · verifying · pr open ·
+queue · merged**. On a node card it is six `4px`-tall bars with `3px` gaps:
+done stops olive, the active stop accent with a 1.6s opacity pulse (the
+pane's only animation; suppressed under reduced motion), waiting-on-you gold,
+ahead `--sunken`. In the detail pane the same six stops expand to named steps —
+mono name, dot, timestamp — pending steps in `--faint`.
 
-### Tables (Health, Spend)
-Collapsed borders, full width, Small size. Headers are micro (uppercase, tracked, tinted slate, weight 500) over a hairline; cells have `0.5rem 0.75rem 0.5rem 0` padding and a hairline beneath; numeric columns are right-aligned mono with no right padding. Severity is a Caption-weight micro word: critical = clay-ink, warning = mustard-ink, info = aqua-ink. Reference paths under a finding are mono micro in tinted slate.
+There is **no seventh stop**: task-level progress ("task x of y") has no seam —
+`tasks.md` boxes are never ticked — and this system does not render elements
+that can never fill. When ergane emits task progress, the stop is added *here*
+first, then in a spec.
 
-**The Unknown Rule.** A NULL from the factory's rollup is rendered as the word "unknown" in Red Hat Text italic, tinted slate, at Small size, in the cell or readout where a figure would go. A total is unknown when any row in scope is unknown. Never print 0, a dash, or an empty cell for a NULL, and never style it as an error.
+**Eleven node states map onto the ladder and chips** — the state model is
+unchanged, only its clothing:
 
-**The Spend Strip's shape (binding, added 2026-08-24).** The strip is **one row per persona**, plus one total row — never one row per persona-and-metric. Its columns are exactly four, in this order:
+| `epic_status` state | ladder | chip |
+|---|---|---|
+| PENDING | ready active | `ready` |
+| KEY_ISSUED, RUNNING | building active | `building` |
+| VERIFYING | verifying active | `verifying` |
+| PASSED, PR_OPEN | pr open active | `pr open` |
+| ENQUEUED | queue active | `queue` |
+| MERGED | all six done | `merged` |
+| FAILED, KILLED | ladder freezes; card carries `terminal_reason` verbatim | `failed` / `killed` |
+| WAITING_OPERATOR (or `awaiting_operator` true in any state) | active stop turns gold | `waiting on you` |
 
-| column | source |
-|---|---|
-| Prompt tokens | rollup `prompt_tokens` |
-| Completion tokens | rollup `completion_tokens` |
-| Requests | rollup `requests` |
-| Spend | rollup `spend_usd`, under the heading "spend to date" |
+### Epic rail
 
-**Four, and no others.** `cache_read_tokens`, `cache_write_tokens`, `rows` and `unconfirmed_rows` are the ledger's own bookkeeping and do not belong on a Desk: the first build rendered the full cross product and produced **32 rows of which 14 read "unknown"** — 44% of a table conveying nothing, because the strip rendered whatever columns the rollup happened to carry rather than the ones an operator reads. The metric set is therefore a **closed set declared here**, not the rollup's key list, so a new ledger column cannot reach the Desk without an amendment to this document.
+One row per spec in directory order: mono id in accent, status chip with the
+story count (`landed 4/4`, `building 1/4`), name in muted small beneath.
+Selection: accent-w wash + 3px accent bar. Rows are real links —
+`/showfloor/<spec-dir>` — and the default selection is the epic that is
+building, else the newest landed.
 
-A persona whose every value is unknown **still renders its row**. A persona that spent nothing measurable is a fact about the run, and dropping the row would make the strip lie by omission — the Unknown Rule above governs the cells, and this governs the row.
+### Stage
+
+Header: `display` id + `name` + the live story's chip. A metrics grid
+(hairline 1px-gap grid on surface): stories, merged, FRs, last-story wall
+clock, spend to date — spend obeys the Unknown Rule below. The graph: ranks
+left→right in declaration order, node cards `11.5rem` wide (id block, title
+small, chip, ladder, mono sub-line), wires drawn rank-to-rank — **merge edges
+solid 2px olive, pass edges dashed 2px `--rule`** — behind the cards,
+`pointer-events: none`. **Under the stage, above the legend, the spec's own goal**
+(2026-08-25, D-019): one paragraph lifted from the spec's `## Context` — or
+`## Sketch` for a spec still unrefined — saying what this epic is *for*. It does
+not depend on selection, because it is true of the graph either way, and a spec
+carrying neither heading renders no band at all rather than an empty one. One
+legend row under the stage, rendered once per page, never per epic. The stage scrolls horizontally when a graph outgrows it;
+an epic whose stage document has no nodes renders as its degraded notice with
+**no stage canvas at all**.
+
+**When the stage does scroll, the scroll is furniture and wears the room's
+clothes** (2026-08-25). Left unstyled, a scroller renders the host operating
+system's widget — a light grey trough with stepper buttons, pasted into a dark
+room — and it is the one surface in this pane the tokens never reached. Thin,
+no stepper buttons, thumb on `--rule` and brighter on hover, trough
+transparent, in both themes. It is always rendered rather than an overlay that
+fades in: a graph continuing past the edge with no visible affordance is a
+graph with pieces missing.
+
+### Detail pane
+
+For the selected story: id, serif title, the story's one-sentence intent, the
+six named steps with timestamps, a facts grid (attempt `n of cap`, judge
+verdict with scenario count, PR number, landing SHA, wall clock), and the
+`requirement_keys` as sunken mono chips. `aria-live="polite"`.
+
+When nothing is selected the pane's track is gone until a story is picked, so
+the explanation never costs the graph its width (2026-08-25). **The band beneath
+the stage belongs to the spec's own goal** (D-019), not to a description of the
+room: the goal is true whether or not a story is selected, so nothing vanishes on
+a click. The room's own two-sentence explainer retires to the genuinely empty
+case — no spec picked at all — where it is the only thing there is to say.
+
+### Attention badge
+
+The Showfloor's whole relationship to attention: a gold chip in the appbar —
+count and destination (`1 waiting on you → Desk`) — and nothing else. No
+button, no form, no verb on this room, ever.
+
+### The Desk in this world
+
+Same tokens, same chips, same tables. Specifics the Desk keeps from the first
+world because they were right: attention first in DOM order; the **countdown
+anchor rule** (clocks count to the factory-written `expires_at` only, tick as
+text with `aria-live="polite"`, never derived from the pane's clock); degraded
+reads named in place with transport ≠ refusal; escalation bodies segmented one
+block per choice, ≤400 chars, byte-preserved. New in this world:
+
+- **Fluid width** — the Desk fills the frame like the Showfloor; no 1216px cap.
+- **Epic rows without collisions**: each epic is one row — id, chip, six-stop
+  ladder per story as small inline rails, spend — with label slots that cannot
+  overlap (a committed no-overlap assertion, the collision class the first
+  world shipped).
+- **The stale fold**: an attention item whose `expires_at` has passed collapses
+  to one line (kind, id, "expired <ago>") under a `stale` fold that opens on
+  demand. Expired is a fact, not an emergency; only live clocks get the full
+  card.
+- **Tables** (health, spend): micro uppercase headers over a hairline, cells
+  `.5rem .8rem`, numerals right-aligned tabular mono. The spend strip stays
+  one row per persona with exactly its four decided metrics (prompt tokens,
+  completion tokens, requests, spend to date).
+
+**The Unknown Rule** (unchanged, binding): a NULL from the factory renders as
+the word `unknown` in italic muted — never `0`, a dash, or an empty cell; a
+total is unknown when any row in scope is; the word "live" appears nowhere
+near spend.
 
 ### Motion
-Three authored motions and no others. All use the one easing, `cubic-bezier(0.16, 1, 0.3, 1)`.
-- **Live dot breathe** (masthead live dot, and the RUNNING chevron on the Desk): `scale(1) → scale(0.6)` with opacity `1 → 0.55`, 2.4s, infinite.
-- **RUNNING station glow** (Showfloor): opacity `1 → 0.55 → 1`, 2.4s, infinite.
-- **Landing-line token travel** (Showfloor): the queue token translates up the line by one station (`translateY(-90px)`), 6s, infinite, holding at each end.
-- **Button hover:** `transform 0.18s` and `background 0.18s` on buttons (a transition, not an animation).
 
-**The Reduced-Motion Rule.** Under `prefers-reduced-motion: reduce` all three animations are off: the live dot and RUNNING glyph render solid at rest, the token sits still at its current station. Author the Showfloor motions inside `@media (prefers-reduced-motion: no-preference)` and the Desk breathe with an explicit `animation: none` override. State is never carried by motion alone, so nothing is lost.
+Exactly one authored motion: the active ladder stop's 1.6s opacity pulse.
+`prefers-reduced-motion` suppresses it. Countdown ticking is a text update,
+not an animation. Nothing else moves.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** put the page on sage (#E3E8E0) with mist panels (#F4F6F1) and moss-grey wells (#D2D9CE); every neutral has a green cast.
-- **Do** double every state hue with a glyph and a caption, and every attention hue with the kind word; audit by stripping colour.
-- **Do** keep teal (#1F7A78) the only button colour and the only focus ring (2px, 2px offset).
-- **Do** set every factory-written value (ids, payloads, figures, states, error strings, clocks) in Red Hat Mono with tabular numerals.
-- **Do** render NULL as the italic word "unknown" and propagate it to totals.
-- **Do** anchor every countdown on the factory's `expires_at` and print the absolute expiry and its consequence beneath the clock.
-- **Do** draw `depends_on_merged` as a solid double rail and `depends_on` as a 1.5px dashed (4 5) route, with a legend once per map.
-- **Do** say degraded states in words inside a moss-grey well ("One epic refused its query. … Shown as unavailable, not hidden.").
-- **Do** self-host Red Hat Display, Text, and Mono as woff2 under `web/public/fonts/` with `@font-face` and the declared fallback stacks.
-- **Do** gate the three animations behind `prefers-reduced-motion` and leave the clock as a text update.
-- **Do** use the pane's own words: Pane, Showfloor, Desk, Floor, Answer, Attention item, Notice, Fixture floor, quiet floor.
+- Put every state into words on the element that carries it.
+- Compute layout from content — a stage is the size of its graph.
+- Keep the whole status vocabulary in this file; a new chip starts here.
+- Render both themes with equal care; test both.
 
 ### Don't:
-- **Don't** use a cream, beige, ivory, or warm-paper ground; the ground is sage and the panels are green-cast near-white.
-- **Don't** use red, crimson, or any "danger" hue anywhere; the hottest colour is clay (#B9774F) and FAILED is graphite with an X.
-- **Don't** lay out a grid of metric cards; the Desk opens on clocks and reads epics as timeline rows.
-- **Don't** put a coloured `border-left` wider than 1px on any element except the attention item's 3px inset rank stripe.
-- **Don't** use gradient text, `backdrop-filter` blur, glass panels, or neon-on-black; the pane is flat and light.
-- **Don't** add a shadow to anything that cannot be pressed.
-- **Don't** load a remote stylesheet, font, script, or icon set; the sandbox has no network and the product forbids CDNs.
-- **Don't** carry state by colour alone, by motion alone, or by icon without a caption.
-- **Don't** print 0, a dash, or an empty cell for a NULL, and never fabricate a zero total.
-- **Don't** collapse the paged-while-verifying case into WAITING_OPERATOR; it stays VERIFYING with a clay ring and the word "paged".
-- **Don't** put a button, form, input, or any non-link control on the Showfloor, or any non-GET request on the Desk other than Answer.
-- **Don't** use the words dashboard, console, app, board, action, mutation, or resolve anywhere in the interface copy; the one verb is Answer and the factory's rulings (RESOLVED, UNKNOWN, ALREADY_RESOLVED, EXPIRED, UNAUTHORIZED, SIGNAL_FAILED) are quoted verbatim in mono.
-- **Don't** use a neutral grey for secondary text or a brown for headings; `ink-soft` (#5C6962) and `walnut` (#3E4A3C) are both moss-tinted.
+- **Don't** render an element that can never fill (the task-stop lesson).
+- **Don't** repeat a legend, rail, or explainer per item on a page.
+- **Don't** let any text cross the viewport outside a scrolling ancestor, let
+  two text leaves overlap, or let a child escape its stage — these are test
+  assertions.
+- **Don't** load any remote asset or any font file; the stacks are system.
+- **Don't** add a button, form, or input to the Showfloor; the verb is the
+  Desk's (constitution I).
+- **Don't** use gradients, glass, glow, or a second shadow.
+
+## Governance
+
+This world changes the way the first one did: a superseding entry in
+`docs/decisions.md`, never a silent edit. D-012 established the authority;
+D-015 replaced its content. The `.impeccable/mocks/` comps record what was
+approved; when this document and a comp disagree, this document wins.

@@ -64,6 +64,23 @@ renders a killed epic has to say those two things differently.
 Sweep note: the credential sweep must anchor secret-looking prefixes on a word boundary —
 `the-desk-sees-the-floor` contains the substring `sk-sees`.
 
+### Not recorded yet: the per-node gate run (013 US1)
+
+`FixtureReader.node_history` looks for `verification/<epic_id>/<node_id>.json` — one
+recorded `factory.verify.store.node_history` answer per node — and **no such document
+exists**. Until one is captured the read takes the missing-document rule above and comes
+back as a transport failure naming the path it looked for, which is what the gate-run
+section then says in words. That is deliberate: the evidence store is written on the
+operator's host by a real build, and a hand-written gate run would be a pane that renders
+the fixture and not the factory (constitution V).
+
+Two things to get right when recording one. The answer's `output_tail` is raw process
+output, so the sweep runs over the recording before it is committed like every other file
+here (constitution VI) — the same `pane/sweep.py` definition the document itself puts a
+failing gate's tail through on the way to the room (013 FR-007). And the rows are
+overwritten by a re-dispatch (N28) — a recording is one dispatch's record, and the
+envelope should say which epic and which day it came from.
+
 ## Re-recording
 
 ```bash

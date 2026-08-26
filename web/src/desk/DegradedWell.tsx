@@ -43,6 +43,30 @@ export default function DegradedWell({ entry }: DegradedWellProps) {
     );
   }
 
+  // 012 US2: a graph that parsed and is about some other epic's stories. It is
+  // neither a transport failure nor a refusal — nothing failed to arrive and
+  // nothing refused — so it does not borrow either one's words. What the
+  // operator needs is that the graph was not joined and why, because the row
+  // above is showing stories with no dependency and this is the reason.
+  if (entry.mode === "mismatch") {
+    return (
+      <div
+        className="degraded"
+        role="status"
+        data-mode="mismatch"
+        data-section={entry.section}
+        data-epic-id={entry.epic_id ?? undefined}
+      >
+        <p className="lead">{section} was read against a graph of other stories.</p>
+        <p>
+          The read <span className="read num">{entry.read}</span> answered, and{" "}
+          <span className="detail num">{detail}</span>. Shown without a graph, not with
+          an invented one.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
       className="degraded"

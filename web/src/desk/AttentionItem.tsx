@@ -2,7 +2,7 @@ import type { AttentionItem, FloorDocument } from "../api/floorDocument";
 import AnswerColumn from "./AnswerColumn";
 import RulingLine from "./RulingLine";
 import { segmentBody } from "./escalationBody";
-import { referenceInstant, timeLeft } from "./timeLeft";
+import { referenceInstant, timeLeft, timeSince } from "./timeLeft";
 
 interface AttentionItemProps {
   item: AttentionItem;
@@ -117,5 +117,67 @@ export default function AttentionItemView({ item, doc }: AttentionItemProps) {
           `web/tests/unit/noVerb.test.ts` watches it. */}
       <AnswerColumn item={item} />
     </article>
+  );
+}
+
+/**
+ * The stale fold's one line, and everything it still carries (006 US3, FR-008,
+ * FR-009; DESIGN.md § The Desk in this world › The stale fold).
+ *
+ * An item whose deadline has passed is a fact, not an emergency: it stops
+ * taking a full card's worth of the operator's eye, and it loses nothing. The
+ * collapsed line is the three things DESIGN.md names — kind, id, "expired
+ * <ago>" — and opening it gives back the factory's own `expires_at` and the
+ * delivered text, byte for byte.
+ *
+ * Two rules are structural here rather than remembered:
+ *
+ * 1. **Nothing is re-derived or reworded** (FR-009). The body renders
+ *    `item.text` as the single block the factory sent, not the segmented
+ *    reading the live card lays out, so a test can assert the rendered text is
+ *    *equal* to the delivered text rather than merely close to it. The expiry
+ *    is the factory's string, in mono, in the `.until` slot the live card uses
+ *    (§ Typography › The Factory Speaks in Mono Rule) — never re-formatted.
+ * 2. **Collapsing is layout, never editing** (constitution III). The verb comes
+ *    with the item into the fold: expiry is the factory's ruling to make and
+ *    the pane deletes nothing while it waits for one, so a late Answer still
+ *    goes from here exactly as it goes from a live card (003 FR-013).
+ */
+export function StaleAttentionLine({ item, doc }: AttentionItemProps) {
+  const kind = item.kind;
+  // The same two inputs the live card's clock takes, on the other side of the
+  // deadline — the document's reference instant, never the pane's own clock
+  // (001 FR-019, the countdown anchor rule).
+  const ago = timeSince(item.expires_at, referenceInstant(doc));
+
+  return (
+    <details
+      className={`stale-item ${RANK_CLASSES[kind]}`}
+      data-kind={kind}
+      data-id={item.id}
+      data-stale="true"
+      data-expires-at={item.expires_at ?? undefined}
+    >
+      <summary className="stale-line">
+        <span className="kind">{KIND_LABELS[kind]}</span>
+        <span className="where num">{item.correlation_id}</span>
+        {/* "expired <ago>", and no countdown: there is nothing left to count
+            down to, and the pane will not invent a second clock to say so. */}
+        <span className="ago num">{ago === null ? "expired" : `expired ${ago} ago`}</span>
+      </summary>
+      <div className="stale-body">
+        {item.expires_at && (
+          <span className="until">
+            until <span className="num">{item.expires_at}</span>
+          </span>
+        )}
+        {/* The delivered text whole, as one verbatim block. */}
+        <p className="prose stale-text">{item.text}</p>
+        {/* The factory's word on the last Answer, unchanged by the fold. */}
+        <RulingLine item={item} />
+        {/* The one verb, still reachable: see rule 2 above. */}
+        <AnswerColumn item={item} />
+      </div>
+    </details>
   );
 }

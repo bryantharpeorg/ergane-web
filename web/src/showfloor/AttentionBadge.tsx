@@ -4,7 +4,11 @@
  *
  * DESIGN.md § Navigation (the attention badge at the far right in clay-ink
  * with a clay bell dot; it is a link, the Showfloor's only one),
- * § Colors (The Attention Ranking Rule — clay for waiting-on-you; never red).
+ * § Colors (waiting on you is gold, and gold is only ever that).
+ *
+ * 005 US2 points the link at `/` rather than `/desk`: the Desk answers at both,
+ * and `/` is the room's front door — the appbar's own nav is where the named
+ * route belongs. The destination is unchanged; only its spelling is.
  *
  * Three renderings, in this order of precedence:
  *
@@ -24,15 +28,23 @@
  */
 
 import type { AttentionItem, DegradedEntry } from "../api/floorDocument";
-import { DESK_PATH } from "../routes";
+import { DESK_ROOT_PATH } from "../routes";
 
 interface AttentionBadgeProps {
   attention: { seam: string; items: AttentionItem[] };
   degraded: DegradedEntry[];
 }
 
-/** 001's two degraded modes, said in words (constitution III). */
-const MODE_WORDS: Record<DegradedEntry["mode"], string> = {
+/**
+ * 001's two degraded modes, said in words (constitution III).
+ *
+ * Partial on purpose: the modes 012 added — `unparseable` and `mismatch` — are
+ * facts about a *work graph*, and only the `epics` section can carry one. This
+ * badge reads the `attention` section alone, so a word for either here would be
+ * a sentence about a state this element cannot be in. The `?? failed.mode`
+ * below is what keeps that honest rather than blank if the set ever widens.
+ */
+const MODE_WORDS: Partial<Record<DegradedEntry["mode"], string>> = {
   transport: "transport failure: the read could not be made",
   refusal: "query refusal: the factory declined to answer",
 };
@@ -64,7 +76,7 @@ export default function AttentionBadge({
   }
 
   return (
-    <a className="attention-badge" data-attention-badge href={DESK_PATH}>
+    <a className="attention-badge" data-attention-badge href={DESK_ROOT_PATH}>
       <span className="num">{count}</span>
       <span className="attention-badge-words">{" waiting on you → Desk"}</span>
     </a>

@@ -3,6 +3,11 @@
 The sweep walks every Python source file under ``pane/`` and asserts the
 forbidden patterns are absent.  Unit tests assert each live read calls its ergane
 seam exactly once and that failure modes are classified correctly.
+
+The two store reads are exercised over a runtime root the test builds under its
+own `tmp_path` (009 US3): `runtime_root` below points ergane's resolvers at it,
+so what the reads find is what this file put there and never what the operator's
+`ERGANE_ROOT` happens to hold.
 """
 
 import ast
@@ -13,6 +18,11 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from factory.doctor import cli as doctor_cli
+from factory.doctor import store as doctor_store
+from factory.usage import cli as usage_cli
+from factory.usage import ledger as usage_ledger
+from factory.workgraph import worktree
 from temporalio.service import RPCError
 from temporalio.client._exceptions import WorkflowQueryRejectedError
 
@@ -199,8 +209,56 @@ def test_the_pane_store_connects_only_to_the_path_it_is_handed():
         assert not literal.endswith(".db"), f"{path}: hard-codes a store path {literal!r}"
 
 
+def runtime_root(monkeypatch, tmp_path: Path) -> Path:
+    """Point ergane's two store resolvers at a runtime root under `tmp_path`.
+
+    Both reads below resolve their store the way `ergane` itself does — the
+    findings store through `resolve_factory_root`, the ledger through
+    `resolve_env_path` — so the way to give them a store this test owns is to
+    set the variables those resolvers read.  The variable *names* come from
+    ergane too, rather than being spelt here: a distribution that renames one
+    should move this test with it, not leave it quietly reading the operator's
+    machine again (constitution II).
+
+    The legacy names are cleared for the same reason: `resolve_env_path` honors
+    them when the modern one is unset, so leaving the operator's `FACTORY_ROOT`
+    in place would leave a door open to the host.  `chdir` closes the last one —
+    both resolvers fall back to a path *relative to the working directory*, and
+    a relative fallback resolved inside the test's own scratch tree cannot reach
+    a store the operator has.
+    """
+    root = tmp_path / "runtime-root"
+    root.mkdir(exist_ok=True)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv(worktree.ERGANE_ROOT_ENV, str(root))
+    monkeypatch.delenv(worktree.FACTORY_ROOT_ENV, raising=False)
+    monkeypatch.setenv(usage_cli.ERGANE_LEDGER_PATH_ENV, str(ledger_path(root)))
+    monkeypatch.delenv(usage_cli.FACTORY_LEDGER_PATH_ENV, raising=False)
+    return root
+
+
+def findings_path(root: Path) -> Path:
+    """Where ergane keeps the findings store under `root`, asked of ergane."""
+    return doctor_cli._resolve_store_path_for_root(root)
+
+
+def ledger_path(root: Path) -> Path:
+    """Where the ledger sits under `root`, named from ergane's own default."""
+    return root / Path(usage_cli.DEFAULT_LEDGER_PATH).name
+
+
 def test_live_reader_calls_each_seam_once(monkeypatch, tmp_path):
-    """Every live read routes through exactly one ergane seam."""
+    """Every live read routes through exactly one ergane seam.
+
+    The seams are stubbed, but `list_findings` resolves its store path before it
+    reaches one — so this test resolved the *operator's* runtime root, stat'd a
+    store inside it, and created a `.ergane/` directory in the repository on its
+    way past (009 US3-S2).  None of that decided the assertions, which is
+    exactly why it survived: a read of host state that happens not to matter
+    today is a read that will matter after the next edit.  `runtime_root` moves
+    the resolution into this test's own scratch tree.
+    """
+    runtime_root(monkeypatch, tmp_path)
     calls = {}
 
     def mark(name):
@@ -313,8 +371,29 @@ def test_live_reader_calls_each_seam_once(monkeypatch, tmp_path):
     assert captured["by"] == "persona"
 
 
-def test_operational_error_becomes_transport():
-    reader = LiveReader(Path("/nonexistent/specs"))
+def test_operational_error_becomes_transport(monkeypatch, tmp_path):
+    """A store that is not there is a transport failure — over a runtime root
+    this test builds, never over the absence of the operator's (009 FR-008).
+
+    Written the other way round, this test passed in the gate's sandbox
+    (`--clearenv`, tmpfs `HOME`, no `ERGANE_ROOT`) and failed on the operator's
+    loaded shell, where `list_findings()` opened a real `doctor.db` and
+    succeeded.  It was asserting the absence of a machine.  Here the runtime
+    root exists and holds nothing, which is a condition the diff carries: the
+    two stores are asserted missing before the reads that must fail on them, so
+    a future resolver change that quietly finds a store somewhere else fails on
+    the *setup* line and says so, instead of turning this back into a test of
+    whose shell it ran in.
+
+    `test_a_populated_runtime_root_is_read_rather_than_failed` is the other
+    half: the same reads over the same root, with the stores present.
+    """
+    root = runtime_root(monkeypatch, tmp_path)
+
+    assert not findings_path(root).exists()
+    assert not ledger_path(root).exists()
+
+    reader = LiveReader(tmp_path / "specs")
 
     with pytest.raises(TransportFailed):
         reader.list_findings()
@@ -323,10 +402,35 @@ def test_operational_error_becomes_transport():
         reader.rollup()
 
 
-def test_rpc_error_transport_and_query_rejected_refusal():
+def test_a_populated_runtime_root_is_read_rather_than_failed(monkeypatch, tmp_path):
+    """With the stores present, both reads answer — so the failure above is
+    constructed and not inherited (009 US3-S1).
+
+    A test that only ever sees a store fail cannot tell "I built the failure"
+    from "the machine happened not to have one".  This one populates the same
+    runtime root through ergane's own writers — `doctor.store.connect` and
+    `usage.ledger.connect`, which bootstrap the schemas — and requires the reads
+    to come back with the empty answers an empty store holds.  The pair is the
+    evidence: the transport failure above is the *absence this test arranged*,
+    and it stays arranged whatever `ERGANE_ROOT` the run inherited.
+    """
+    root = runtime_root(monkeypatch, tmp_path)
+    doctor_store.connect(findings_path(root)).close()
+    usage_ledger.connect(ledger_path(root)).close()
+
+    assert findings_path(root).is_file()
+    assert ledger_path(root).is_file()
+
+    reader = LiveReader(tmp_path / "specs")
+
+    assert reader.list_findings() == []
+    assert isinstance(reader.rollup(), dict)
+
+
+def test_rpc_error_transport_and_query_rejected_refusal(tmp_path):
     from temporalio.service import RPCStatusCode
 
-    reader = LiveReader(Path("/nonexistent/specs"))
+    reader = LiveReader(tmp_path / "specs")
 
     class FakeClient:
         def get_workflow_handle(self, workflow_id):

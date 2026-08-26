@@ -1,3 +1,15 @@
+/**
+ * The Desk's assembly: what it renders for a floor, a failed read, a refused
+ * token, and the section order 001 fixed (001, 003).
+ *
+ * **One named change, 006 US2 (FR-003's discipline).** "renders an undeclared
+ * node card" reads the story's cell as `[data-story][data-undeclared]` instead
+ * of `.chev[data-undeclared]`: `NodeChevron` is deleted in that story's diff —
+ * the first world's chevron glyph is one of the three pictures FR-004 removes
+ * from the DOM — so the selector moved onto the element that replaced it. The
+ * subject is untouched: the same undeclared, paged, VERIFYING story, asserted
+ * to say all three of those things on the element that carries it.
+ */
 import { describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
@@ -115,11 +127,42 @@ describe("Desk", () => {
         ],
       }),
     );
-    const undeclared = c.querySelector(".chev[data-undeclared]");
+    const undeclared = c.querySelector("[data-story][data-undeclared]");
     expect(undeclared).not.toBeNull();
     expect(undeclared?.getAttribute("data-state")).toBe("VERIFYING");
     expect(undeclared?.hasAttribute("data-paged")).toBe(true);
     expect(undeclared?.textContent).toContain("paged");
+    document.body.removeChild(c);
+  });
+
+  it("renders no unreachable notice for an epic whose graph was read", async () => {
+    // 012 US1-S1 (FR-002): a workgraph read the archive satisfied is not a
+    // degradation, so the document carries no `epics` entry and the well the
+    // operator was reading on every epic has nothing to render from. The row
+    // is there instead, carrying the stories the graph declared.
+    const c = await renderDesk(
+      buildDoc({
+        epics: [
+          {
+            epic_id: "910-a-constructed-epic",
+            workflow_id: "epic-910-a-constructed-epic",
+            scene: null,
+            epic_state: "RUNNING",
+            nodes: [
+              { id: "us1", declared: true, story_key: "US1", persona: "implementer", spec_ref: "910-a-constructed-epic:US1", depends_on: [], depends_on_merged: [], state: "RUNNING", attempt: 1, awaiting_operator: false, landing_state: null, pr_number: null, verified: false },
+              { id: "us2", declared: true, story_key: "US2", persona: "implementer", spec_ref: "910-a-constructed-epic:US2", depends_on: [], depends_on_merged: ["us1"], state: "PENDING", attempt: null, awaiting_operator: false, landing_state: null, pr_number: null, verified: false },
+            ],
+            status_seam: "EpicWorkflow.epic_status",
+            workgraph_seam: "workgraph",
+          },
+        ],
+        degraded: [],
+      }),
+    );
+
+    expect(c.querySelector(".degraded")).toBeNull();
+    expect(c.innerHTML).not.toContain("could not be reached");
+    expect(c.querySelectorAll("[data-story]").length).toBe(2);
     document.body.removeChild(c);
   });
 

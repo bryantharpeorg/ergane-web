@@ -115,7 +115,7 @@ ergane init --check          # per-repo readiness; writes nothing
 ergane status                # what the floor is doing
 ergane escalations list      # what is waiting on you
 ergane findings list         # open defects
-systemctl --user status ergane-worker ergane-bridge temporal-dev
+systemctl --user status ergane-worker ergane-bridge ergane-temporal
 ~/code/litellm/up.sh ps      # gateway; use up.sh, NOT bare docker compose
 ```
 

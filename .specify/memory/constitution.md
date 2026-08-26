@@ -25,7 +25,9 @@ Every read and every write rides a surface the ergane distribution already expor
 the verify store's Question reader over `connect_readonly`, the Temporal queries
 the factory's workflows answer (`epic_status`, `roadmap_status`,
 `escalation_status`), `CallbackBridge.handle_relay`, the `escalation_resolved`
-signal (list amended by D-010). Re-implementing
+signal, and the verify store's evidence readers `node_history`, `attempt_timings`,
+`pending_escalations` and `get_escalation` over `connect_readonly` (list amended by
+D-010 and D-020). Re-implementing
 readiness, blockers, escalation listing, or answer settlement in this repository is
 a defect by construction — ergane's spec 046 names the re-derivation of "ready" as
 one, and D-005 extends that doctrine to every seam. Never shell `ergane doctor` from

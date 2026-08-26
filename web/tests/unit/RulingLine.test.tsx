@@ -14,6 +14,14 @@
  * render as itself today — the pane's truthfulness cannot depend on knowing the
  * factory's whole vocabulary — so a mapping table added to `ruling.ts` turns
  * these red rather than quietly rewording a refusal into something friendlier.
+ *
+ * **One token name moved in 006 US1's diff; no assertion's subject did**
+ * (FR-003's naming discipline). The stylesheet rule this file reads for the
+ * ruling line used to name `var(--olive-ink)`, the first world's alias; US1
+ * rewrote the Desk's rules against § Colors directly and the ink is now
+ * `var(--olive)` — the same colour, said in the authority's own word. What is
+ * asserted is unchanged and is what it always was: the ruling line is olive, in
+ * the body column, and is never dressed as an error.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -131,7 +139,7 @@ describe("every ruling renders verbatim, on the item, in the body column", () =>
     }
     expect(line.className).not.toMatch(/error|danger|red|alert/);
     expect(refusal.querySelector('[role="alert"]')).toBeNull();
-    expect(globalCss).toMatch(/\.attention \.ruling-line \{[^}]*var\(--olive-ink\)/);
+    expect(globalCss).toMatch(/\.attention \.ruling-line \{[^}]*var\(--olive\)/);
   });
 
   it("shows no ruling line at all before the factory has said anything", () => {

@@ -1,0 +1,76 @@
+{
+  "epic_id": "009-a-landed-epic-reads-landed",
+  "feature": "009-a-landed-epic-reads-landed",
+  "specs_root": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-009b/specs",
+  "target_repo": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-009b",
+  "nodes": [
+    {
+      "id": "us1",
+      "story_key": "US1",
+      "persona": "implementer",
+      "spec_ref": "009-a-landed-epic-reads-landed:US1",
+      "requirement_keys": [
+        "US1",
+        "FR-001",
+        "FR-002",
+        "FR-003",
+        "FR-004"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": 3600
+    },
+    {
+      "id": "us2",
+      "story_key": "US2",
+      "persona": "implementer",
+      "spec_ref": "009-a-landed-epic-reads-landed:US2",
+      "requirement_keys": [
+        "US2",
+        "FR-005",
+        "FR-006",
+        "FR-007"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us1"
+      ],
+      "timeout_override_s": 3600
+    },
+    {
+      "id": "us3",
+      "story_key": "US3",
+      "persona": "implementer",
+      "spec_ref": "009-a-landed-epic-reads-landed:US3",
+      "requirement_keys": [
+        "US3",
+        "FR-008",
+        "FR-009"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us2"
+      ],
+      "timeout_override_s": 3600
+    },
+    {
+      "id": "us4",
+      "story_key": "US4",
+      "persona": "implementer",
+      "spec_ref": "009-a-landed-epic-reads-landed:US4",
+      "requirement_keys": [
+        "US4",
+        "FR-010",
+        "FR-011",
+        "FR-012",
+        "FR-013"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [
+        "us3"
+      ],
+      "timeout_override_s": 3600
+    }
+  ],
+  "inferred_edges": []
+}

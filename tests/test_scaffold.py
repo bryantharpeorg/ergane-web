@@ -10,6 +10,20 @@ from fastapi.testclient import TestClient
 from pane.app import create_app
 
 
+@pytest.fixture(autouse=True)
+def scratch_delivery_store(monkeypatch, tmp_path):
+    """`create_app()` with no settings opens a store; put it in scratch (009 US3).
+
+    Every test below builds the application the way a deployment does, from the
+    environment — and with `PANE_ATTENTION_DB` unset that resolves to
+    `.pane/attention.db` *beside the working directory*, so running this file
+    wrote a store into the repository and read it back on the next run.  The
+    worktree does not carry that file into the gate, which is what made a green
+    run here and a green run on the boundary two different facts.
+    """
+    monkeypatch.setenv("PANE_ATTENTION_DB", str(tmp_path / "attention.db"))
+
+
 def test_create_app_returns_fastapi():
     app = create_app()
     assert isinstance(app, FastAPI)
@@ -132,7 +146,16 @@ def test_dependency_roster():
         assert dep in APPROVED_NODE
 
 
-def test_fonts_and_index_html():
+def test_index_html_loads_no_font_file():
+    """005 US2 (FR-007): the page fetches no font file and nothing remote.
+
+    This assertion is the inverse of the one 001 committed here, and the
+    inversion is the design's: D-015 replaced DESIGN.md's content on 2026-08-24,
+    and § Typography of the second world is system stacks only -- "nothing
+    downloads", "no remote stylesheet, ever".  The vendored faces may stay in the
+    tree as history (the document says so), so their files are still asserted
+    present; what may not survive is the link that loaded them.
+    """
     root = Path(__file__).resolve().parents[1]
     fonts_dir = root / "web" / "public" / "fonts"
     for name in (
@@ -145,7 +168,8 @@ def test_fonts_and_index_html():
         assert (fonts_dir / name).is_file()
 
     index_html = (root / "web" / "index.html").read_text()
-    assert 'href="/fonts/fonts.css"' in index_html
+    assert 'href="/fonts/' not in index_html
+    assert "stylesheet" not in index_html
     assert "https://" not in index_html
 
 

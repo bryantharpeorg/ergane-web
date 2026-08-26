@@ -379,3 +379,317 @@ coverage is unchanged, and the four gates still have to exit 0 — they are simp
 rung that actually runs them. Reported to the Ergane agent as finding N26 with the suggestion
 that `build_prompt` include the gate outcomes it already holds, so a judge asked about a gate can
 read the answer instead of predicting it.
+
+## D-015 · The second world: one epic on stage, a ladder per story (decided 2026-08-24)
+
+**Supersedes D-012's content, not its mechanism.** D-012 made `DESIGN.md` the pane's visual
+authority; that stands. This entry replaces what the document *says*: the light-sage mid-century
+world — skewed chevrons, the per-epic landing line, the vertical stack of full stages, the
+vendored OFL faces — is retired, and the operator-approved `Showfloor Redrawn` world takes its
+place. The approved comp is committed at `.impeccable/mocks/showfloor-redrawn.html`; the first
+world's comps remain beside it as history.
+
+**Why.** The first build falsified the old staging idea with measurements, not taste: six epics
+stacked as full stages produced three screens of guaranteed-empty canvas (514px each), populated
+stages 5–23% full, a legend rendered once per epic, and — after 004's repair — graphs laid out
+beside their own boxes (9 of 9 stations outside their maps). The unit was wrong. The second
+world's unit is the selection: an epic rail, one stage, one detail pane, and a six-stop status
+ladder worn identically by every story, fusing spec state, node state and landing state into one
+glance.
+
+**Decided with the operator, 2026-08-24:** the world applies to the **whole pane** (Showfloor
+first, the Desk restyled in a following spec); **both themes** are binding, replacing the old
+world's deliberate light-only stance; faces are **system stacks** — the vendored fonts are
+retired from these surfaces and nothing may load a font file; the ladder has **six stops, not
+seven** — task-level progress has no seam (`tasks.md` boxes are never ticked), and this pane does
+not render elements that can never fill. The gap is filed to the ergane agent as N46; if a seam
+appears, the stop is added to `DESIGN.md` first, then specced.
+
+**What does not change:** the one verb stays at the Desk; the Showfloor has no button; state is
+never colour alone; degradation stays honest and in place; the Unknown Rule, the countdown anchor
+rule, and the escalation body-segmentation rule carry over word for word. Constitution unchanged —
+this is an appearance decision inside VIII's frame, taken by the operator as VIII requires.
+
+## D-016 · The stage takes the room the pane is not using, and the scroll is furniture (decided 2026-08-25)
+
+**Inside D-015's frame, not a replacement for it.** `DESIGN.md` stays the visual authority and the
+second world stands. This entry amends three clauses of it after reading the room on a real
+monitor rather than in a test viewport.
+
+**What was measured.** The Showfloor on a 3008px-wide display, dark, spec 004 selected and no
+story picked: the app frame caps at 96rem, so 1,520px of the screen is empty ground; of the
+1,486px that remain, the detail track holds a fixed `26rem` — 403px — to show two sentences of
+room explanation; the stage gets 770px; the graph needs 797px. It scrolled, and it scrolled inside
+the host operating system's own widget, a light grey trough with stepper buttons in a dark room.
+Three widths, every spec on the floor, before and after collapsing the empty track:
+
+| width | graph needs | stage today | clipped | stage with the track collapsed | clipped |
+|---|---|---|---|---|---|
+| 1280 | 797px | 562px | 235px | 965px | 0 |
+| 1600 | 797px | 770px | 27px | 1173px | 0 |
+| 3008 | 797px | 770px | 27px | 1173px | 0 |
+
+**Decided.** (a) The `26rem` detail track collapses to `0` while nothing is selected, and the
+stage takes the width. (b) The room's two-sentence explanation moves beneath the stage above the
+legend row — the same words, in a place that does not cost the graph its width; it is relocated,
+never hidden, which constitution III would forbid. (c) The stage's horizontal scroll is styled
+furniture: thin, no stepper buttons, thumb on `--rule`, transparent trough, both themes, always
+rendered rather than fading in.
+
+**What this does not decide.** The 96rem frame cap stays as `DESIGN.md` § Layout and 004's FR-007
+have it; a graph that still outgrows a full-width stage still scrolls. Wrapping an over-wide rank
+onto a second row — the fix that would retire the scroll for the chained-four shape even with a
+story selected — is deferred: rendering it proves the geometry works and the wires do not, because
+`Wires.tsx` draws rank-to-rank left→right and a row break leaves a stub. That is a spec of its own,
+with the wire case in it, not a clause here.
+
+**Why an entry at all.** Constitution VIII: appearance changes are the operator's to take, and the
+authority is amended before the spec that builds to it, never after. Spec 008 cites these clauses.
+
+---
+
+## D-017 · FR-001's measured width pair is corrected to 1280 → 1600 (decided 2026-08-25)
+
+**Raised by** the `006-the-desk-matches-the-stage` US1 node, which could not satisfy the
+requirement as drafted and would not quietly weaken the test to look as though it had.
+
+**The conflict.** Spec 006 FR-001 asks that the Desk fill the app frame "fluidly to its
+`96rem`, with measured width growth between 1600 and 2560", and US1-S1 restates it as "its
+width at 2560 exceeds its width at 1600". No implementation can satisfy that clause while
+obeying `DESIGN.md`:
+
+- § Typography fixes the root at `15.5px`; § Layout caps the app frame at `max-width: 96rem`.
+  96 × 15.5 = **1488px**, so the cap already binds at 1600 and there is no growth left above it.
+- § The Desk in this world asks for "**Fluid width** — the Desk fills the frame **like the
+  Showfloor**". The Showfloor is landed doing exactly that, and `showfloor.spec.ts` ("the frame
+  is fluid to 96rem", FR-007) measures growth on **1280 → 1600**, then asserts the cap binds and
+  the frame centres at 2560. FR-001 reads as that clause carried over with its viewports
+  mis-transcribed.
+- **D-016 already ruled on the cap itself**, yesterday, in as many words: "The 96rem frame cap
+  stays as `DESIGN.md` § Layout and 004's FR-007 have it." Raising the cap was not on the table
+  for a node to take, and D-016 says why: "appearance changes are the operator's to take".
+
+**What was measured** on the Desk in this diff, fixture floor, root 15.5px:
+
+| viewport | frame | content | margin per side |
+|---|---|---|---|
+| 1280 | 1280px | 1278px | 0 |
+| 1600 | 1488px | 1486px | 56px |
+| 2560 | 1488px | 1486px | 536px |
+
+Growth below the cap is real (+208px, 1280 → 1600); above it the content is identical to the
+pixel, because the frame centres instead of stretching.
+
+**Decided.** Constitution VIII settles it — "where a spec's scenario and DESIGN.md disagree on an
+*appearance*, DESIGN.md wins", and a width cap is appearance. FR-001 and US1-S1 are corrected to
+name the pair that exists, **1280 → 1600**, and `desk-world.spec.ts` asserts the 1600/2560 pair as
+**exact equality at the cap** — a stronger and more falsifiable claim than the growth the scenario
+asked for, and deliberately not the `>=` an earlier attempt hedged with.
+
+**What this does not change.** No token, no cap, no `DESIGN.md` clause, and no rendered pixel: the
+Desk's geometry is what D-016 and § Layout already required. The defect FR-001 exists to retire —
+the first world's hard 1216px content cap, and the 672px of dead margin per side it left at 2560 —
+is retired at every width, and `desk-world.spec.ts` proves it at all three the scenario names.
+
+**What this leaves open.** At 2560 a 1488px frame still strands 536px per side. That is the cap
+working as designed, not a defect in this spec; if the operator wants the Desk to use that room,
+it is a `DESIGN.md` amendment to § Layout and a new entry here — with the Showfloor's "centred at
+the cap" assertion moving with it — and it is the operator's to take, not a node's.
+
+---
+
+## D-018 · The room's claims outlive the workflow, and a fourth layout law (decided 2026-08-25)
+
+**Raised by** the operator, from the pane's own Showfloor at 3:22 PM CT on 2026-08-25, looking at a
+spec that had finished eleven minutes earlier.
+
+### The defect
+
+`006-the-desk-matches-the-stage` had all three stories merged on `dev` — `55920c9`, `9872850`,
+`5cb5441`, observed by content. The Showfloor rendered it **`READY 0/3`**, with every story parked at
+the `ready` stop of the ladder. Not "unknown", not "the live read is gone": *ready*, which in this
+room's vocabulary means **not started**. The room stated the opposite of the truth, with confidence,
+about the only thing it exists to report.
+
+The mechanism is one line. `pane/showfloor.py:518`:
+
+```python
+landed = sum(1 for story in stories if story["ladder"]["stop_key"] == "merged")
+```
+
+The ladder comes from `readers.epic_status(spec_dir)` — a Temporal query against a **live workflow**.
+When 006's workflow completed, the query answered nothing, `dispatched` went `False`, `live_nodes`
+went empty, and `_stories` fell back to the spec's frontmatter `state:`, which still read `ready`
+because nobody had attested it yet. Every story inherited that stop.
+
+**So the room's landing truth has exactly one source, and that source is designed to disappear.** A
+Temporal workflow ends when the epic ends, and retention is 72 hours besides. The window in which a
+finished epic reads as unstarted opens the moment the last story merges and closes only when a human
+edits a YAML frontmatter line by hand. For 006 that window was eleven minutes because the operator
+happened to be watching. Overnight, under `/away-mode`, it is however long the operator sleeps — and
+the pane spends that whole time telling them nothing has started.
+
+**Git already knows the answer.** `ergane spec landed specs/<dir> --default-branch dev` reports every
+story's landing SHA by content, from the branch, with no workflow involved. It is the same seam the
+corpus already trusts for attestation. The room does not ask it.
+
+### What is decided
+
+1. **Landing truth is read from the corpus, not only from the live workflow.** A story that is landed
+   on the landing branch by content reads `merged`, whether or not a workflow still exists to say so
+   and whether or not the frontmatter has been attested. `epic_status` remains the authority for
+   everything *in flight* — attempt, persona, the four stops before `merged` — because only it knows
+   those. The two are layered, not swapped: live where live exists, corpus underneath.
+
+2. **A read whose live source is gone renders as gone, never as a default.** Where neither source can
+   answer, the ladder shows the Unknown Rule's vocabulary — constitution III, "a value the factory did
+   not record is shown as unknown, never as zero". Falling back to the *first* stop of a six-stop
+   ladder is exactly the "shown as zero" failure the principle names, wearing a different costume.
+
+3. **A fourth layout law: no element with an opaque background may paint over a text leaf that is not
+   its own.** `DESIGN.md` § Layout carries three laws today — containment, nothing past the viewport,
+   no two text leaves overlapping. On 2026-08-25 a degraded note rendered unreadable in both themes,
+   its heading cut mid-word, and **all three laws passed**. They measure *glyph* geometry via a `Range`
+   over each leaf, deliberately and correctly, because inline fragment rects in Chromium carry the whole
+   inline box's height. That decision is right and it is precisely the blind spot: an opaque box painted
+   over text is not a text-leaf overlap. No glyphs intersected. The text was simply not readable. The
+   instance was fixed incidentally when 006 rewrote `global.css` for the second world — measured today,
+   zero occlusion hits — but nothing prevents its return, and a law the suite does not carry is a
+   guarantee the repository does not have.
+
+### What is deliberately NOT decided, and the measurements that closed it
+
+**The rank wrap is dropped, not deferred again.** D-016 deferred wrapping an over-wide rank by name,
+on the evidence of the 2026-08-25 review: 235px of graph hidden at 1280, US4 fully invisible, on specs
+001 and 002. That evidence does not survive re-measurement, and the reason matters.
+
+The review measured a **fabricated** topology. At the time the Showfloor could not find a work graph
+for those specs and fell back to listing their stories as an edgeless flat rank — four cards side by
+side, which is what overflowed. The archives landed in `#40`, and the real graphs are these:
+
+| spec | true topology |
+|---|---|
+| 001, 002, 005 | `us1 → us2 → us3 → us4`, serial on `depends_on_merged` |
+| 006, 008 | `us1 → us2 → us3`, serial |
+
+Every one is a chain. Measured across the whole corpus at 1280, 1600 and 2560 — eighteen renders —
+**clipping is 0px everywhere, and the empty space below the graph is 0px everywhere.** Both halves of
+F1 are gone. The clipped rank was a symptom of the fabricated topology, and archiving the DAGs cured
+the disease; 008's collapsing detail track had already taken the rest.
+
+An attempt to reproduce the wide rank synthetically — injecting eight, ten and fourteen edgeless
+sibling stories into a real epic's document and rendering at all three widths — also produced **no
+clipping at any size**, because the stage lays an edgeless set out vertically rather than as one
+horizontal rank. There is no shape in reach that reproduces the defect.
+
+So there is nothing to fix here, and a spec that wrapped ranks would be designing for a geometry that
+does not occur, with a wire-drawing complication (`Wires.tsx` draws rank-to-rank left-to-right and a
+row break leaves a stub diagonal) as its cost. **If a genuinely parallel spec ever lands and clips,
+that is the moment to write it, with the real measurement in hand.** D-016's deferral is discharged.
+
+**Why an entry at all.** Constitution VIII: appearance changes are the operator's to take, and the
+authority is amended before the spec that builds to it, never after. Clause 3 adds a law to
+`DESIGN.md` § Layout; clauses 1 and 2 are behavioural and bind spec 009's stories. Spec 009 cites
+these clauses.
+
+---
+
+## D-019 · The stage says what its spec is for (decided 2026-08-25)
+
+**Raised by** the operator, from the pane, at 4:15 PM CT: *"that explains the selected story but what
+about the goal of the overarching spec? a story is under a spec right?"*
+
+### The gap
+
+`pane/showfloor.py:161` carries `_intent_after()`, which lifts the one-sentence intent that follows
+each `### User Story` heading. It is the reason the detail pane can say what US1 is for. There is no
+equivalent for the spec itself: the showfloor document carries `name` — a title — and no prose. The
+room can explain a story and cannot explain the epic that contains it.
+
+The text already exists and is already consistent. Every refined spec in the corpus opens its body
+with `## Context`, a paragraph stating why the spec exists; the three unrefined sketches open with
+`## Sketch`, which serves the same role. Ten of ten. The parser walks past it.
+
+### The second defect this closes
+
+`DESIGN.md` § Detail pane, amended yesterday under D-016, moved the room's two-sentence explainer out
+of the collapsed `26rem` track and beneath the stage. That was right, and it left a smaller problem
+behind: the explainer is shown **only while nothing is selected**, so picking a story empties the
+band under the graph. Content vanishing on click reads as a glitch, and the operator reported it as
+one in the same message.
+
+Both are one fix. The band under the stage should hold the thing that is *always* true of what is on
+screen — the spec's own goal — rather than a generic description of the room that stops being
+interesting after the first visit.
+
+### What is decided
+
+1. **The showfloor document carries a spec-level intent**, read from `## Context` and falling back to
+   `## Sketch`, through the same text parse that already lifts story intents. A spec with neither
+   renders no band rather than an empty one.
+
+2. **It renders beneath the stage, above the legend row, and it does not depend on selection.** This
+   is the band D-016 gave to the room explainer; the spec's goal takes it. The two do not stack — two
+   explanations under one graph is noise.
+
+3. **The room's own explainer retires to the empty case**: no spec selected at all. It has done its
+   job once the operator has picked something, and it is the less specific of the two.
+
+### What this is not
+
+It is not the spec's whole body. One paragraph, the first under the heading, treated as prose and
+truncated by the same rules as any other read — not a rendered Markdown document, and not a link to
+one. The reading room for a spec's full history is 007, and it is still a sketch.
+
+**Why an entry at all.** Constitution VIII: composition is appearance, and the authority is amended
+before the spec that builds to it. This entry amends `DESIGN.md` § Stage and § Detail pane. Spec 009
+US4 cites these clauses.
+
+---
+
+## D-020 · The verify store's evidence readers join the approved seams (decided 2026-08-25)
+
+**Raised by** spec 013, which cannot render a gate step without reading the record ergane already
+keeps of it.
+
+**The question 007 left open.** 007's Open Question 3 ruled that the pane never opens
+`verification.db` raw, that a durable history store would ship "with its **own** ergane-exported
+read-only reader", and that such a reader "joins the constitution II list by a D-entry when it
+exists". The premise was that no reader existed. It was wrong: two do, and both are exported,
+typed and already load-bearing inside ergane itself.
+
+- **`factory.verify.store.node_history(conn, epic_id, node_id) -> list[VerificationResult]`** — every
+  verification of one node, oldest attempt first. Its docstring calls it "the canonical per-node
+  query from the DDL — what retry prompts quote and what an escalation's failure history is built
+  from". It returns the whole evidence bundle: gate results, judge verdict, diff check, ladder
+  summary, timestamps.
+- **`factory.verify.store.attempt_timings(conn, epic_id) -> list[AttemptTiming]`** — the narrow
+  sibling, six columns across an epic, explicitly built for pace reporting.
+
+Both are read-only by construction and are reached over `connect_readonly`, which constitution II
+already names for the Question reader on the same store.
+
+**Decided.** `node_history`, `attempt_timings`, `pending_escalations` and `get_escalation`, all over
+`connect_readonly`, join the approved seam list in constitution II. The constitution's parenthetical
+becomes "list amended by D-010 and D-020".
+
+**What is still forbidden, and this is the part that matters.** The pane may call these functions and
+nothing else. It may not open the database with its own SQL, may not read a column these readers do
+not return, and may not reach for a table they do not cover. The whole point of principle II is that
+ergane's internals may change shape without breaking the pane — and they already did once (N28). A
+reader is a contract; a schema is not.
+
+**What this does not solve.** These readers are exported and durable-*ish*, not durable. A
+re-dispatch overwrites a node's rows (N28) and nothing here changes that. So a spec riding them
+renders **the current record**, honestly labelled, and does not claim a history it cannot keep. The
+durable store remains the prerequisite for 007, and is filed to the ergane agent as PR-1 in the
+platform requirements section of the feedback log.
+
+**And they do not carry the model.** `VerificationResult` has eighteen columns and none of them is
+the persona or the model alias; the only authority is the epic's Temporal start payload, which
+expires with the workflow. A consumer must render that as unknown rather than guess from the
+registry, because the DEBUGGER rung relabels the persona without re-resolving the model and the two
+disagree. Filed as PR-2.
+
+**Why an entry at all.** Constitution II is a closed list by design, and adding to it is the
+operator's act, not a node's. This entry is what makes spec 013 legal.

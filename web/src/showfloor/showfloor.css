@@ -1,8 +1,19 @@
-/* Showfloor room styles built on 001's tokens.css */
+/* The Showfloor's room styles.
 
-/* FR-015 / DESIGN.md § Layout (Showfloor): the room fills the viewport edge to
-   edge on the sage ground — the smoke measures this box against the viewport —
-   and the masthead is sticky inside it. */
+   `DESIGN.md` (D-015) is the authority. Frame, appbar, rail, chips and stage
+   head arrived with 005 US2; the stage's metrics, graph, cards, wires and
+   legend arrive with US3, which is also where the first world's block at the
+   foot of this file went — 002's stacked stages, its stations and its landing
+   line, deleted in the same diff as their components (T016, plan D4).
+
+   Every second-world rule is scoped under `.showfloor`, the room's own root.
+   The tokens are global by design; these rules are not, because the Desk's
+   world change is spec 006's and a Desk restyle here would be scope widened
+   (plan § Risks). */
+
+/* FR-015 / DESIGN.md § Layout: the room fills the viewport edge to edge on the
+   ground colour — the smoke measures this box against the viewport — and the
+   frame is centred inside it. */
 [data-showfloor-root] {
   position: fixed;
   inset: 0;
@@ -16,560 +27,1132 @@
   color: var(--ink);
 }
 
-[data-showfloor-root] .mast {
+/* § Layout › App frame: "full-bleed surface card, `max-width: 96rem`, centred;
+   never a hard content cap below 96rem". The cap is on the frame and on nothing
+   inside it, which is what makes the interior fluid: every column below 96rem
+   grows with the window (FR-007, asserted at 1280/1600/2560). */
+.sf-frame {
+  width: 100%;
+  max-width: 96rem;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The appbar is one row: brand, room nav with a 2px accent underline on the
+   active room, and the attention badge pushed to the far edge (§ Layout). The
+   masthead component already has that shape; here it wears the second world. */
+.showfloor .mast {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--ground);
+  align-items: center;
+  gap: 1.4rem;
+  padding: 0.7rem 1.3rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
 }
 
-.showfloor-room {
+.showfloor .mast .mark {
+  font-family: var(--mono);
+  font-size: var(--t-body);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+.showfloor .mast nav {
+  font-family: var(--sans);
+  font-size: var(--t-body);
+}
+
+.showfloor .mast .floorline {
+  font-size: var(--t-tag);
+}
+
+/* "room nav with a 2px accent underline on the active room" (§ Layout), said
+   here in the second world's own token rather than reached through the first
+   world's alias. */
+.showfloor .mast nav a {
+  color: var(--muted);
+}
+
+.showfloor .mast nav a[aria-current] {
+  color: var(--ink);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* § Attention badge: a gold chip in the appbar — count and destination — and
+   nothing else. */
+.showfloor .attention-badge,
+.showfloor .attention-degraded {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  font-weight: 600;
+  color: var(--gold);
+  background: var(--gold-w);
+  border: 1px solid currentColor;
+  padding: 0.3em 0.7em;
+  text-decoration: none;
+}
+
+.showfloor .attention-degraded {
+  font-weight: 400;
+  max-width: 34rem;
+}
+
+/* § Layout › Showfloor grid: `17rem` epic rail · `1fr` stage · `26rem` detail
+   pane; below 1180px the pane drops to a full-width row beneath, below 820px
+   the rail stacks above the stage. `min-width: 0` on the stage track is what
+   lets the middle column shrink to its share instead of to its content.
+
+   The third track is named rather than written into the shorthand (D-016
+   clause a, 008 US2): "the detail track is a story's track, not a permanent
+   one". A custom property is what lets the collapsed state be one declaration
+   instead of a second `grid-template-columns` — which matters because the two
+   media rules below *replace* the shorthand outright, and a competing
+   three-track rule carrying an attribute selector would outrank them at every
+   width and quietly unfold the pane back into the narrow layouts. Swapping the
+   value leaves those rules exactly the behaviour they had, in both selection
+   states (T009). */
+.showfloor .cols {
+  display: grid;
+  --detail-track: 26rem;
+  grid-template-columns: 17rem minmax(0, 1fr) var(--detail-track);
   flex: 1;
-  padding: var(--s5) var(--s6) var(--s7);
+  align-items: stretch;
+}
+
+/* "While no story is selected the pane holds nothing but the room's own
+   explanation, and `26rem` of stage is a poor price for two sentences: the
+   track collapses to `0` and the stage takes the width" (§ Layout, 2026-08-25).
+   The explanation is not lost — `Showfloor.tsx` mounts it beneath the stage —
+   so what collapses here is an empty column and nothing else (FR-004). */
+.showfloor .cols[data-selection="none"] {
+  --detail-track: 0px;
+}
+
+/* A collapsed track still has an element sitting in it. Its padding and its
+   1px rule are laid out against a track of `0`, so they would paint over the
+   stage's edge and push the room's own scroll width past the viewport — the
+   thing FR-014's law (b) and `roomScrollsSideways` both refuse. The released
+   pane therefore wears nothing at all.
+
+   This is not the empty state being hidden: the empty state is not in here any
+   more. The element is an `aria-live` region with no content, kept mounted so
+   that filling it announces (plan D1, D2). */
+.showfloor .cols[data-selection="none"] aside.detail {
+  padding: 0;
+  border-left: none;
+  border-top: none;
+  overflow: hidden;
+}
+
+@media (max-width: 1180px) {
+  .showfloor .cols {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+  .showfloor aside.detail {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid var(--rule);
+  }
+}
+
+@media (max-width: 820px) {
+  .showfloor .cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .showfloor .rail {
+    border-right: none;
+    border-bottom: 1px solid var(--rule);
+  }
+}
+
+/* § Epic rail. Rows are real links; the Showfloor never grows a control. */
+.showfloor .rail {
+  border-right: 1px solid var(--rule);
+  padding: 1rem 0;
+  background: var(--surface);
+  min-width: 0;
+}
+
+.showfloor .rail-head {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0 1.2rem 0.6rem;
+}
+
+.showfloor .rail-empty {
+  margin: 0 1.2rem;
+  font-style: italic;
+  color: var(--muted);
+  font-size: var(--t-small);
+}
+
+.showfloor .epic-row {
+  display: block;
+  border-left: 3px solid transparent;
+  padding: 0.6rem 1.2rem 0.6rem calc(1.2rem - 3px);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.showfloor .epic-row:hover {
+  background: var(--sunken);
+}
+
+.showfloor .epic-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Selection: accent-w wash + 3px accent bar (§ Epic rail, § Shapes). */
+.showfloor .epic-row.sel {
+  border-left-color: var(--accent);
+  background: var(--accent-w);
+}
+
+.showfloor .epic-row .eid {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.showfloor .epic-row .ename {
+  display: block;
+  font-size: var(--t-small);
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}
+
+.showfloor .epic-row .estat {
+  display: inline-block;
+  margin-top: 0.3rem;
+}
+
+.showfloor .rail-note {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  color: var(--faint);
+  margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+/* § Chips: mono .62rem 600 uppercase, 1px solid currentColor over the wash,
+   squared. A chip outside this vocabulary is a defect, which is why `unknown`
+   below is not a seventh colour — it is the Unknown Rule's italic muted. */
+.showfloor .chip {
+  font-family: var(--mono);
+  font-size: var(--t-chip);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.24em 0.55em;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.showfloor .chip.landed { color: var(--olive); background: var(--olive-w); }
+.showfloor .chip.building { color: var(--accent); background: var(--accent-w); }
+.showfloor .chip.ready { color: var(--muted); background: var(--sunken); }
+.showfloor .chip.draft { color: var(--faint); background: transparent; border-style: dashed; }
+.showfloor .chip.wait { color: var(--gold); background: var(--gold-w); }
+.showfloor .chip.dead { color: var(--alarm); background: var(--alarm-w); }
+.showfloor .chip.unknown {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  font-style: italic;
+  text-transform: none;
+}
+
+/* § Stage. `min-width: 0` is what lets the middle grid track take its share of
+   the frame rather than its content's width — without it a wide graph forces
+   the column open and pushes the detail pane off the screen, which is the
+   containment law FR-014 makes an assertion. */
+.showfloor .stage {
+  padding: 1.4rem 1.6rem 1.8rem;
+  min-width: 0;
+}
+
+.showfloor .stage-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.showfloor .spec-id {
+  font-family: var(--mono);
+  font-size: var(--t-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.showfloor .spec-name {
+  font-family: var(--serif);
+  font-size: var(--t-name);
+  font-weight: 600;
+  flex: 1 1 16rem;
+}
+
+.showfloor .stage-miss {
+  margin: 0 0 1rem;
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+.showfloor .stage-miss .num,
+.showfloor .stage-note .num {
+  font-family: var(--mono);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* A read that failed, named in place, transport told apart from refusal
+   (constitution III). The well is tonal: § Elevation & Depth allows no second
+   shadow. */
+.showfloor .degraded {
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.showfloor .degraded .lead {
+  font-family: var(--serif);
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 0.25rem;
+}
+
+.showfloor .degraded p {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+.showfloor .degraded .mode {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--gold);
+}
+
+.showfloor .degraded .detail {
+  overflow-wrap: anywhere;
+}
+
+/* § Detail pane: "id, serif title, the story's one-sentence intent, the six
+   named steps with timestamps, a facts grid …, and the `requirement_keys` as
+   sunken mono chips." The shape is the approved comp's, class for class.
+
+   **`aside`, not `.detail` alone (009 US2, D-018).** The degraded note above
+   names its third part `.detail` too — `<span class="detail">` inside
+   `.degraded p`, the same word for a different thing — and this rule matched
+   it, handing an inline span the pane's opaque `--surface`, its `1.4rem`
+   padding and its rule. Inline padding paints and hit-tests but does not
+   flow, so a long `overflow-wrap: anywhere` detail that broke onto its own
+   line drew a white box back up over `landed_facts refusal` on the line
+   above: a read the operator could not read, on the one note that exists to
+   tell them a read failed. Law (d) is what found it. The element selector is
+   the fix, and the pane is the only `aside` in the room.
+
+   Only the three rules that give the pane a *box* carry it — this one and the
+   two that reshape it. The `.showfloor .detail .dhead`-style rules below reach
+   the pane's own children, and the note's `.detail` has none. */
+.showfloor aside.detail {
+  border-left: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 1.4rem 1.3rem 1.6rem;
+  min-width: 0;
+}
+
+/* The band beneath the stage, and the two paragraphs that can occupy it.
+
+   D-016 moved the room's two sentences out of a column of their own and under
+   the graph; D-019 gave that band to the spec's own goal and retired the
+   explainer to the case where no spec is selected at all. **One rule dresses
+   both**, deliberately: what changed is which paragraph occupies the band, not
+   how a paragraph under a graph reads, and FR-012's "identical text" would be a
+   thin guarantee if the two wore different clothes. The measure stays at
+   `34rem` because both are prose and a stage-wide line of body text is not
+   readable. */
+.showfloor .detail-empty,
+.showfloor .spec-goal {
+  margin: 0;
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 34rem;
+}
+
+/* Its place in the stage column: the same `1.4rem` step the legend row takes
+   below it, so the graph, the explanation and the legend read as three things
+   and not as one block (§ Layout's spacing rhythm). */
+.showfloor .stage > .detail-empty,
+.showfloor .stage > .spec-goal {
+  margin: 1.4rem 0 0;
+}
+
+.showfloor .detail .dhead {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.showfloor .detail .dhead .nid {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: var(--t-small);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.showfloor .detail .dpriority {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+.showfloor .detail .dtitle {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0.2rem 0 0.6rem;
+  overflow-wrap: anywhere;
+}
+
+.showfloor .detail .dprose {
+  margin: 0;
+  font-size: var(--t-body);
+  line-height: 1.45;
+  color: var(--muted);
+  max-width: 38rem;
+}
+
+/* A frozen ladder's reason, verbatim and in the alarm the chip already wears
+   (§ Chips). Never abbreviated: it is the factory's sentence. */
+.showfloor .detail .dterminal {
+  margin: 0.6rem 0 0;
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--alarm);
+  overflow-wrap: anywhere;
+}
+
+.showfloor .detail .dsec {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 1.2rem 0 0.45rem;
+}
+
+/* The six stops, expanded from bars into named steps: "mono name, dot,
+   timestamp — pending steps in `--faint`" (§ The status ladder). The grid's
+   three fixed tracks are what keep the name and the stamp from ever sharing a
+   column, which is the no-overlap law kept by construction (FR-014). */
+.showfloor .detail .steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.showfloor .detail .steps li {
+  display: grid;
+  grid-template-columns: 1.1rem 7.2rem 1fr;
+  gap: 0.55rem;
+  padding: 0.28rem 0;
+  font-size: var(--t-small);
+  align-items: baseline;
+}
+
+.showfloor .detail .steps .dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--sunken);
+  align-self: center;
+  justify-self: center;
+}
+
+.showfloor .detail .steps li.done .dot { background: var(--olive); }
+.showfloor .detail .steps li.now .dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-w); }
+.showfloor .detail .steps li.hold .dot { background: var(--gold); box-shadow: 0 0 0 3px var(--gold-w); }
+
+.showfloor .detail .steps .sname {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  font-weight: 600;
+}
+
+/* "pending steps in `--faint`" — the stop the work has not reached. A frozen
+   ladder's stops are faint too: it reached none of them and never will. */
+.showfloor .detail .steps li.pending,
+.showfloor .detail .steps li.froze {
+  color: var(--faint);
+}
+
+.showfloor .detail .steps .swhen {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* The facts grid. Each row is its own grid item so a long value wraps under
+   nothing but itself. */
+.showfloor .detail .kv {
+  display: grid;
+  gap: 0.2rem 1rem;
+  margin: 0;
+  font-size: var(--t-small);
+}
+
+.showfloor .detail .kvrow {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.2rem 1rem;
+  align-items: baseline;
+}
+
+.showfloor .detail .kv dt {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.showfloor .detail .kv dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* "the `requirement_keys` as sunken mono chips" — § Shapes' squared corners,
+   the hairline, and no colour of their own: a key is not a state. */
+.showfloor .detail .frlist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.showfloor .detail .fr {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  border: 1px solid var(--hairline);
+  background: var(--sunken);
+  padding: 0.18em 0.5em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* § The Unknown Rule's clothing, for the two places the pane says a word the
+   factory did not: an intent the spec never wrote, and a graph with no keys. */
+.showfloor .detail .unknown {
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   § Detail pane › the gate run (013 US2).
+
+   No new token, no new chip and no new radius: the section is the pane's own
+   `dsec` kicker, the named-step treatment the six stops already wear, the
+   `unknown` italic above, and the room's degraded well for a read that failed
+   (constitution VIII, 013 plan). What it adds is a *bracket* — the one shape
+   the pane did not have — for gates the store recorded as having run together,
+   and it is always accompanied by the band's own words, because § Named Rules
+   does not let a shape carry a state on its own.
+
+   Every row is a grid with fixed leading tracks, which is how the no-overlap
+   law is kept by construction here as in `.steps`: a name and a duration can
+   never share a column, and the command wraps under itself rather than into
+   its neighbour.
+
+   The ramp is § Typography's, step for step: `tag` mono for identity and data
+   (a gate's name, its outcome, its duration, the command, the tail), `micro`
+   with its own uppercase and `.09em` tracking for the two things that are
+   kickers — the band's label and the fold's summary — and `small` for the one
+   line of running prose. A size off that ramp is a defect, and so is a `micro`
+   that is not dressed as one. ─────────────────────────────────────────────── */
+
+.showfloor .detail .gaterun {
+  min-width: 0;
+}
+
+/* What the section says about its own record (FR-008): the pane's prose size,
+   in the muted ink a caveat wears, sitting under the kicker. */
+.showfloor .detail .grsaid {
+  margin: 0 0 0.7rem;
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* One recorded verification. The hairline is the grid treatment the facts
+   table already uses — tonal, never a second shadow (§ Elevation & Depth). */
+.showfloor .detail .attempt {
+  border-top: 1px solid var(--hairline);
+  padding: 0.6rem 0 0.2rem;
+}
+
+.showfloor .detail .attempt .ahead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0 0 0.3rem;
+}
+
+.showfloor .detail .attempt .anum {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.showfloor .detail .attempt .averdict {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--muted);
+}
+
+.showfloor .detail .attempt .averdict[data-verdict="PASS"] { color: var(--olive); }
+.showfloor .detail .attempt .averdict[data-verdict="FAIL"] { color: var(--alarm); }
+
+/* The interval, with the word that keeps it honest: it brackets one
+   *verification*, and the store cannot support anything wider (plan trap 1). */
+.showfloor .detail .attempt .averify {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The ladder the attempt ran under, verbatim — ergane's sentence, so it wraps
+   rather than truncates. */
+.showfloor .detail .attempt .aloop {
+  margin: 0 0 0.45rem;
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  line-height: 1.5;
+  color: var(--faint);
+  overflow-wrap: anywhere;
+}
+
+.showfloor .detail .bands,
+.showfloor .detail .gates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The bracket. A band the store recorded contention for is drawn as one thing;
+   a gate that had the host to itself takes no bracket, because it is claiming
+   nothing (013 D5). */
+.showfloor .detail .band[data-gate-band="concurrent"] {
+  border-left: 2px solid var(--rule);
+  padding-left: 0.6rem;
+  margin: 0 0 0.35rem;
+}
+
+.showfloor .detail .bandhead {
+  margin: 0 0 0.15rem;
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+}
+
+/* One gate. Two rows: the four facts FR-004 names, then the command beneath
+   them, spanning the tracks so a long command wraps under nothing but itself. */
+.showfloor .detail .gate {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr) auto auto;
+  gap: 0.1rem 0.5rem;
+  padding: 0.25rem 0;
+  align-items: baseline;
+  font-size: var(--t-small);
+}
+
+.showfloor .detail .gate .gdot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--sunken);
+  align-self: center;
+  justify-self: center;
+}
+
+.showfloor .detail .gate .gdot.ok { background: var(--olive); }
+.showfloor .detail .gate .gdot.bad { background: var(--alarm); }
+
+.showfloor .detail .gate .gname {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* The outcome, in words first and hue second (§ Named Rules). */
+.showfloor .detail .gate .gout {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.showfloor .detail .gate .gout.ok { color: var(--olive); }
+.showfloor .detail .gate .gout.bad { color: var(--alarm); }
+
+.showfloor .detail .gate .gdur {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The command that ran, in the sunken well code already wears in this room. */
+.showfloor .detail .gate .gcmd {
+  grid-column: 2 / -1;
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--faint);
+  overflow-wrap: anywhere;
+}
+
+/* The fold. A disclosure, not a control: the room's one button is the node
+   card's (constitution I). Closed at rest — this is evidence for a failure,
+   not something the pane pushes at an operator reading a ladder. */
+.showfloor .detail .gate .tail {
+  grid-column: 2 / -1;
+  margin: 0.25rem 0 0.15rem;
+}
+
+.showfloor .detail .gate .tail summary {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+/* Process output is already laid out, so it keeps its columns — and the well
+   scrolls rather than letting a long line leave the pane, which is the one
+   exemption § Layout's containment law allows. */
+.showfloor .detail .gate .tailtext {
+  margin: 0.3rem 0 0;
+  padding: 0.5rem 0.6rem;
+  max-height: 16rem;
+  overflow: auto;
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .showfloor .quiet {
   font-style: italic;
-  color: var(--ink-soft);
-  padding: var(--s4);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  color: var(--muted);
+  padding: 1.3rem;
   margin: 0;
 }
 
-.epic-stages {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s6);
-}
+/* ─────────────────────────────────────────────────────────────────────────
+   § Stage › the metrics grid and the graph (005 US3).
 
-/* FR-004 / DESIGN.md § Layout (Showfloor): "Each route is a grid `220px 1fr`
-   (epic name and a meta paragraph on the left, the map on the right)". Two
-   columns, not three. The third `auto` column this story removes held the
-   landing line as a DOM sibling of the map, and it is what laid the lane out
-   121px past the container at every width — the lane belongs inside the map,
-   which is where DESIGN.md's x=930 puts it. */
-.epic-stage {
+   This block replaces the first world's room, which stood here until this
+   story's diff: 002's stacked `.epic-stage` grid, its skewed stations and
+   glyph fills, 004's landing line and lane, the React Flow surface and the
+   route-map legend. D-015 replaced the design those rules dressed, and T016
+   deletes them in the same diff as the components — a stylesheet describing a
+   DOM that no longer exists is a second copy of a retired world.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* § Stage: "A metrics grid (hairline 1px-gap grid on surface)". The 1px gap is
+   the hairline showing through the grid's own background — no borders per
+   cell, so there is no doubled rule where two cells meet. */
+.showfloor .metrics {
   display: grid;
-  grid-template-columns: 220px 1fr;
-  grid-template-rows: auto 1fr auto;
-  gap: var(--s4) var(--s5);
-  padding-top: var(--s5);
-  border-top: 1px solid var(--rule);
+  grid-template-columns: repeat(auto-fit, minmax(6.8rem, 1fr));
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+  margin-bottom: 1.5rem;
+  max-width: 46rem;
 }
 
-.epic-stage-header {
-  grid-row: 1 / -1;
-  grid-column: 1;
-}
-
-.epic-stage-name {
-  font-size: var(--fs-display);
-  color: var(--walnut);
-  margin-bottom: var(--s2);
-}
-
-.epic-stage-meta {
-  font-size: var(--fs-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
-  margin: 0;
-}
-
-/* FR-005 / DESIGN.md § Layout (Showfloor): "The map is an SVG of min-width
-   1040px inside a horizontally scrolling wrapper." The wrapper is the grid's
-   second column and nothing more; the map is what sits inside it.
-   `min-width: 0` is the whole of the fix: a `1fr` track takes its minimum from
-   its item's min-content width, so without it the map's 1040px floor forces the
-   column open to 1040px and the wrapper is never narrower than the thing it is
-   supposed to scroll. `overflow-y: hidden` keeps the one scroll axis DESIGN.md
-   names horizontal.
-
-   The wrapper holds a single grid cell, and the map and the landing line both
-   sit in it, origin-aligned. That cell is the coordinate space DESIGN.md
-   measures x=930 in, and stacking the two in it is what lets the cell be as
-   tall as whichever of them needs the room: the map's height stays exactly the
-   graph's (FR-002), and a shallow graph's 252px map is shorter than the
-   landing line DESIGN.md draws beside it — four stations 64px apart, its label
-   and its landed shelf. Pinning the cell to the map's height instead would cut
-   the shelf off the top of the line, which is this story's own defect in a
-   smaller box. */
-.epic-stage-scroll {
-  grid-column: 2;
-  grid-row: 1 / 3;
+.showfloor .metric {
+  background: var(--surface);
+  padding: 0.55rem 0.75rem;
   min-width: 0;
+}
+
+.showfloor .metric b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* The micro step: "grid labels, legends, section kickers" (§ The ramp). `block`
+   rather than inline so the label can never share a line box with the value
+   above it — the no-overlap law is cheaper to keep than to debug. */
+.showfloor .metric span {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+}
+
+/* § The Unknown Rule: "a NULL from the factory renders as the word `unknown` in
+   italic muted — never `0`, a dash, or an empty cell". */
+.showfloor .unknown {
+  font-family: var(--sans);
+  font-size: var(--t-small);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+/* § Stage: "The stage scrolls horizontally when a graph outgrows it." The
+   scroll is on a wrapper around the canvas and not on the stage itself, so the
+   header and the metrics stay put while the graph travels — and so the wrapper
+   is the "scrolling ancestor within it" FR-014's containment law allows a wide
+   graph to live inside. `overflow-y: hidden` keeps the one axis DESIGN.md
+   names; the canvas's own padding is what keeps the cards' shadow off it. */
+.showfloor .dag-scroll {
   overflow-x: auto;
   overflow-y: hidden;
-  display: grid;
-  grid-template-columns: 1fr;
+  min-width: 0;
+
+  /* D-016 clause (c) / § Stage: "When the stage does scroll, the scroll is
+     furniture and wears the room's clothes … Thin, no stepper buttons, thumb
+     on `--rule` and brighter on hover, trough transparent, in both themes."
+
+     Left unstyled this is the one surface in the pane the tokens never
+     reached: the host operating system paints a light grey trough with
+     stepper buttons into a dark room. These two declarations are the whole
+     standard-property half, and they are two rather than six because both
+     themes come from the same rule — `--rule` is a token, so the second
+     theme is a token swap and not a second stylesheet (plan D4).
+
+     No `scrollbar-gutter` is declared here or anywhere else in this file: a
+     reserved gutter would take width from a graph that fits, which is the
+     shortcut FR-011 exists to refuse. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
 }
 
-/* FR-002: the map is exactly as tall as its graph. `--stage-height` arrives
-   from `stageHeight()` — rank depth times the 140px row spacing, plus the
-   station and the stage padding DESIGN.md § Layout names — so nothing here
-   resolves against the viewport and no floor is imposed on top of it. The
-   1040px min-width is DESIGN.md's stated map width and stays; it is now the
-   width the wrapper above scrolls across rather than a floor under the grid
-   column. */
-.epic-stage-map {
-  grid-area: 1 / 1;
-  height: var(--stage-height);
-  min-width: 1040px;
+/* The WebKit half of the same sentence, for the engines that never implemented
+   the standard properties. Chromium implements both and lets the standard ones
+   win where a page declares both, so these rules are the authored fallback and
+   not the rendered result — which is also why the smoke asserts them as
+   *stylesheet text* rather than by measuring a rendered scrollbar's box
+   (plan § Risks: headless Chromium reports an overlay scrollbar where the
+   operator's browser renders a classic widget).
+
+   Not one colour below is a literal. `background: none` is how a trough says
+   transparent without spelling a colour keyword — the computed background
+   colour is the initial `rgba(0, 0, 0, 0)` either way, and the alternative
+   would be inventing a `--transparent` token DESIGN.md does not name
+   (constitution VIII). Every other value is `var(--rule)` or `var(--faint)`
+   (FR-010). */
+.showfloor .dag-scroll::-webkit-scrollbar {
+  /* "Thin", said in the one place a WebKit scrollbar's thickness can be said.
+     The stage scrolls on one axis, so this is the bar's height. */
+  height: 8px;
+  background: none;
 }
 
-.epic-stage .react-flow {
-  background: transparent;
+.showfloor .dag-scroll::-webkit-scrollbar-track {
+  background: none;
 }
 
-.stage-notes {
-  grid-column: 2;
-  grid-row: 3;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s3);
+/* § Shapes: "Rectangles with `2px` radius on cards". The thumb is furniture of
+   the same family, so it takes the same corner. */
+.showfloor .dag-scroll::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 2px;
 }
 
-.stage-note .lead {
-  font-size: var(--fs-body);
+/* "brighter on hover" — one step up the ramp from the room's border colour to
+   its tertiary ink, which raises the thumb's contrast against the surface in
+   *both* themes: `--faint` is darker than `--rule` on the light ground and
+   lighter than it on the dark one. A literal "brighter" would only be true in
+   one of the two, and DESIGN.md names both. */
+.showfloor .dag-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--faint);
 }
 
-/* FR-001: an epic with nothing staged is a named row, not a stage. No canvas is
-   rendered, so the route grid has nothing to hold open and the row collapses to
-   what is left — the epic's name and, beside it, the well naming the read that
-   failed. The well itself is DESIGN.md § Elevation & Depth's Well Rule and is
-   untouched; only the margins that separated it from a map that is not there
-   are dropped. */
-.epic-stage[data-staged="false"] {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s2) var(--s5);
-}
-
-.epic-stage[data-staged="false"] .epic-stage-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s3);
-}
-
-.epic-stage[data-staged="false"] .epic-stage-name {
-  margin-bottom: 0;
-}
-
-.epic-stage[data-staged="false"] .stage-notes {
-  flex: 1 1 24rem;
-}
-
-/* The notice reads as one line: the Well Rule's Display lead-in, then the read
-   and the detail beside it, wrapping only if the detail is long. The words are
-   the factory's and are untouched — this is where they sit, not what they say. */
-.epic-stage[data-staged="false"] .stage-note {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s2) var(--s3);
-  margin: 0;
-}
-
-.epic-stage[data-staged="false"] .stage-note .lead {
-  margin: 0;
-}
-
-/* FR-014: an idle epic — no node in the live set — rests at the RUNNING
-   glow's rest opacity. The marker carries the state; nothing else changes. */
-.epic-stage[data-idle="true"] {
-  opacity: 0.55;
-}
-
-/* Landing line — DESIGN.md § Route Map and Landing Line, § Layout.
-   FR-004: "the landing line lives at x=930". x is the map's coordinate space,
-   not the stage's, so the lane is drawn inside the map — 110px short of
-   DESIGN.md's 1040px map width, which is what "at the right edge of every map"
-   means — and rides the wrapper's horizontal scroll with the graph it belongs
-   to. It was a grid item in a third column of the *stage*, laid out past the
-   container with nothing to scroll it into view; it is now in the map's own
-   cell, 930px into it. */
-.landing-line {
-  grid-area: 1 / 1;
-  justify-self: start;
-  margin-left: 930px;
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: flex-start;
-  gap: var(--s3);
-}
-
-/* The hairline connector a story short of the line reaches across. It sits one
-   spacing step to the left of the olive line, so the line itself stays at the
-   x DESIGN.md names. */
-.landing-line::before {
-  content: "";
-  position: absolute;
-  left: calc(-1 * var(--s5));
-  top: 0;
-  bottom: 0;
-  border-left: 1px solid var(--rule);
-}
-
-.landing-line-label {
-  font-family: var(--text);
-  font-size: var(--fs-micro);
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-.landing-line-track {
-  display: flex;
-  flex-direction: column-reverse;
-  justify-content: flex-start;
-  gap: 48px; /* 16px stations 64px apart */
-  padding: var(--s2) 0;
-  border-left: 3px solid var(--olive);
-  box-shadow: inset 1px 0 0 var(--ground);
-  padding-left: var(--s3);
-}
-
-.landing-station {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  height: 16px;
-}
-
-.landing-station-mark {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-  transform: skewX(-12deg);
-  border: 2px solid var(--olive);
-  background: var(--panel);
-}
-
-.landing-station-label {
-  font-family: var(--display);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--olive-ink);
-  white-space: nowrap;
-}
-
-.landing-station-tokens {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-}
-
-.landing-token {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s1);
-}
-
-.landing-token::before {
-  content: "";
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--teal);
-  box-shadow: 0 0 0 3px var(--panel);
-}
-
-.landing-token.queue::before {
-  background: var(--olive);
-}
-
-.landing-token-label {
-  font-family: var(--mono);
-  font-size: var(--fs-micro);
-  color: var(--ink-soft);
-  white-space: nowrap;
-}
-
-.landed-shelf {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s3);
-  padding: var(--s2) var(--s3);
-  background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-
-.landed-shelf-count {
-  font-family: var(--mono);
-  font-size: var(--fs-micro);
-  letter-spacing: 0.04em;
-  color: var(--olive-ink);
-  margin: 0;
-  white-space: nowrap;
-}
-
-.shelf-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s1);
-  width: 40px;
-}
-
-.shelf-card .station-body {
-  width: 24px;
-  height: 24px;
-}
-
-/* Station card */
-.station {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s2);
-  width: 40px;
-  position: relative;
-}
-
-.station-handle {
-  opacity: 0;
-  width: 1px;
-  height: 1px;
-  min-width: 1px;
-  min-height: 1px;
-  border: none;
-  background: transparent;
-}
-
-.station-body {
-  width: 40px;
-  height: 40px;
-  transform: skewX(-12deg);
-  border-radius: 1px;
-  border: 2px solid currentColor;
-  position: relative;
-}
-
-.station-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.node-id {
-  font-family: var(--mono);
-  font-size: var(--fs-small);
-  color: var(--ink);
-}
-
-.attempt-line {
-  font-size: var(--fs-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.attempt-pip {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ink);
-}
-
-.station-caption {
-  font-family: var(--display);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-align: center;
-  white-space: nowrap;
-}
-
-/* Glyphs */
-.st-dashed .station-body {
-  border-style: dashed;
-  background: transparent;
-}
-
-.st-hatched .station-body {
-  background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 5px);
-}
-
-.st-solid .station-body {
-  background: currentColor;
-}
-
-.st-half .station-body {
-  background: linear-gradient(to right, currentColor 50%, var(--panel) 50%);
-}
-
-.st-most .station-body {
-  background: linear-gradient(to right, currentColor 78%, var(--panel) 78%);
-}
-
-.st-crossed .station-body::before,
-.st-crossed .station-body::after {
-  content: "";
-  position: absolute;
-  left: 10%;
-  top: 50%;
-  width: 80%;
-  height: 2px;
-  background: var(--ink);
-}
-
-.st-crossed .station-body::before { transform: rotate(45deg); }
-.st-crossed .station-body::after { transform: rotate(-45deg); }
-
-.st-bell .station-body {
-  border-radius: 50% 50% 2px 2px;
-  transform: skewX(0deg);
-}
-
-.st-filled .station-body {
-  background: currentColor;
-}
-
-/* Edges */
-.edge-pass path {
-  stroke: var(--ink-soft);
-  stroke-width: 1.5px;
-  stroke-dasharray: 4 5;
-  fill: none;
-}
-
-.edge-merge path {
-  stroke: var(--ink);
-  stroke-width: 4px;
-  fill: none;
-}
-
-/* Legend */
-.legend {
-  grid-column: 2;
-  display: flex;
-  gap: var(--s5);
-  margin-top: var(--s3);
-}
-
-.legend-entry {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  font-size: 10px;
-  color: var(--ink-soft);
-}
-
-.legend-sample {
-  display: inline-block;
-  width: 24px;
+/* "no stepper buttons" — the arrow caps at each end of the host widget, which
+   this room does not have furniture for. The unqualified selector covers the
+   horizontal bar this scroller actually grows as well as every other
+   orientation, and the two zeroes are there because Chromium has historically
+   kept a button's box on `display: none` alone. */
+.showfloor .dag-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
   height: 0;
 }
 
-.legend-pass {
-  border-bottom: 1.5px dashed var(--ink-soft);
+/* "Compute layout from content — a stage is the size of its graph" (§ Do's).
+   `max-content` is that sentence in CSS: no imposed width, no viewport unit, no
+   second coordinate space for the wires to disagree with. */
+.showfloor .dag {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+  padding: 0.5rem 0.3rem;
 }
 
-.legend-merge {
-  border-bottom: 4px solid var(--ink);
+/* § Stage: wires "behind the cards, `pointer-events: none`". Behind is the
+   stacking order — the SVG comes first in the DOM and the ranks below it take
+   their own stacking context — and `inset: 0` is what makes the SVG's user
+   units the canvas's CSS pixels, which is the space `Wires.tsx` measured in. */
+.showfloor .dag .wires {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.legend-name {
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+/* § Stage: "merge edges solid 2px olive, pass edges dashed 2px `--rule`". */
+.showfloor .dag .wire {
+  fill: none;
+  stroke-width: 2;
+}
+
+.showfloor .dag .wire.merge {
+  stroke: var(--olive);
+}
+
+.showfloor .dag .wire.pass {
+  stroke: var(--rule);
+  stroke-dasharray: 5 4;
+}
+
+/* Ranks left→right, "stage rank gap `1.6rem`" (§ Layout). `flex: 0 0 auto`
+   throughout: a rank that shrank to fit would move a card out from under the
+   wire already measured against it. */
+.showfloor .ranks {
+  position: relative;
+  display: flex;
+  gap: 1.6rem;
+  align-items: flex-start;
+  width: max-content;
+}
+
+.showfloor .rank {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* § Stage: "node cards `11.5rem` wide (id block, title small, chip, ladder,
+   mono sub-line)"; § Shapes: 2px radius; § Elevation: the one shadow, on stage
+   node cards. A flex column with a gap is what guarantees the five children
+   stack and never share a line — the no-overlap law, kept by construction. */
+.showfloor .node {
+  flex: 0 0 auto;
+  width: 11.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.65rem 0.8rem 0.7rem;
+  box-shadow: var(--shadow);
+  position: relative;
+  /* 005 US4: the card is a `<button>` now, so it arrives wearing the user
+     agent's control clothing. These four lines take it off — the card's own
+     appearance is unchanged from US3, and § Shapes' selection outline and a
+     visible focus ring are what it gains (FR-016). */
+  font: inherit;
   color: var(--ink);
+  text-align: left;
+  cursor: pointer;
 }
 
-.legend-def {
-  max-width: 60ch;
+.showfloor .node:hover {
+  border-color: var(--accent);
 }
 
-/* The attention badge — DESIGN.md § Navigation (far right of the masthead, in
-   clay-ink with a clay bell dot; it is a link, the Showfloor's only one) and
-   § Colors (clay is waiting-on-you and it is never red). The bell dot is the
-   one organic shape in the system, so the badge's hue is doubled by a glyph
-   and by the words beside it (the Never-Colour-Alone Rule). */
-.attention-badge {
-  display: inline-flex;
+/* § Shapes: "Selection is … a 2px accent outline on the selected node card." */
+.showfloor .node.sel {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+/* FR-016: every focusable thing in this room shows where the keyboard is. The
+   offset is positive so the ring sits outside the card's own border rather
+   than replacing it, and it is drawn for `:focus-visible` only — a mouse pick
+   does not leave a ring behind. */
+.showfloor .node:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.showfloor .node .nid {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: var(--t-small);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.showfloor .node .ntitle {
+  font-size: var(--t-small);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.showfloor .node .nstat {
+  display: flex;
   align-items: center;
-  gap: var(--s2);
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: var(--fs-small);
-  letter-spacing: 0.02em;
-  color: var(--orange-ink);
-  text-decoration: none;
+  gap: 0.5rem;
+  max-width: 100%;
 }
 
-.attention-badge::before {
-  content: "";
-  display: inline-block;
-  width: 0.6em;
-  height: 0.6em;
-  background: var(--orange);
-  border-radius: 50% 50% 2px 2px;
+/* The chip is the one element on the card allowed to outgrow it — a word from
+   the factory's vocabulary is never abbreviated (§ Named Rules) — so it wraps
+   inside the card instead of reaching past its right edge. */
+.showfloor .node .chip {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.attention-badge .num {
-  color: var(--orange-ink);
+.showfloor .node .nsub {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
-/* A degraded attention read is a note in the badge's place: what could not be
-   learned and the mode in words, never the numeral zero (constitution III). */
-.attention-degraded {
-  font-size: var(--fs-small);
-  color: var(--ink-soft);
-  font-style: italic;
-  max-width: 48ch;
+/* § The status ladder: "six `4px`-tall bars with `3px` gaps: done stops olive,
+   the active stop accent with a 1.6s opacity pulse, waiting-on-you gold, ahead
+   `--sunken`". A frozen ladder occupies no stop, so its bars rest at `--sunken`
+   with the card's chip and sub-line carrying the terminal word and reason. */
+.showfloor .ladder {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  margin-top: 0.3rem;
 }
 
-/* Motion — DESIGN.md § Motion. Three authored motions and the transition
-   pulse, all authored inside the no-preference gate and all using the one
-   easing, so under `prefers-reduced-motion: reduce` nothing animates and no
-   override is needed. Every piece of information the room carries is a marker
-   or a word; none of it lives in the movement (FR-013). */
+.showfloor .ladder i {
+  flex: 1;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--sunken);
+}
+
+.showfloor .ladder i.done { background: var(--olive); }
+.showfloor .ladder i.now { background: var(--accent); }
+.showfloor .ladder i.hold { background: var(--gold); }
+
+/* § Motion: "Exactly one authored motion: the active ladder stop's 1.6s opacity
+   pulse", authored inside the no-preference gate so `prefers-reduced-motion`
+   suppresses it with no override to forget. */
 @media (prefers-reduced-motion: no-preference) {
-  /* RUNNING station glow */
-  .station[data-state="RUNNING"] .station-body {
-    animation: station-glow 2.4s var(--ease-out) infinite;
+  .showfloor .ladder i.now {
+    animation: ladder-pulse 1.6s ease-in-out infinite;
   }
 
-  /* Landing-line token travel: up one station, holding at each end */
-  .landing-token.queue {
-    animation: landing-travel 6s var(--ease-out) infinite;
+  @keyframes ladder-pulse {
+    50% { opacity: 0.35; }
   }
+}
 
-  /* The transition pulse: applied and cleared with the marker (FR-012) */
-  .station[data-transition="true"] .station-body {
-    animation: station-pulse 0.9s var(--ease-out) 1;
-  }
+/* § Stage: "One legend row under the stage, rendered once per page." */
+.showfloor .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  align-items: center;
+  margin: 1.4rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
 
-  @keyframes station-glow {
-    0% { opacity: 1; }
-    50% { opacity: 0.55; }
-    100% { opacity: 1; }
-  }
+.showfloor .legend b {
+  font-weight: 600;
+}
 
-  @keyframes landing-travel {
-    0%, 12% { transform: translateY(0); }
-    45%, 62% { transform: translateY(-90px); }
-    95%, 100% { transform: translateY(0); }
-  }
+.showfloor .legend .swatch {
+  display: inline-block;
+  width: 1.1em;
+  height: 4px;
+  border-radius: 1px;
+  vertical-align: middle;
+  margin-right: 0.35em;
+  background: var(--sunken);
+}
 
-  @keyframes station-pulse {
-    0% { opacity: 1; }
-    45% { opacity: 0.55; }
-    100% { opacity: 1; }
-  }
+.showfloor .legend .swatch.done { background: var(--olive); }
+.showfloor .legend .swatch.now { background: var(--accent); }
+.showfloor .legend .swatch.hold { background: var(--gold); }
+.showfloor .legend .swatch.ahead { border: 1px solid var(--rule); }
+
+.showfloor .legend .legend-edges {
+  margin-left: auto;
+}
+
+/* The stage with nothing on it: a line of text, never a screen of nothing. */
+.showfloor .stage-empty {
+  margin: 0;
+  font-size: var(--t-small);
+  font-style: italic;
+  color: var(--muted);
 }
