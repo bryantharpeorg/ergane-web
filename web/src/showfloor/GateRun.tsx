@@ -100,7 +100,10 @@ export default function GateRun({ evidence }: GateRunProps): JSX.Element | null 
       </p>
       {evidence.note === null ? null : <ReadFailed note={evidence.note} />}
       {attempts.map((attempt, index) => (
-        <Attempt key={attempt.attempt ?? index} attempt={attempt} />
+        // Keyed by position as well as by number: the store can hold two rows
+        // for one attempt (one per `form`), and it can hold a row whose number
+        // it never recorded.
+        <Attempt key={`${attempt.attempt ?? "?"}-${index}`} attempt={attempt} />
       ))}
     </section>
   );
