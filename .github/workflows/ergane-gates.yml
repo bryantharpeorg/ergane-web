@@ -31,6 +31,35 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # `fetch-depth: 0` above is a REQUEST, and on 2026-08-26 it was not the
+      # result. Measured on this runner, from the pane's own working directory:
+      #
+      #     rev-parse(origin/dev)=7004b7b92d52…  commits-on-origin/dev=1
+      #     is-shallow=true
+      #
+      # One commit. So `landed_facts` walked a history containing exactly one
+      # landing and every spec read as an epic that never landed — spec 001
+      # reported four of four stories unmerged with all four on the branch. The
+      # room then refused, correctly by its own rules, and eleven smoke tests
+      # failed on a floor that had nothing wrong with it. That is what killed
+      # 011/us2's whole ladder overnight and cascade-killed us3 behind it: no
+      # attempt could have passed, and no retry could have changed it.
+      #
+      # Reproduced exactly with `git clone --depth 1` and cured exactly by
+      # unshallowing: 89 commits, every landed spec answering 200.
+      #
+      # So this step verifies rather than assumes. It is idempotent, costs
+      # nothing when the history is already complete, and never fails the gate
+      # on its own — a repository that cannot be deepened is reported here and
+      # left to the rooms to degrade over.
+      - name: "guarantee the landing branch's history"
+        run: |
+          if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            echo "shallow checkout detected; deepening"
+            git fetch --unshallow origin || git fetch --deepen=2147483647 origin || true
+          fi
+          echo "is-shallow=$(git rev-parse --is-shallow-repository)"
+          echo "commits reachable from origin/${GITHUB_BASE_REF:-dev}: $(git rev-list --count "origin/${GITHUB_BASE_REF:-dev}" 2>/dev/null || echo unknown)"
       - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-node@v4
         with:
