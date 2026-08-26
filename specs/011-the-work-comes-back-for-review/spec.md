@@ -1,6 +1,12 @@
 ---
-state: draft
+state: ready
 depends_on_landed: [013-the-gates-show-their-work]
+# Flipped `ready` 2026-08-25, 11:36 PM CT. The hold is discharged: D-023 landed on
+# dev at 14020d9 (#74), so the Playwright substitution and `DESIGN.md` § The review
+# room are on the branch. READ THE PLAYWRIGHT NOTE BELOW BEFORE READING THE SPEC --
+# the operator asked for a browser session by name and this spec uses a same-origin
+# frame instead.
+#
 # REFINED 2026-08-25, ~10:45 PM CT, on the operator's instruction. It was a sketch
 # with seven open questions and no Work Graph; it now has three stories, fourteen
 # functional requirements and a compiled graph. `ergane spec validate` passes.
