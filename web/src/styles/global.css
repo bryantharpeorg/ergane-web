@@ -173,12 +173,18 @@ a {
    frame has (006 FR-001, measured at 1280/1600/2560 in `desk-world.spec.ts`).
    The first world's `max-width: 1280px` on the Desk itself is what this
    replaces. */
-.desk-room {
+.desk-room,
+.draft-room {
   min-height: 100vh;
   background: var(--ground);
 }
 
-.desk-frame {
+/* One rule, two rooms (014 US1). The drafting table wears the Desk's frame
+   rather than declaring a second one of its own: § Elevation leaves exactly one
+   shadow in this file, and a copied rule would be a second declaration of the
+   same design — which is what `deskWorld.test.ts`'s one-shadow sweep is for. */
+.desk-frame,
+.draft-frame {
   width: 100%;
   max-width: 96rem;
   margin: 0 auto;
@@ -704,4 +710,236 @@ a {
   padding: 0.5rem 0 0.6rem 1rem;
   border-left: 1px solid var(--hairline);
   margin-top: 0.4rem;
+}
+
+/* ── The drafting table (014 US1, DESIGN.md § The drafting table) ──────────
+   The third room, and the only one that renders *documents* rather than state.
+   Same tokens, same faces, same frame as the other two — what it adds is a
+   reading measure and a read stamp. Not one colour literal below: every value
+   is a § Colors token, a § Typography ramp step or a § Layout measure, which is
+   what `tests/unit/deskWorld.test.ts` sweeps this file for. */
+/* § Layout's app frame is shared with the Desk's, above: `.desk-frame,
+   .draft-frame`. § Layout's spacing rhythm: "section padding 1.3–1.8rem". */
+.draft { padding: 0 1.6rem 1.8rem; }
+.draft .loading { font-style: italic; color: var(--muted); margin: 1.4rem 0; }
+
+/* "Every render names the working-tree revision and the instant it was read, in
+   micro uppercase over a hairline, at the top of the view." The hairline is
+   below it, so the stamp sits over the rule and the room begins under it. */
+.draft-stamp {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  margin: 0;
+  padding: 0.9rem 0 0.5rem;
+  border-bottom: 1px solid var(--hairline);
+}
+.draft-stamp .num { color: var(--ink); }
+.draft-stamp-label { color: var(--faint); }
+.draft-stamp-sep { padding: 0 0.5rem; color: var(--rule); }
+/* A fact the tree could not give. Muted and unbordered: unknown is not an
+   alarm, and it is never a dash standing in for a value (constitution III). */
+.draft-unknown { color: var(--muted); font-style: italic; }
+/* The tree is not the commit it names. `--gold` is § Colors' "waiting on the
+   operator", which is exactly what an uncommitted edit is. */
+.draft-dirty { color: var(--gold); }
+
+.draft-title {
+  font-family: var(--mono);
+  font-size: var(--t-title);
+  color: var(--ink);
+  font-weight: 600;
+  margin: 1.1rem 0 1.3rem;
+  word-break: break-word;
+}
+
+/* "Three documents, one column each, one scroll." One scroll is the page's:
+   no column scrolls itself, because a document is read straight through.
+   `minmax(0, …)` and the `min-width: 0` below are what keep a long fenced line
+   inside its own column instead of stretching the grid past the frame —
+   § Layout's containment law, in the two properties that enforce it. */
+.draft-trio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.6rem;
+}
+
+/* "The three columns collapse to one below the width at which that measure
+   cannot be held twice." The measure is 68ch of the ramp's body step; two of
+   them plus the gap and the frame's padding is about this. */
+@media (max-width: 1080px) {
+  .draft-trio { grid-template-columns: 1fr; }
+}
+
+.draft-column {
+  min-width: 0;
+  border-top: 1px solid var(--hairline);
+  padding-top: 0.7rem;
+}
+
+.draft-column-name {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  margin: 0 0 0.8rem;
+}
+
+/* "A `plan.md` that does not exist reads as the word `absent` in italic muted,
+   in its own column, with no border and no colour." */
+.draft-column-nothing {
+  font-size: var(--t-body);
+  color: var(--muted);
+  margin: 0;
+}
+
+/* "Running text holds the ramp's body size at a measure of roughly 68
+   characters… A document is read, not scanned — this is the one place in the
+   pane where prose sets the layout rather than a table." */
+.draft-prose {
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 68ch;
+}
+.draft-prose > :first-child { margin-top: 0; }
+.draft-prose > :last-child { margin-bottom: 0; }
+.draft-prose h1,
+.draft-prose h2,
+.draft-prose h3,
+.draft-prose h4,
+.draft-prose h5,
+.draft-prose h6 {
+  font-family: var(--sans);
+  color: var(--ink);
+  line-height: 1.25;
+  margin: 1.3rem 0 0.5rem;
+  word-break: break-word;
+}
+.draft-prose h1 { font-size: var(--t-name); font-weight: 600; }
+.draft-prose h2 { font-size: var(--t-title); font-weight: 600; }
+.draft-prose h3 { font-size: var(--t-body); font-weight: 700; }
+.draft-prose h4,
+.draft-prose h5,
+.draft-prose h6 {
+  font-size: var(--t-small);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.draft-prose p { margin: 0 0 0.8rem; }
+.draft-prose ul,
+.draft-prose ol { margin: 0 0 0.8rem; padding-left: 1.3rem; }
+.draft-prose li { margin: 0 0 0.25rem; }
+.draft-prose blockquote {
+  margin: 0 0 0.8rem;
+  padding: 0.1rem 0 0.1rem 0.8rem;
+  border-left: 3px solid var(--rule);
+  color: var(--muted);
+}
+.draft-prose hr {
+  border: 0;
+  border-top: 1px solid var(--hairline);
+  margin: 1.2rem 0;
+}
+.draft-prose a { color: var(--accent); word-break: break-word; }
+.draft-prose code {
+  font-family: var(--mono);
+  font-size: var(--t-small);
+  background: var(--sunken);
+  padding: 0.05rem 0.25rem;
+  border-radius: 2px;
+  word-break: break-word;
+}
+/* A fenced block is the one leaf in this room that may be wider than its
+   column, so it is the one leaf that scrolls itself — which is precisely the
+   exception § Layout's containment law allows ("except inside an ancestor whose
+   `overflow-x` scrolls"). Its `code` child drops the wash and the wrapping so
+   the block keeps its own lines. */
+.draft-prose pre {
+  font-family: var(--mono);
+  font-size: var(--t-small);
+  line-height: 1.45;
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0.6rem 0.7rem;
+  margin: 0 0 0.8rem;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.draft-prose pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  white-space: pre;
+  word-break: normal;
+}
+/* A table in a spec — the state conventions, the gate worlds — is wider than
+   the measure more often than not, so it scrolls itself for the same reason. */
+.draft-prose table {
+  border-collapse: collapse;
+  font-size: var(--t-small);
+  margin: 0 0 0.8rem;
+}
+.draft-prose th,
+.draft-prose td {
+  border: 1px solid var(--hairline);
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+.draft-prose th { color: var(--muted); font-weight: 600; }
+.draft-table-scroll { max-width: 100%; overflow-x: auto; }
+.draft-prose img { max-width: 100%; }
+
+/* The room saying what it is not (see `draft/Markdown.tsx`). Muted, unbordered
+   and above the text it qualifies: the operator must read it before the prose,
+   not after. `--muted` and no rank colour, because an unrendered document is a
+   limit of the pane and not a fault in the spec. */
+.draft-unrendered {
+  font-size: var(--t-small);
+  font-style: italic;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+}
+
+/* The document's own bytes. It is the one leaf in this room that keeps its own
+   line breaks, so it is the one leaf that scrolls itself — the exception
+   § Layout's containment law names ("except inside an ancestor whose
+   `overflow-x` scrolls"). Capped in height for the same reason the gate tail is
+   (013): a whole `spec.md` is hundreds of lines, and three columns of them side
+   by side is not a page anyone can read across. */
+.draft-source {
+  font-family: var(--mono);
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0.6rem 0.7rem;
+  margin: 0;
+  max-width: 100%;
+  max-height: 34rem;
+  overflow: auto;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* The path a degraded read tried, on its own line: it is the fact the operator
+   acts on, and a typo'd directory name is only visible spelled out (FR-004). */
+/* Specific enough to beat `.degraded p { margin: 0 }` without `!important`. */
+.degraded .draft-note-path { margin-top: 0.4rem; word-break: break-all; }
+.degraded .draft-note-path .num { color: var(--ink); }
+
+@media (max-width: 900px) {
+  .draft { padding: 0 1rem 1.4rem; }
 }

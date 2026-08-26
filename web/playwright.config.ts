@@ -78,6 +78,16 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // 014 US1: the drafting table. A project of its own, because a spec file
+      // that matches none is collected by no gate — the defect 001 US1-S1
+      // exists to prevent, and the one `shell.spec.ts` shipped with. Same
+      // fixture-backed backend on 8787: this room reads the specs corpus off
+      // disk and needs no live floor.
+      name: "draft",
+      testMatch: /draft\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       // 005 US2: `shell.spec.ts` matched no project and so was collected by no
       // gate — the defect 001 US1-S1 exists to prevent, found while replacing
       // the first world's assertions in it. Same backend as the Desk's.
