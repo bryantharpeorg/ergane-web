@@ -125,8 +125,30 @@ def test_a_spec_the_branch_carried_nothing_for_is_an_answer_and_not_a_miss():
 
 
 @pytest.fixture
-def landed(tmp_path):
-    """A repository whose `dev` branch carries every story of `SPEC`."""
+def landed(tmp_path, monkeypatch):
+    """A repository whose `dev` branch carries every story of `SPEC`.
+
+    **The working directory moves into the run's own scratch tree**, and that is
+    not tidiness — it is what keeps 009's observer telling the truth about the
+    tests below.  `shutil.rmtree` walks a tree through a directory *file
+    descriptor*, so the `os.remove`/`os.rmdir`/`open` audit events it raises
+    carry bare names (`objects`, `HEAD`, `refs`, `dev`) with no directory on
+    them, and `tests/hermetic.py` resolves a relative audit path against
+    `os.getcwd()` — a base those names never had.  Every `.git` a test here
+    destroys therefore *reads*, to the observer, as a touch of
+    `<cwd>/objects`, `<cwd>/HEAD`, … and whether that is a violation depends
+    entirely on where pytest happened to be launched from.  Run from the
+    repository it is silently inside the tree; run from anywhere else — and
+    `test_reads_no_host_state.py` deliberately runs the whole suite from a
+    working directory of its own — it is a host read this file did not make.
+    A suite green or red by launch directory is the exact defect 009 exists to
+    remove, so the fixture pins the one thing the phantom paths hang off.
+
+    `demo_floor` and `live_app` chdir to the same directory for their own
+    reasons; doing it here as well makes the property structural for the file
+    rather than remembered per test.
+    """
+    monkeypatch.chdir(tmp_path)
     return build_landed_repository(
         tmp_path, SpecFixture(SPEC, state="ready"), landings={SPEC: STORIES}
     )
