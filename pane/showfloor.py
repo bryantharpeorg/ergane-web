@@ -2,7 +2,7 @@
 
 Rail, stage and detail pane all render from the one document
 `assemble_showfloor` returns, so the browser still never dials Temporal and
-never reads the factory's disk (001's doctrine).  Four sources, each through a
+never reads the factory's disk (001's doctrine).  Five sources, each through a
 seam that already exists:
 
 * **spec order and state** — `factory.roadmap.models.read_roadmap`, ergane's own
@@ -16,6 +16,12 @@ seam that already exists:
   spec dir.
 * **landing facts** — `factory.workgraph.landed.landed_facts` over the landing
   branch, through `pane/landing.py`.  A workflow ages out; a landing does not.
+* **the gate run** — `factory.verify.store.node_history` over
+  `connect_readonly`, through 001's reader seam (013 D-020).  Per story, per
+  attempt: the gates that ran with their outcomes and durations, the loop
+  summary the attempt ran under, and the judge's per-scenario findings.  It sits
+  in its own section on the story and degrades inside it, so a store the pane
+  cannot open costs the operator the gate run and nothing else.
 
 The last two are **layered, never swapped** (009 plan D1).  `epic_status` is the
 only thing that knows an attempt number, a persona, or any of the four stops
@@ -439,6 +445,19 @@ LIVE_FACTS = (
 )
 
 
+# --- the gate run: what the factory recorded about each attempt -----------
+
+#: The two facts the evidence store does not carry, and that the pane will not
+#: invent.  `verification_results` has eighteen columns and none of them names
+#: the model an attempt ran on or the persona it ran as.  Resolving either from
+#: the persona registry would be *wrong* rather than approximate: the DEBUGGER
+#: rung relabels the persona without re-resolving `model_alias`, so the registry
+#: disagrees with reality on precisely the escalated attempt an operator is
+#: reading (013 D2, FR-003).  So both render unknown, and they are named here so
+#: the section can say which two rather than leaving two blank cells.
+EVIDENCE_UNKNOWN: tuple[str, ...] = ("model", "persona")
+
+
 @dataclasses.dataclass(frozen=True)
 class ShowfloorReaders:
     """The per-spec reads the document needs, injected rather than imported.
@@ -461,6 +480,14 @@ class ShowfloorReaders:
     epic_status: Callable[[str], Awaitable[dict | None]]
     reference_instant: str | None = None
     landing_facts: Callable[[str], dict[str, Any]] | None = None
+    #: 013's fourth read: `(epic_id, node_id) -> list[VerificationResult]`, the
+    #: evidence store's own `node_history` seam, raising the same two exceptions
+    #: as the others.  `None` means *this build has no evidence read at all*,
+    #: and the document then reads exactly as it did before 013 — every story
+    #: carries an evidence section with no attempts in it, which is the same
+    #: shape as a node the factory has never verified.  A build that has the
+    #: reader and cannot use it is the other case, and that one is a note.
+    node_history: Callable[[str, str], list[dict]] | None = None
     #: The branch `landing_facts` reads, for the wording of a disagreement note.
     #: A setting, never a literal spelt into a reader (009 plan D3).
     landing_branch: str | None = None
@@ -506,6 +533,7 @@ class ShowfloorReaders:
             reference_instant=getattr(reader, "reference_instant", None),
             landing_facts=AssemblyLanding(reader_for(root.parent, branch)).facts,
             landing_branch=branch,
+            node_history=bound.node_history,
         )
 
 
@@ -529,6 +557,17 @@ class _BoundReads:
                 # Nothing archived either: the *seam's* failure is the one worth
                 # naming, because the seam is where the graph belongs.
                 raise first from None
+
+    def node_history(self, epic_id: str, node_id: str) -> list[dict]:
+        """The evidence read, straight through: the seam is the whole of it.
+
+        No archive fallback, unlike `workgraph` above.  A compiled graph has a
+        second honest home in this repository because `ergane spec derive`
+        writes one there; a verification does not — it exists in the factory's
+        store or it does not exist, and standing anything else in for it would
+        be the pane inventing a gate run.
+        """
+        return self._reader.node_history(epic_id, node_id)
 
     async def epic_status(self, spec_dir: str) -> dict | None:
         refs = await self._epic_refs()
@@ -671,6 +710,11 @@ async def _assemble_spec(
     stories, story_source = _stories(
         spec_state, graph, headings, live_nodes, dispatched, unknown,
         landing, landing_failed,
+        # The evidence read is the epic's, and the epic's id *is* the spec
+        # directory — the same identity `_BoundReads.epic_status` matches a
+        # running epic on.  It is passed down rather than read here because the
+        # record is per node: one read per story, each degrading on its own.
+        evidence_read=readers.node_history, epic_id=spec_dir,
     )
 
     disagreement = _attestation_disagreement(
@@ -725,6 +769,8 @@ def _stories(
     unknown: list[str],
     landing: dict[str, Any] | None = None,
     landing_failed: bool = False,
+    evidence_read: Callable[[str, str], list[dict]] | None = None,
+    epic_id: str = "",
 ) -> tuple[list[dict], str]:
     """The spec's stories, from the compiled graph when it was readable.
 
@@ -743,7 +789,7 @@ def _stories(
         stories = [
             _story(
                 node.get("story_key"), node, headings, live_nodes, dispatched, spec_state,
-                unknown, landing, landing_failed,
+                unknown, landing, landing_failed, evidence_read, epic_id,
             )
             for node in nodes
             if node.get("id") is not None
@@ -753,7 +799,7 @@ def _stories(
         stories = [
             _story(
                 story_key, None, headings, live_nodes, dispatched, spec_state,
-                unknown, landing, landing_failed,
+                unknown, landing, landing_failed, evidence_read, epic_id,
             )
             for story_key in sorted(headings, key=_story_number)
         ]
@@ -779,8 +825,10 @@ def _story(
     unknown: list[str],
     landing: dict[str, Any] | None = None,
     landing_failed: bool = False,
+    evidence_read: Callable[[str, str], list[dict]] | None = None,
+    epic_id: str = "",
 ) -> dict:
-    """One story: identity, title, requirement keys, ladder, landing facts."""
+    """One story: identity, title, requirement keys, ladder, landing, evidence."""
     node_id = node.get("id") if node else (story_key.lower() if story_key else None)
     if story_key is None and node_id is not None:
         story_key = node_id.upper()
@@ -873,10 +921,149 @@ def _story(
         "depends_on_merged": list(node.get("depends_on_merged") or []) if node else [],
         "ladder": ladder,
         "facts": facts,
+        # The gate run (013 FR-001).  Its own section, with its own degradation
+        # inside it: a store the pane cannot read says so *here*, and the
+        # ladder, the facts and every other spec on the rail are untouched by it
+        # (FR-002).  That is why nothing below appends to `notes` — a note there
+        # is the room's word for "this rail entry is degraded", and an evidence
+        # store that is not there does not make the epic's state unknown.
+        "evidence": _story_evidence(evidence_read, epic_id, node_id),
         # The live fields the answer did not carry, named rather than defaulted.
         # An undispatched epic is not missing them; an answer that *was* read
         # and skipped this node — 002's skew — is missing all, and says so.
         "unknown": missing if dispatched else [],
+    }
+
+
+# --- the evidence section -------------------------------------------------
+
+
+def _story_evidence(
+    read: Callable[[str, str], list[dict]] | None,
+    epic_id: str,
+    node_id: str | None,
+) -> dict:
+    """One story's recorded verifications, or the sentence saying why none.
+
+    Two keys and no third.  `attempts` is what `node_history` returned, oldest
+    first, each shaped by `_attempt` below.  `note` is `None` when the read was
+    made, and `{read, mode, detail}` when it was not — the room's own triple, so
+    transport and refusal stay told apart here as everywhere else (001, 052).
+
+    An empty `attempts` with no note is an answer and not an absence of one:
+    this node has no recorded verification, which is what a story that has never
+    been dispatched looks like.  The section renders nothing for it rather than
+    an empty frame (013 FR-010, US3's to draw).
+
+    **This never raises and never touches another section.**  The failure is
+    caught here, at the one story it belongs to, so a store that cannot be
+    opened costs the operator the gate run and nothing else — not the ladder,
+    not the landing SHA, not the spec beside it on the rail (FR-002).
+    """
+    if read is None or node_id is None:
+        return {"attempts": [], "note": None}
+
+    try:
+        rows = read(epic_id, node_id)
+    except (TransportFailed, QueryRefused) as exc:
+        return {
+            "attempts": [],
+            "note": {"read": exc.read, "mode": _exc_mode(exc), "detail": exc.detail},
+        }
+
+    return {"attempts": [_attempt(row) for row in rows], "note": None}
+
+
+def _attempt(row: dict) -> dict:
+    """One `VerificationResult` as the room reads it.
+
+    Field for field off the seam's own record — nothing is computed, nothing is
+    joined, and nothing is looked up elsewhere.  Three things are worth saying
+    about what is and is not here:
+
+    * **`started_at` and `finished_at` bracket one verification, not one
+      story.**  `AttemptTiming`'s own docstring in ergane says so: the
+      dispatch-to-verification-start interval and the merge-queue time are not
+      in this table at all.  They are carried under the store's own names so
+      that whoever renders them cannot mistake them for a wall clock (plan trap
+      1).
+    * **`model` and `persona` are null, and say so in `unknown`.**  The store
+      does not carry them and the persona registry is not asked (FR-003).
+    * **No `output_tail`.**  US1-S1 enumerates what this document carries and
+      the tail is not on that list; it is raw process output that has never been
+      swept for a credential, so it arrives with the sweep that guards it and
+      not before (013 D4, FR-006/FR-007, US2's to add).
+    """
+    judge = row.get("judge")
+    output_check = row.get("output_check") or {}
+
+    return {
+        "attempt": row.get("attempt"),
+        "form": row.get("form"),
+        "verdict": row.get("verdict"),
+        # The interval of one *verification*.  See the docstring above.
+        "started_at": row.get("started_at"),
+        "finished_at": row.get("finished_at"),
+        # Non-null exactly when a human completed the work instead of an agent.
+        "provenance": row.get("provenance"),
+        # The ladder the attempt ran under, as ergane wrote it: one line naming
+        # the gates, the order, and the four caps (FR-001).
+        "loop_summary": row.get("loop_summary"),
+        "loop_digest": row.get("loop_digest"),
+        "judge_unavailable": bool(row.get("judge_unavailable")),
+        "criteria_drift": bool(row.get("criteria_drift")),
+        "spec_ref": row.get("spec_ref"),
+        "gates": [_gate(gate) for gate in row.get("gate_results") or []],
+        "output_check": {
+            "write_scope": output_check.get("write_scope"),
+            "has_diff": output_check.get("has_diff"),
+            "expected_artifacts": list(output_check.get("expected_artifacts") or []),
+            "artifacts_present": output_check.get("artifacts_present"),
+            "passed": output_check.get("passed"),
+            "hygiene_violations": list(output_check.get("hygiene_violations") or []),
+            "size_refusal": output_check.get("size_refusal"),
+        },
+        "judge": None if judge is None else {
+            "outcome": judge.get("outcome"),
+            "feedback": judge.get("feedback"),
+            "judge_attempt": judge.get("judge_attempt"),
+            "truncated_input": judge.get("truncated_input"),
+            # The *judge's* registry alias, recorded in the row by the run that
+            # used it.  Never the attempt's model, which nothing records — the
+            # two are different facts and the key says which one this is.
+            "model_alias": judge.get("model_alias"),
+            "findings": [
+                {
+                    "scenario": finding.get("scenario"),
+                    "passed": finding.get("passed"),
+                    "reasoning": finding.get("reasoning"),
+                }
+                for finding in judge.get("findings") or []
+            ],
+        },
+        # Unknown, deliberately, and not a gap to fill.  See `EVIDENCE_UNKNOWN`.
+        "model": None,
+        "persona": None,
+        "unknown": list(EVIDENCE_UNKNOWN),
+    }
+
+
+def _gate(gate: dict) -> dict:
+    """One gate command's outcome: the five facts US1-S1 names, and its command.
+
+    `exit_code` is null exactly when there was no exit to read — the command hit
+    its deadline or never ran — which is the store's own meaning and not a zero
+    standing in for one.  `concurrent_gates` is how many *other* gate executions
+    were in flight beside this one; it is carried as the count ergane recorded
+    and never inferred from durations (013 D5).
+    """
+    return {
+        "name": gate.get("name"),
+        "command": gate.get("command"),
+        "status": gate.get("status"),
+        "exit_code": gate.get("exit_code"),
+        "duration_s": gate.get("duration_s"),
+        "concurrent_gates": gate.get("concurrent_gates"),
     }
 
 
