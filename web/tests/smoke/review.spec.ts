@@ -26,6 +26,11 @@
  * source touched (008 US1).
  */
 
+// @ts-expect-error -- `@types/node` is not on the approved roster and constitution
+// VII forbids adding one for a diagnostic. This import is temporary scaffolding
+// and leaves with the probe below.
+import { execFileSync } from "node:child_process";
+
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { measureLaws } from "./support/laws";
@@ -111,10 +116,52 @@ async function reviewable(page: Page): Promise<Reviewable> {
     return { specDir: entry.spec_dir, framed, served: document.served };
   }
 
+  // TEMPORARY, and it is here because every hypothesis testable off the runner is
+  // dead. The pane's landing read resolves a ref and walks its commits; it finds
+  // all of them in a CI-faithful clone on the operator's host and almost none
+  // here. It does not say which ref it resolved or how many commits it saw, so a
+  // blind read is indistinguishable from an epic that never landed. This asks git
+  // the same questions directly, from the same working directory the pane serves
+  // from. Delete it once the cause is named; the durable fix is spec 016, which
+  // makes the read itself answer both.
+  let gitSays: string;
+  try {
+    const git = (...args: string[]) =>
+      execFileSync("git", args, { cwd: "..", encoding: "utf8" }).trim();
+    gitSays = [
+      `rev-parse(origin/dev)=${(() => {
+        try {
+          return git("rev-parse", "origin/dev");
+        } catch (error) {
+          return `FAILED ${String(error).slice(0, 120)}`;
+        }
+      })()}`,
+      `rev-parse(HEAD)=${git("rev-parse", "HEAD")}`,
+      `commits-on-origin/dev=${(() => {
+        try {
+          return git("rev-list", "--count", "origin/dev");
+        } catch (error) {
+          return `FAILED ${String(error).slice(0, 120)}`;
+        }
+      })()}`,
+      `is-shallow=${git("rev-parse", "--is-shallow-repository")}`,
+      `top3=${(() => {
+        try {
+          return git("log", "-3", "--format=%h %s", "origin/dev").replace(/\n/g, " | ");
+        } catch (error) {
+          return `FAILED ${String(error).slice(0, 120)}`;
+        }
+      })()}`,
+    ].join("  ");
+  } catch (error) {
+    gitSays = `git probe itself failed: ${String(error).slice(0, 200)}`;
+  }
+
   throw new Error(
     `no epic on this floor is fully landed and reaches a framed room. ` +
       `Walked ${rail.length} spec(s): ${seen.join("; ")}. ` +
-      `The Showfloor, reading the same landings by another path, says: ${showfloorSays}`,
+      `The Showfloor, reading the same landings by another path, says: ${showfloorSays}. ` +
+      `git, asked directly from the pane's own cwd, says: ${gitSays}`,
   );
 }
 
