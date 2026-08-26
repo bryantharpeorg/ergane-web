@@ -145,6 +145,23 @@ async function reviewable(page: Page): Promise<Reviewable> {
         }
       })()}`,
       `is-shallow=${git("rev-parse", "--is-shallow-repository")}`,
+      `cwd-of-this-process=${(() => {
+        try {
+          return git("rev-parse", "--show-toplevel");
+        } catch (error) {
+          return `FAILED ${String(error).slice(0, 80)}`;
+        }
+      })()}`,
+      `count-from-web-dir=${(() => {
+        try {
+          return execFileSync("git", ["rev-list", "--count", "origin/dev"], {
+            cwd: ".",
+            encoding: "utf8",
+          }).trim();
+        } catch (error) {
+          return `FAILED ${String(error).slice(0, 80)}`;
+        }
+      })()}`,
       `top3=${(() => {
         try {
           return git("log", "-3", "--format=%h %s", "origin/dev").replace(/\n/g, " | ");
