@@ -309,6 +309,61 @@ describe("the review room writes nothing (011 FR-014, constitution I)", () => {
     }
   });
 
+  /**
+   * 011 US2 gives this room its first controls, and this is what bounds them.
+   *
+   * The frame needs a route, a width and a theme chosen, and every one of those
+   * choices changes what *this browser* is looking at and reaches nothing. That
+   * is the Showfloor node card's shape, for the Showfloor node card's reason —
+   * so it is held to the Showfloor node card's rule: **one file may render a
+   * control, it must be a button, and there is no other kind of control in the
+   * room.** The `<form`, `<input`, `<select` and `<textarea` sweep above is what
+   * keeps a URL bar out of a room whose whole safety argument is that its URL
+   * set is closed (D-023).
+   */
+  const SELECTOR = "review/TheThingItself.tsx";
+
+  it("renders a control in exactly one file, and every one is a button", () => {
+    for (const [path, raw] of Object.entries(reviewFiles)) {
+      if (path.endsWith(SELECTOR)) continue;
+      expect(code(raw), `${path} must not render a control`).not.toContain("<button");
+      expect(code(raw), `${path} must not carry a click handler`).not.toContain("onClick");
+    }
+
+    const track = code(
+      reviewFiles[
+        Object.keys(reviewFiles).find((path) => path.endsWith(SELECTOR)) as string
+      ],
+    );
+    expect(track).toBeDefined();
+    expect(track).toContain("<button");
+    // Three groups of them — route, width, theme — and every one declares its
+    // type, so none of them can be a submit for a form this room does not have.
+    const buttons = [...track.matchAll(/<button/g)];
+    const typed = [...track.matchAll(/type="button"/g)];
+    expect(buttons.length).toBeGreaterThan(0);
+    expect(typed).toHaveLength(buttons.length);
+  });
+
+  it("frames a route the backend resolved, never one the browser composed", () => {
+    // The closed, derived URL set is the whole of why a frame was admissible
+    // where a driven browser was not. A route that could be typed, guessed or
+    // assembled here would be the thing D-023 refused, wearing an iframe.
+    const track = code(
+      reviewFiles[
+        Object.keys(reviewFiles).find((path) => path.endsWith(SELECTOR)) as string
+      ],
+    );
+    expect(track).toContain("src={route}");
+    const chosen = [...track.matchAll(/setRoute\(([^)]*)\)/g)].map((match) =>
+      match[1].trim(),
+    );
+    expect(chosen).toEqual(["option.path"]);
+    for (const pattern of ["http:", "location.href", "new URL("]) {
+      expect(track, `${SELECTOR} must not compose ${pattern}`).not.toContain(pattern);
+    }
+  });
+
   it("spawns nothing: no browser, no worker, no window it drives (D-023)", () => {
     // The substitution D-023 made is the whole safety argument of this room:
     // the operator's own browser is the browser. A room that opened a window,

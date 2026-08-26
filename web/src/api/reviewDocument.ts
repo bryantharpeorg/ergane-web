@@ -65,6 +65,41 @@ export interface ReviewRoute {
   stories: string[];
 }
 
+/** One landing the served revision does not hold (011 FR-010). */
+export interface MissingLanding {
+  story_key: string;
+  commit: string;
+  short_commit: string;
+}
+
+/**
+ * The revision the service is serving, and whether it holds this epic (FR-009).
+ *
+ * **`contains_epic` has three values and each is a different thing to say.**
+ * `true` — every landing is reachable from the served revision, so what the
+ * frame renders is the epic named at the top of the page. `false` — at least
+ * one is not, and `missing` names those with their SHAs. `null` — the question
+ * could not be asked: the revision would not read, the branch could not place
+ * the stories (`unplaced`), or the containment read itself failed and said so
+ * in `notes`.
+ *
+ * A room that rendered `null` as a mismatch would send the operator after a
+ * deployment that is fine; one that rendered a mismatch as `null` would let
+ * them review the wrong thing in silence. Neither is allowed to happen here.
+ */
+export interface ServedRevision {
+  revision: string | null;
+  /** The same revision cut once, server-side, so two renders cannot disagree. */
+  short_revision: string | null;
+  /** Whether the checkout still matches that revision; `null` when unknown. */
+  dirty: boolean | null;
+  contains_epic: boolean | null;
+  missing: MissingLanding[];
+  /** Stories the branch could not place, so containment cannot be asked of them. */
+  unplaced: string[];
+  notes: ReviewNote[];
+}
+
 export interface ReviewDocument {
   spec_dir: string;
   name: string;
@@ -73,6 +108,7 @@ export interface ReviewDocument {
   story_source: string;
   stories: ReviewStory[];
   routes: ReviewRoute[];
+  served: ServedRevision;
   notes: ReviewNote[];
 }
 

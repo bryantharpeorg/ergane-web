@@ -3,15 +3,25 @@
  *
  * The second HITL surface: an epic lands, and the operator opens
  * `/review/<spec-dir>` to read what it changed and which screens those changes
- * reach. US1 builds the first of the room's three tracks — what changed — and
- * the two that follow it (the thing itself, the notes) are US2's and US3's.
- * Nothing is drawn here for them: an element that can never fill is the one
- * thing § Do's and Don'ts names first.
+ * reach. US1 built the first of the room's three tracks — what changed — and
+ * **US2 adds the second, the thing itself**: one of those screens rendered in a
+ * same-origin frame at a width and in a theme the operator picks, with the four
+ * layout laws measured inside that frame and their numbers beside it. The third
+ * track, the notes, is US3's, and nothing is drawn here for it: an element that
+ * can never fill is the one thing § Do's and Don'ts names first.
  *
  * **The room reaches nothing but this pane's own document.** One bare GET of
  * `/api/review/<spec-dir>`, behind the same bearer token as every other route
  * (FR-006) — no subprocess, no browser it drives, no URL of its own, and no
  * write of any kind. That is D-023's whole safety argument and it starts here.
+ * The frame is the same argument continued: it renders this pane's own routes,
+ * from this origin, in the browser the operator already has open.
+ *
+ * **And the room says which tree it is showing** (FR-009, FR-010). It reviews
+ * the *running service*, which may not be serving the revision the epic landed
+ * in — so the served revision is a header on every render, and a revision that
+ * does not carry the epic takes a band above the frame. Every note taken under
+ * a mismatch is about something else.
  *
  * **Four answers, four renders.** A document is an epic the branch carries
  * whole. A refusal is an epic it does not, and the room says which stories have
@@ -25,6 +35,8 @@ import Masthead from "../Masthead";
 import { readReview } from "../api/reviewDocument";
 import type { ReviewAnswer } from "../api/reviewDocument";
 import { specDirFromReviewPath } from "../routes";
+import { Mismatch, Stamp } from "./ServedRevision";
+import TheThingItself from "./TheThingItself";
 import WhatChanged from "./WhatChanged";
 
 interface FrameProps {
@@ -150,11 +162,19 @@ export default function Review(): JSX.Element {
   return (
     <Frame>
       <main id="room" className="rv-cols" data-spec-dir={answer.document.spec_dir}>
+        {/* § The review room: "The served revision is a header, not a footnote…
+            at the top of the view, always present" (FR-009), and the mismatch
+            band above the frame, where the operator cannot miss it (FR-010). */}
+        <Stamp served={answer.document.served} specDir={answer.document.spec_dir} />
         <header className="rv-head">
           <h1 className="rv-name">{answer.document.name}</h1>
           <p className="rv-dir micro">{answer.document.spec_dir}</p>
         </header>
-        <WhatChanged review={answer.document} />
+        <Mismatch served={answer.document.served} review={answer.document} />
+        <div className="rv-tracks">
+          <WhatChanged review={answer.document} />
+          <TheThingItself review={answer.document} />
+        </div>
       </main>
     </Frame>
   );

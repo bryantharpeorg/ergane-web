@@ -5,10 +5,11 @@
  * A colour or a face this file named for itself would be the defect
  * constitution VIII calls one.
  *
- * US1 builds the left track. The centre (the thing itself) and the right (the
- * notes) are US2's and US3's, and nothing is reserved for them here: § Don't
- * opens with "don't render an element that can never fill", and an empty column
- * held open for work that has not landed is exactly that.
+ * US1 built the left track; 011 US2 adds the centre one (the thing itself) at
+ * the foot of this file. The right track (the notes) is US3's and nothing is
+ * reserved for it: § Don't opens with "don't render an element that can never
+ * fill", and an empty column held open for work that has not landed is exactly
+ * that.
  */
 
 .review {
@@ -244,4 +245,345 @@
 .rv-unmerged .num {
   color: var(--gold);
   margin-right: 0.5rem;
+}
+
+/* ── 011 US2: the served revision, the frame, and the numbers beside it ─────
+   Same rule as above: tokens only, and every size a step of § Typography's
+   ramp. US1's note that nothing is reserved for the tracks that have not
+   landed still holds — what is added here is the centre track, which has, and
+   the notes track is still absent rather than held open empty. */
+
+/* § The review room: "The served revision is a header, not a footnote. Micro
+   uppercase over a hairline at the top of the view, always present." */
+.rv-served {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin: 0;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--muted);
+}
+
+.rv-served-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+
+.rv-served-rev {
+  color: var(--ink);
+}
+
+/* State is never carried by colour alone (constitution VIII): the sentence
+   beside the revision says which of the three answers this is, in words, and
+   the colour only agrees with it. */
+.rv-served[data-contains="no"] .rv-served-state {
+  color: var(--gold);
+}
+
+.rv-served-dirty {
+  color: var(--gold);
+}
+
+.rv-served-sep {
+  color: var(--faint);
+}
+
+/* § The review room: "the statement takes a full-width band above the frame in
+   the room's warning face — not a chip, not a tooltip." Gold, like the refusal
+   above it and for the same reason: nothing has failed, and the operator is
+   the one who has to act. */
+.rv-mismatch {
+  background: var(--gold-w);
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.rv-mismatch .lead {
+  font-weight: 600;
+  font-size: var(--t-title);
+  color: var(--ink);
+  margin: 0;
+}
+
+.rv-mismatch p {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--ink);
+}
+
+.rv-missing {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: var(--t-small);
+}
+
+.rv-missing li {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.rv-missing .num {
+  color: var(--gold);
+}
+
+/* ── The two tracks ────────────────────────────────────────────────────────
+   § The review room: "The frame is furniture, and it is the widest thing on
+   screen. The rendered route gets the room's centre and the operator's chosen
+   width; the two side tracks hold at a fixed measure and scroll
+   independently." Two tracks today; the notes track is US3's. */
+.rv-tracks {
+  display: grid;
+  grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
+  gap: 1.4rem;
+  align-items: start;
+  min-width: 0;
+}
+
+/* Below the width at which the side track can hold its measure beside a frame,
+   the two stack rather than squeezing the frame to nothing. */
+@media (max-width: 64rem) {
+  .rv-tracks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rv-thing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.rv-thing .quiet {
+  font-style: italic;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── The picks ─────────────────────────────────────────────────────────────
+   Selection, not a verb: every control here changes what this browser is
+   looking at and reaches nothing. Chip metrics are § Chips'. */
+.rv-picks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rv-pick {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.rv-pick-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  min-width: 3.4rem;
+}
+
+.rv-pick-options {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.rv-chip {
+  font-family: var(--mono);
+  font-size: var(--t-chip);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.24em 0.55em;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.rv-chip:hover {
+  color: var(--ink);
+}
+
+/* § Epic rail's selection, in chip form: an accent wash and the accent itself.
+   The pressed state is on the element too (`aria-pressed`), so it is never
+   carried by colour alone. */
+.rv-chip[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-w);
+}
+
+.rv-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── The frame ─────────────────────────────────────────────────────────────
+   A width past the room's own measure scrolls this wrapper and not the page.
+   § Stage's scrollbar clothing, borrowed: thin, no stepper buttons, thumb on
+   `--rule`, trough transparent, in both themes. */
+.rv-frame-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  background: var(--sunken);
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+
+.rv-frame-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.rv-frame-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rv-frame-scroll::-webkit-scrollbar-thumb {
+  background: var(--rule);
+}
+
+.rv-frame-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.rv-render {
+  display: block;
+  border: 0;
+  background: var(--surface);
+}
+
+/* ── The numbers ───────────────────────────────────────────────────────────
+   § The review room: "A measured number is shown, never only a verdict.
+   Numerals right-aligned tabular mono, the unit always present, the law named
+   beside the figure." */
+.rv-measured {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  min-width: 0;
+}
+
+.rv-measured-head {
+  font-size: var(--t-title);
+  font-weight: 600;
+  margin: 0;
+}
+
+.rv-measured-at {
+  margin: 0;
+  color: var(--muted);
+}
+
+.rv-measured-foot {
+  margin: 0;
+  color: var(--faint);
+}
+
+/* § Tables: micro uppercase headers over a hairline, numerals right-aligned
+   tabular mono. A hairline 1px-gap grid on surface, like § Stage's metrics. */
+.rv-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+}
+
+.rv-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--surface);
+  min-width: 0;
+}
+
+.rv-figure-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+
+.rv-figure-value {
+  font-size: var(--t-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.rv-figure-unit {
+  color: var(--muted);
+}
+
+.rv-laws {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--hairline);
+}
+
+.rv-law {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.9rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--t-small);
+  min-width: 0;
+}
+
+.rv-law-name {
+  color: var(--muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rv-law-count {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--olive);
+}
+
+/* A law with violations is olive no longer, and the count says how many — the
+   figure carries the state, and the colour agrees with the figure. */
+.rv-law:not([data-violations="0"]) .rv-law-count {
+  color: var(--alarm);
+}
+
+.rv-law-detail {
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: var(--t-tag);
+  color: var(--alarm);
+  min-width: 0;
+}
+
+.rv-law-detail li {
+  overflow-wrap: anywhere;
+  min-width: 0;
 }

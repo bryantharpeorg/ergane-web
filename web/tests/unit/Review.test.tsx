@@ -18,7 +18,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import Review from "../../src/review/Review";
-import type { ReviewDocument, ReviewStory } from "../../src/api/reviewDocument";
+import type {
+  ReviewDocument,
+  ReviewStory,
+  ServedRevision,
+} from "../../src/api/reviewDocument";
 
 const containers: HTMLElement[] = [];
 
@@ -56,6 +60,27 @@ function story(overrides: Partial<ReviewStory> = {}): ReviewStory {
   };
 }
 
+/**
+ * The served-revision block, in the assembler's own shape (011 US2, FR-009).
+ *
+ * Its default is the ordinary case — the service is serving a revision that
+ * carries the epic — so every case written before US2 keeps asserting what it
+ * was written to assert. `Review.served.test.tsx` is where the other two
+ * answers, and the band FR-010 requires, are driven.
+ */
+function served(overrides: Partial<ServedRevision> = {}): ServedRevision {
+  return {
+    revision: "9c1d4e7a2b5f8c3d6e9a0b1c2d3e4f5a6b7c8d9e",
+    short_revision: "9c1d4e7a2b5f",
+    dirty: false,
+    contains_epic: true,
+    missing: [],
+    unplaced: [],
+    notes: [],
+    ...overrides,
+  };
+}
+
 function review(overrides: Partial<ReviewDocument> = {}): ReviewDocument {
   return {
     spec_dir: "001-the-desk-sees-the-floor",
@@ -67,6 +92,7 @@ function review(overrides: Partial<ReviewDocument> = {}): ReviewDocument {
       { path: "/", kind: "room", name: "The Desk", stories: ["US1"] },
       { path: "/desk", kind: "room", name: "The Desk", stories: ["US1"] },
     ],
+    served: served(),
     notes: [],
     ...overrides,
   };
