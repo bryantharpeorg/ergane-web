@@ -15,10 +15,25 @@ Partial answers are tolerated: every `NodeCard` field has its default, an absent
 epic state is ``"unknown"``, and a value the factory did not record stays
 ``None``.  No integer coercion, no ``or 0`` fallbacks, and the word ``live`` is
 nowhere in a key, seam, or label.
+
+**The workgraph read is seam first, archive second** (012 US1).  The graph
+belongs beside its spec, but a target repository's is compiled on the
+operator's checkout and never written back, so this repository archives that
+same `ergane spec derive` output under `docs/dags/<dir>.json` — and the Desk
+reads it there when the seam is silent, the way the Showfloor has since 002.  A
+read the archive satisfies is not a degradation and says nothing; when neither
+source answers it is the *seam's* failure that is reported, because the seam is
+where the graph belongs; and an archive that is found and will not parse is
+reported as `unparseable`, never as the `transport` an absent file reads — the
+operator is owed the difference between a graph that is missing and one that is
+broken.  The fallback lives here rather than in `LiveReader` on purpose: the
+seam should keep meaning "the path the factory would write", and what to do
+when it is silent is a policy of the assembly that owns degradation.
 """
 
 import json
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -29,9 +44,74 @@ from pane.readers import QueryRefused, TransportFailed
 from pane.stage import assemble_stage
 
 
+def archive_root_for(specs_root: Path | str) -> Path:
+    """`docs/dags` beside the corpus — where the operator archives compiled graphs.
+
+    The same derivation `ShowfloorReaders.from_reader` makes, spelt once here so
+    the two rooms cannot drift apart on where the archive lives (`CLAUDE.md`
+    § Layout worth knowing).
+    """
+    return Path(specs_root).parent / "docs" / "dags"
+
+
+def _archive_root(reader: "Reader") -> Path | None:
+    """The archive this reader's corpus has, or `None` for a reader with no corpus.
+
+    Only a reader that reads a specs root has an archive beside it; the fixture
+    reader replays recorded documents and has none, and for it the seam is the
+    whole read exactly as it was before.
+    """
+    specs_root = getattr(reader, "specs_root", None)
+    return None if specs_root is None else archive_root_for(specs_root)
+
+
+#: An archive that is *there* and will not parse, either as bytes or as JSON.
+#: Both are "exists and will not parse", which FR-005 separates from "absent".
+UNPARSEABLE_ARCHIVE = (json.JSONDecodeError, UnicodeDecodeError)
+
+
+def _read_workgraph(reader: "Reader", spec_dir: str, archive_root: Path | None) -> dict:
+    """The seam's graph, else the archived one: `_BoundReads.workgraph`'s rule.
+
+    Three outcomes, and the third is the one that is easy to get wrong:
+
+    * the seam answers — the archive is never opened at all (FR-004);
+    * the seam is silent and the archive answers — that graph is returned, and
+      the caller has nothing to report, because it is not a degradation
+      (FR-001, FR-002);
+    * the seam is silent and the archive is **absent** — the seam's own failure
+      is re-raised, not the archive's, because the seam is where the graph
+      belongs (FR-003).
+
+    An archive that is present and will not parse is none of those: it travels
+    up as itself, so that `_assemble_epic` names it `unparseable` rather than
+    `transport`.  A file that exists and is malformed is a different fact from
+    a file that is not there, and the operator is owed the difference (FR-005).
+    """
+    try:
+        return reader.workgraph(spec_dir)
+    except (TransportFailed, QueryRefused) as first:
+        if archive_root is None:
+            raise
+        archived = archive_root / f"{spec_dir}.json"
+        try:
+            return json.loads(archived.read_text(encoding="utf-8"))
+        except UNPARSEABLE_ARCHIVE:
+            # The archive is there.  Do NOT collapse this into the seam's
+            # failure below: that would report `transport` for a file that was
+            # found, which is precisely the confusion FR-005 forbids.
+            raise
+        except OSError:
+            # No archive either.  The seam's failure is the one worth naming.
+            raise first from None
+
+
 async def assemble_floor_document(reader: "Reader", *, reference_instant: str | None = None) -> dict:
     """Build the floor document by reading every section through `reader`."""
     degraded: list[dict] = []
+    # Resolved once for the whole document, never per epic, for the reason the
+    # Showfloor resolves it once at its binding.
+    archive_root = _archive_root(reader)
     if reference_instant is None:
         reference_instant = reader.reference_instant
 
@@ -74,7 +154,7 @@ async def assemble_floor_document(reader: "Reader", *, reference_instant: str | 
     epic_refs = floor_read.running if floor_read else []
     epics = []
     for ref in epic_refs:
-        epic_entry, epic_degraded = await _assemble_epic(reader, ref)
+        epic_entry, epic_degraded = await _assemble_epic(reader, ref, archive_root)
         epics.append(epic_entry)
         degraded.extend(epic_degraded)
 
@@ -101,7 +181,9 @@ async def assemble_floor_document(reader: "Reader", *, reference_instant: str | 
     }
 
 
-async def _assemble_epic(reader: "Reader", ref: "EpicRef") -> tuple[dict, list[dict]]:
+async def _assemble_epic(
+    reader: "Reader", ref: "EpicRef", archive_root: Path | None = None
+) -> tuple[dict, list[dict]]:
     """Assemble one EpicEntry and any degraded reads it produced."""
     degraded: list[dict] = []
 
@@ -118,14 +200,17 @@ async def _assemble_epic(reader: "Reader", ref: "EpicRef") -> tuple[dict, list[d
         degraded.append(_degraded_entry("epics", mode, read, detail, epic_id))
         status = exc
 
-    # workgraph read
+    # workgraph read: the seam, and the archive behind it (012 FR-001)
     try:
-        workgraph = reader.workgraph(ref.workgraph_ref)
+        workgraph = _read_workgraph(reader, ref.workgraph_ref, archive_root)
     except (TransportFailed, QueryRefused) as exc:
         degraded.append(_degraded_entry("epics", _exc_mode(exc), exc.read, exc.detail, ref.epic_id))
         workgraph = exc
-    except json.JSONDecodeError as exc:
-        # 001 R-002 lets decode errors propagate; 002 names the failure at the seam.
+    except UNPARSEABLE_ARCHIVE as exc:
+        # 001 R-002 lets decode errors propagate; 002 names the failure at the
+        # seam.  012 FR-005 extends the same naming to the archive behind it:
+        # a graph that was found and will not parse reads `unparseable`, never
+        # the `transport` an absent file reads.
         degraded.append(_degraded_entry("epics", "unparseable", "workgraph", str(exc), ref.epic_id))
         workgraph = exc
     except Exception as exc:

@@ -135,6 +135,37 @@ describe("Desk", () => {
     document.body.removeChild(c);
   });
 
+  it("renders no unreachable notice for an epic whose graph was read", async () => {
+    // 012 US1-S1 (FR-002): a workgraph read the archive satisfied is not a
+    // degradation, so the document carries no `epics` entry and the well the
+    // operator was reading on every epic has nothing to render from. The row
+    // is there instead, carrying the stories the graph declared.
+    const c = await renderDesk(
+      buildDoc({
+        epics: [
+          {
+            epic_id: "910-a-constructed-epic",
+            workflow_id: "epic-910-a-constructed-epic",
+            scene: null,
+            epic_state: "RUNNING",
+            nodes: [
+              { id: "us1", declared: true, story_key: "US1", persona: "implementer", spec_ref: "910-a-constructed-epic:US1", depends_on: [], depends_on_merged: [], state: "RUNNING", attempt: 1, awaiting_operator: false, landing_state: null, pr_number: null, verified: false },
+              { id: "us2", declared: true, story_key: "US2", persona: "implementer", spec_ref: "910-a-constructed-epic:US2", depends_on: [], depends_on_merged: ["us1"], state: "PENDING", attempt: null, awaiting_operator: false, landing_state: null, pr_number: null, verified: false },
+            ],
+            status_seam: "EpicWorkflow.epic_status",
+            workgraph_seam: "workgraph",
+          },
+        ],
+        degraded: [],
+      }),
+    );
+
+    expect(c.querySelector(".degraded")).toBeNull();
+    expect(c.innerHTML).not.toContain("could not be reached");
+    expect(c.querySelectorAll("[data-story]").length).toBe(2);
+    document.body.removeChild(c);
+  });
+
   it("renders attention before the floor section", async () => {
     const c = await renderDesk(
       buildDoc({
