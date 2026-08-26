@@ -1,6 +1,28 @@
 ---
-state: ready
+state: landed
 depends_on_landed: [009-a-landed-epic-reads-landed]
+# Attested landed 2026-08-25. US1 f503f3493a74 (#67), US2 c115aa13b1fb (#68) -
+# both observed on dev by content, not by a merged flag.
+#
+# Dispatched 9:10:17 PM CT, complete 9:54 PM CT: 43m57s for two serial stories,
+# the fastest epic of the build. Agent build 7m05s + 3m18s (US1, two attempts)
+# and 19m10s (US2); landing overhead ~7m a story.
+#
+# THE ONE FAIL IN THIS EPIC IS THE MOST USEFUL EVENT OF THE NIGHT. US1 attempt 1
+# passed ALL FOUR GATES - 506 passed, 2 skipped, typecheck clean, 346 unit, 57
+# smoke - and the agent's own report claimed FR-005 satisfied. The judge read the
+# diff instead of the gate output and found that `json.JSONDecodeError` is a
+# `ValueError`, so it fell through the `except OSError` fallback AND through
+# `_assemble_epic`'s `(TransportFailed, QueryRefused)` catch: an archive that
+# existed and would not parse would have crashed the entire floor document rather
+# than degrading one epic. RETRY. Attempt 2 salvaged FR-001 through FR-004
+# untouched, widened the catch to `UnicodeDecodeError` as well - an invalid-UTF-8
+# archive had the same crash path - and split US1-S4 into two assertions.
+#
+# A green suite is evidence, not proof. Four gates and the builder's own reading
+# all agreed on a crash that the judge caught by reading the code. This is the
+# argument for the judge rung existing at all, and it belongs in the record.
+#
 # Flipped `ready` 2026-08-25, 7:44 PM CT, by the operator's standing instruction
 # ("flip 012 to ready once 009 lands"), the moment 009's US4 landed at
 # 578e4fba606f and 009 read `landed` by content. The hold below is discharged:
