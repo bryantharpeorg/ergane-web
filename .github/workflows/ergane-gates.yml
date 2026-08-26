@@ -68,7 +68,26 @@ jobs:
       - run: npm ci --prefix web
       - run: npx --prefix web playwright install --with-deps chromium
       - name: "smoke"
-        run: "npm --prefix web run test:smoke"
+        run: |
+          # The deepening happens HERE, not in a step of its own, and that is the
+          # whole point. A separate step reported `is-shallow=false` with 90
+          # commits at 17:42:43 and the suite three minutes later read the same
+          # directory as shallow with one commit -- same job, same runner, same
+          # toplevel. Nothing between them touches git: setup-uv, setup-node,
+          # `uv sync`, `npm ci`, `playwright install`, and no npm script in this
+          # repository runs git at all. What re-shallows it is still unidentified.
+          #
+          # So this stops depending on knowing. Deepening immediately before the
+          # command that needs the history makes whatever happens earlier
+          # irrelevant, and the echo below is the receipt: if the suite ever fails
+          # this way again, the line above the failure says whether the history
+          # was there when the tests started.
+          if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            echo "shallow at gate time; deepening"
+            git fetch --unshallow origin || git fetch --deepen=2147483647 origin || true
+          fi
+          echo "at gate time: is-shallow=$(git rev-parse --is-shallow-repository) commits-on-origin/${GITHUB_BASE_REF:-dev}=$(git rev-list --count "origin/${GITHUB_BASE_REF:-dev}" 2>/dev/null || echo unknown)"
+          npm --prefix web run test:smoke
 
   test:
     name: "test"
