@@ -28,6 +28,21 @@ Two capture families, both real:
   the raw webhook journal — is under `capture/`). The capture method is recorded in each
   envelope and here, never in a directory name: consumers read a document by what it *is*.
 
+**`landing/landing-facts.json`** — added 2026-08-26 for spec 016. One entry per spec
+directory on `dev` at `d4aec99`, each mapping story key to the landing the branch
+carries: commit, kind, merged instant, pull request number, subject. Read through
+`pane.landing.read_landing_facts` over `factory.workgraph.landed.landed_facts` with
+`fetch=False` — the same seam the live rooms use, so the replayed shape and the live
+shape cannot drift. Re-record with that seam after a promotion, or whenever the demo
+floor should show newer landings; it is a snapshot of a real branch and ages exactly
+as the recorded floor does.
+
+It exists because the review room read **real git** under `PANE_DEMO=1` while every
+other room served this directory, and a shallow CI checkout therefore made it refuse
+every epic on the floor — eleven failing tests on a floor with nothing wrong with it,
+and the loss of one node's whole ladder. A gate's answer must not depend on the git
+history of the machine that ran it.
+
 | Requirement | Path | Seam |
 |---|---|---|
 | FloorStatus, busy floor | `floor/floor-live.json` | `collect_floor` during the live epic |

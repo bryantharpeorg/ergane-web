@@ -1,0 +1,27 @@
+{
+  "epic_id": "016-the-demo-floor-owns-its-landings",
+  "feature": "016-the-demo-floor-owns-its-landings",
+  "specs_root": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-016/specs",
+  "target_repo": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-016",
+  "nodes": [
+    {
+      "id": "us1",
+      "story_key": "US1",
+      "persona": "implementer",
+      "spec_ref": "016-the-demo-floor-owns-its-landings:US1",
+      "requirement_keys": [
+        "US1",
+        "FR-001",
+        "FR-002",
+        "FR-003",
+        "FR-004",
+        "FR-005",
+        "FR-006"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": 3600
+    }
+  ],
+  "inferred_edges": []
+}
