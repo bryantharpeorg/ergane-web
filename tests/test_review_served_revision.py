@@ -233,6 +233,31 @@ def test_a_containment_read_that_failed_is_a_note_and_leaves_it_unknown(landed):
     assert served["notes"][0]["mode"] == "refused"
 
 
+def test_a_mismatch_already_established_survives_a_read_that_then_failed(landed):
+    """A partial answer that already contains a "no" is a no.
+
+    The walk sees `US3` absent from the served revision and then cannot ask
+    about `US4`.  Reporting that as unknown would discard a mismatch this
+    process has already established — which is the one direction of the rule
+    that lets an operator go on reviewing the wrong tree.
+    """
+    rewind(landed, 2)
+    truthful = landed.review_readers().contains
+    facts = landed.landing_facts(SPEC)
+    assert truthful is not None
+
+    def ask(revision: str, commit: str) -> bool:
+        if commit == facts["US4"].commit:
+            raise QueryRefused(CONTAINS_READ, "git declined the revision")
+        return truthful(revision, commit)
+
+    served = served_of(landed, contains=ask)
+
+    assert served["contains_epic"] is False
+    assert [entry["story_key"] for entry in served["missing"]] == ["US3"]
+    assert [note["read"] for note in served["notes"]] == [CONTAINS_READ]
+
+
 def test_a_transport_failure_on_the_containment_read_says_transport(landed):
     def fails(revision: str, commit: str) -> bool:
         raise TransportFailed(CONTAINS_READ, "git could not be run")

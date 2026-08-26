@@ -148,6 +148,32 @@ describe("the view names the revision the service is serving (US2-S3, FR-009)", 
     expect(container.querySelector("[data-dirty]")).not.toBeNull();
   });
 
+  it("names the read that did not answer, rather than shrugging", async () => {
+    // Constitution III: transport failure and query refusal are two different
+    // failure modes, named in place. "Could not be established" is a shrug on
+    // its own; with the read's own name beside it, it is somewhere to look.
+    const container = await open(
+      review({
+        contains_epic: null,
+        notes: [
+          {
+            read: "revision_contains",
+            mode: "refused",
+            detail: "git rev-list failed: bad revision",
+          },
+        ],
+      }),
+    );
+
+    const note = container.querySelector("#room .degraded[data-mode='refused']")!;
+    expect(note).not.toBeNull();
+    expect(note.querySelector(".read")!.textContent).toBe("revision_contains");
+    expect(note.textContent).toContain("was refused");
+    expect(note.textContent).toContain("bad revision");
+    // And still no band: a read nobody made is not a mismatch.
+    expect(container.querySelector("[data-mismatch]")).toBeNull();
+  });
+
   it("says containment could not be established when nothing could be placed", async () => {
     const container = await open(review({ contains_epic: null, unplaced: ["US4"] }));
     const stamp = container.querySelector("[data-served]")!;

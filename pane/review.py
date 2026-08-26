@@ -434,12 +434,15 @@ def _served(stories: list[dict], readers: ReviewReaders) -> dict:
     mismatch read as unknown lets them review the wrong thing in silence
     (constitution III).
 
-    `unplaced` is the other half of that honesty.  A story whose landing the
-    branch could not supply has no commit to ask containment about, so a
-    document with any unplaced story cannot claim the revision holds the epic —
-    but a landing that is *definitely* absent is still a mismatch, and is
-    reported as one, because a partial answer that already contains a "no" is a
-    no.
+    **A partial answer that already contains a "no" is a no.**  Two things can
+    leave the walk incomplete: a story the branch could not place (`unplaced`,
+    which has no commit to ask about) and a containment read that failed
+    (`notes`).  Either one costs the document its `True` — the revision cannot
+    be cleared on a question nobody finished asking.  Neither costs it a `False`
+    that was already established: a landing this walk has *seen* the revision
+    lack is a mismatch whatever happened afterwards, and discarding it would be
+    the one direction of this rule that lets the operator review the wrong thing
+    in silence.
     """
     revision, dirty = (
         (None, None) if readers.served_revision is None else readers.served_revision()
@@ -469,6 +472,7 @@ def _served(stories: list[dict], readers: ReviewReaders) -> dict:
         return served
 
     missing: list[dict] = []
+    unread = False
     for story_key, commit in placed:
         try:
             held = readers.contains(revision, commit)
@@ -476,11 +480,12 @@ def _served(stories: list[dict], readers: ReviewReaders) -> dict:
             served["notes"].append(
                 {"read": exc.read, "mode": _mode(exc), "detail": exc.detail}
             )
-            # The walk stops at the first read that could not be made: the
-            # answer is already unknown, and asking again once per story would
-            # spend a subprocess apiece to say so four times.
-            served["missing"] = []
-            return served
+            # The walk stops at the first read that could not be made: git is
+            # either answering this question or it is not, and asking again once
+            # per story would spend a subprocess apiece to say so four times.
+            # What the walk found before that stands.
+            unread = True
+            break
         if not held:
             missing.append(
                 {
@@ -493,7 +498,7 @@ def _served(stories: list[dict], readers: ReviewReaders) -> dict:
     served["missing"] = missing
     if missing:
         served["contains_epic"] = False
-    elif not served["unplaced"]:
+    elif not unread and not served["unplaced"]:
         served["contains_epic"] = True
     return served
 

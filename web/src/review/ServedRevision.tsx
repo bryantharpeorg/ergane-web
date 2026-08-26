@@ -8,12 +8,14 @@
  * not a chip, not a tooltip. Every note taken under a mismatch is about
  * something else, and the reviewer must not be able to miss it."
  *
- * Two components, because they are two different claims and only one of them is
- * conditional. `Stamp` is the header and renders on every answer, including the
- * one where nothing could be read — a room that fell silent about the revision
- * when it could not name one would be at its least honest exactly when it
- * mattered most. `Mismatch` renders only for `contains_epic === false`, which is
- * the one case where everything else on the screen is about something else.
+ * Two exports, because they are two different claims and only one of them is
+ * conditional. `Stamp` is the header — the revision, the sentence that says
+ * which of the three answers this is, and any read that did not answer — and it
+ * renders on every document, including the one where nothing could be read: a
+ * room that fell silent about the revision when it could not name one would be
+ * at its least honest exactly when it mattered most. `Mismatch` renders only for
+ * `contains_epic === false`, which is the one case where everything else on the
+ * screen is about something else.
  *
  * **The three values of `contains_epic` are three sentences, never two.** The
  * room says the revision holds the epic, or that it does not and by what, or
@@ -47,6 +49,39 @@ function holding(served: ServedRevision): string {
  * pair, for the same reason, that a landing SHA is rendered by.
  */
 export function Stamp({
+  served,
+  specDir,
+}: {
+  served: ServedRevision;
+  specDir: string;
+}): JSX.Element {
+  return (
+    <>
+      <Line served={served} specDir={specDir} />
+      {/* A read that did not answer is named in place, in 001's two words
+          (constitution III). It is what turns "could not be established" from a
+          shrug into something the operator can go and look at — and it sits
+          under the header rather than in it, because the header is one
+          sentence and this is the reason that sentence reads as it does. */}
+      {served.notes.map((note) => (
+        <div className="degraded" data-mode={note.mode} role="status" key={note.read}>
+          <p className="lead">
+            Whether the served revision contains this epic could not be read.
+          </p>
+          <p>
+            <span className="read num">{note.read}</span>{" "}
+            {note.mode === "transport" ? "did not complete" : "was refused"}:{" "}
+            <span className="detail">{note.detail}</span>. Shown as unavailable, not
+            hidden.
+          </p>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** The header line itself: the revision, and which of the three answers it is. */
+function Line({
   served,
   specDir,
 }: {
