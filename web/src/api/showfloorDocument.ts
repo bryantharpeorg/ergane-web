@@ -51,8 +51,13 @@ export interface Ladder {
  * were in flight beside this one; a timeline draws concurrency from this count
  * and never from the durations (013 D5, FR-005).
  *
- * No `output_tail`: it is raw process output that has never been swept for a
- * credential, so it arrives with the sweep that guards it (013 D4).
+ * `output_tail` is the last of the command's combined output, and it arrives
+ * under two rules the assembler has already applied (013 D4, FR-006/FR-007):
+ * it is **non-null only for a gate that did not pass** — a passing gate's tail
+ * never leaves the backend, so the room cannot render one by accident — and
+ * what is here has been through `pane/sweep.py`, the same credential sweep
+ * every committed file in this repository passes. The room's job is to keep it
+ * collapsed; it is not the room's job to decide whether it may be shown.
  */
 export interface GateRecord {
   name: string | null;
@@ -61,6 +66,7 @@ export interface GateRecord {
   exit_code: number | null;
   duration_s: number | null;
   concurrent_gates: number | null;
+  output_tail: string | null;
 }
 
 /** The judge's call on one dispatched scenario, with its reasoning. */

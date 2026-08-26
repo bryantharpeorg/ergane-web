@@ -43,10 +43,19 @@
  * Every other absence renders `—`, and the wall clock comes from the floor's
  * own `pace` measurement (`collect_floor`), never from two instants the pane
  * subtracted itself.
+ *
+ * ## And, beneath the facts, the gate run (013 US2)
+ *
+ * `GateRun.tsx` draws the story's `evidence` — the gates that ran, in the shape
+ * they ran in, with the failing one legible. It is mounted here because the
+ * data is per-story and this is where a story is told whole; it renders nothing
+ * at all for a story the evidence store has never recorded a verification of,
+ * so the pane below is exactly what it was for every story that has none.
  */
 
 import type { FloorDocument } from "../api/floorDocument";
 import type { LadderStop, ShowfloorStory } from "../api/showfloorDocument";
+import GateRun from "./GateRun";
 import { formatDuration } from "./Stage";
 
 /** The em dash DESIGN.md's facts grid shows where the answer carried nothing. */
@@ -411,6 +420,8 @@ function StoryDetail({ story, epicId, floor }: StoryDetailProps): JSX.Element {
           </div>
         ))}
       </dl>
+
+      <GateRun evidence={story.evidence} />
 
       <p className="dsec" data-detail-implements-head>
         {`implements · ${keys.length} ${keys.length === 1 ? "key" : "keys"}`}
