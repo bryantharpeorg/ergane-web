@@ -29,3 +29,12 @@ web/.vite/
 # Machine-local
 .env
 .env.*
+
+# An operator's `ergane spec derive -o specs/<dir>/workgraph.json` output (017
+# FR-006). The factory writes nothing at that path -- the roadmap compiles its
+# graph in-process and never writes it back -- so the only file that ever
+# appears there is a hand-derive, and three of them sat untracked for a day
+# before anyone noticed. The graph the pane is meant to read is the archived,
+# reviewed one under `docs/dags/`, which stays committed. Ignoring the path is
+# what stops the accumulation; nothing here removes a file already on disk.
+specs/*/workgraph.json

@@ -29,6 +29,7 @@
 import { expect, test } from "@playwright/test";
 
 import { measureLaws } from "./support/laws";
+import { DESK_WIDTHS, THEMES } from "./support/widths";
 
 function timeLeftText(expiresAt: string, reference: string): string {
   const diffMs = new Date(expiresAt).getTime() - new Date(reference).getTime();
@@ -250,13 +251,29 @@ test("the Desk renders the fixture floor and issues one verb and no other", asyn
  * The premise is measured, not assumed: the dependency line has to be on the
  * screen at each width and in each theme, or the sweep would be passing over a
  * page that does not carry the subject.
+ *
+ * **017 FR-008 takes the transcription out of it and changes nothing else.**
+ * That requirement asks for the four laws "at every width and in both themes
+ * the Desk suite already sweeps", and the phrase had two answers: the three
+ * numbers written out here, and `desk-world.spec.ts`'s own `WIDTHS`. They agreed
+ * on the day this was written and nothing made them keep agreeing — a width
+ * added to the frame sweep would leave a viewport the Desk is *claimed* to fit
+ * and is never measured in. Both files now read `support/widths.ts`, so the
+ * requirement's phrase is literal rather than a coincidence, and the sweep grows
+ * with the suite by construction.
+ *
+ * 017 US2 itself renders nothing new — its provenance is a fact on the floor
+ * document, and DESIGN.md names no element for it, so constitution VIII is not
+ * engaged and no glyph on this page moved. That is exactly why the laws are
+ * asserted here: this sweep is what makes "renders nothing new" a measured
+ * claim about the room rather than a claim about the diff.
  */
 
-test.describe("the layout laws over the Desk (FR-006, 009 FR-005, 012 FR-008)", () => {
+test.describe("the layout laws over the Desk (006, 009, 012 and 017 FR-008)", () => {
   test("all four hold over the whole Desk at every width, in both themes", async ({ page }) => {
-    for (const scheme of ["light", "dark"] as const) {
+    for (const scheme of THEMES) {
       await page.emulateMedia({ colorScheme: scheme });
-      for (const width of [1280, 1600, 2560]) {
+      for (const width of DESK_WIDTHS) {
         await page.setViewportSize({ width, height: 1000 });
         await page.goto("/desk");
         // The whole page, not the part that loads first: the floor's rows and
