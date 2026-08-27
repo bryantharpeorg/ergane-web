@@ -24,6 +24,15 @@ Every condition is constructed: the corpora are written into the test's own
 `tmp_path` and the one scratch recording is *recorded by the test through the
 live seam* over a repository it built, so nothing here is a landing shape
 invented to make an assertion pass (constitution V).
+
+**017 US1 changed one thing and no assertion.**  Four tests here took the
+branch away by deleting the fixture repository's `.git`, and that races git's
+own background maintenance — it reddened this file on CI once already, at a
+cost of one recovery rung.  `make_unwalkable` renames the directory aside
+instead.  Recorded by control, 2026-08-27: twenty consecutive runs of this
+file, twenty green, and no `FileNotFoundError` raised out of `shutil` in any of
+them (017 SC-001).  `tests/test_no_test_destroys_a_fixture_repository.py` is
+the committed guard that keeps the deleted shape from coming back (017 FR-003).
 """
 
 from __future__ import annotations
