@@ -20,6 +20,19 @@ __pycache__/
 .coverage.*
 coverage.xml
 
+# What the `audit` gate inventories about itself (015 US3): each tool's own
+# JSON at the path `pyproject.toml`'s `[tool.audit-gate.reports]` declares, the
+# requirements export `pip-audit` reads the uv lockfile through, and both tools'
+# HTTP caches. Everything is under one directory because a gate is handed a
+# fresh tmpfs `HOME` (D-013) and so must keep its caches inside the worktree —
+# and every one of them is a build product of a single run against an advisory
+# database that changes daily. A committed audit report would be an all-clear
+# with a date on it, which is the shape FR-010 exists to refuse.
+#
+# Anchored, because `audit/` unanchored would also swallow the recorded tool
+# output under `tests/recorded/audit/` that the gate's own tests read.
+/audit/
+
 # Frontend (npm / Vite / Playwright)
 web/node_modules/
 web/dist/

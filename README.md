@@ -21,13 +21,14 @@ uv sync
 npm ci --prefix web   # postinstall installs the Playwright chromium binary
 ```
 
-Then run the four gates declared in `ergane.yaml`:
+Then run the five gates declared in `ergane.yaml`:
 
 ```bash
 uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml
 npm --prefix web run typecheck
 npm --prefix web run test:unit
 npm --prefix web run test:smoke
+uv run python scripts/audit_gate.py
 ```
 
 The `test` gate measures itself as it runs (spec 015 US1): it writes Cobertura
@@ -48,6 +49,26 @@ read without running anything, and again a gitignored build product nothing here
 reads. `web/vitest.config.ts` is where the whole test run is configured now; it
 imports `web/vite.config.ts` for the build's plugins and merges its own `test`
 block on top.
+
+The `audit` gate inventories what the repository depends on (spec 015 US3).
+`pip-audit` audits `uv.lock` and `npm audit` audits `web/package-lock.json`, and
+each tool's own JSON is written verbatim at the path `pyproject.toml`'s
+`[tool.audit-gate.reports]` declares — `audit/pip-audit.json` and
+`audit/npm-audit.json`, gitignored build products nothing here reads. It fails on
+two things and only two: a finding at or above the severity committed as
+`[tool.audit-gate] fail_on` (`high`), and a lookup that did not complete.
+Everything below the threshold is written to the JSON and does not fail the gate
+— recorded, not fatal. An audit that could not reach the advisory database fails
+naming the network and prints no count, because "0 vulnerabilities" from a
+question nobody answered is worse than no answer at all.
+
+There is deliberately **no allowlist and no ignore file** (D-024). A finding
+above the threshold stops the line even when no fix exists, and a human decides:
+bump the lockfile, remove the dependency, or move the committed threshold. The
+threshold is the only dial. `audit` is also the one gate that is **not** in the
+`dev` branch ruleset — it blocks every factory node at the boundary and does not
+block the merge queue, so a human can still land the fix when the line is
+stopped.
 
 To run the demo pane locally after building the frontend:
 

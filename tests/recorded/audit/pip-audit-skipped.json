@@ -1,0 +1,1 @@
+{"dependencies": [{"name": "-e /tmp/skippkg", "skip_reason": "could not deduce package version from URL requirement"}], "fixes": []}

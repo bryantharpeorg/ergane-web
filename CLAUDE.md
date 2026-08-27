@@ -35,12 +35,13 @@ invented; one token guards every route and no credential reaches a page, an even
 or a fixture; dependencies come from the approved roster — ask before adding one; the pane
 is built to `DESIGN.md`.
 
-## Two package worlds, four gates
+## Two package worlds, five gates
 
 | World | Tool | Lives in | Gates |
 |---|---|---|---|
 | Backend (FastAPI, ergane seams) | `uv` | `pane/`, `pyproject.toml` | `uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml` |
 | Frontend (Vite + React + TypeScript, React Flow) | `npm` | `web/` | `npm --prefix web run typecheck` · `test:unit` · `test:smoke` |
+| Both, one gate | `uv` + `npm` | `scripts/audit_gate.py` | `uv run python scripts/audit_gate.py` (`audit`) |
 
 Declared in `ergane.yaml` (schema v2) and nowhere else. Fresh-checkout setup is
 `uv sync` then `npm ci --prefix web` (the smoke gate also needs
@@ -64,6 +65,34 @@ the fragmentation N54 refused (spec 015 § Out of scope).
 — a new file that owns the whole test run and merges `web/vite.config.ts` for the
 build's plugins. Like the backend's, the floor is committed rather than passed
 and the report is a gitignored build product nothing here reads.
+
+**And a fifth gate inventories what the repository depends on** (spec 015 US3).
+`audit` runs `pip-audit` over `uv.lock` and `npm audit` over
+`web/package-lock.json` and writes each tool's own JSON, verbatim, at the path
+`pyproject.toml`'s `[tool.audit-gate.reports]` declares — no bespoke wrapper, for
+the same PR-3 reason the coverage artefacts are standard formats at stable paths,
+and again nothing here reads them. Both artefacts and both tools' HTTP caches
+land under a gitignored `audit/` inside the worktree, because of the `HOME` rule
+immediately below.
+
+It fails on exactly two things. A finding at or above `[tool.audit-gate]
+fail_on` — committed, `high`, and by D-024 the **only** dial: there is no
+allowlist, no ignore file and no suppression flag, and adding one is the change
+that turns an audit gate into decoration. And a lookup that did not complete: an
+audit that could not reach the advisory database fails naming the network and
+prints no count, and its report is not written, because "0 vulnerabilities" from
+a question nobody answered is constitution III's exact failure mode applied to
+security. A skipped dependency counts as a lookup that did not happen.
+
+**Landing US3 required a lockfile bump, and that is the gate working.** On
+2026-08-27 `npm audit` reported two critical and one high advisory against
+`web/package-lock.json` — the vitest UI-server read-and-execute advisory
+(GHSA-5xrq-8626-4rwp) and the vite `server.fs.deny` bypass (GHSA-fx2h-pf6j-xcff).
+`vite`, `vitest` and `@vitest/coverage-v8` were bumped to `^7`, `^3` and `^3`,
+which clears all six findings and keeps `@vitejs/plugin-react@4` inside its peer
+range; `typecheck`, `unit` and `smoke` were re-run green on the bumped tree. The
+alternative was to set the threshold above what the repository happened to carry,
+which is how a gate becomes decorative on the day it lands.
 
 **A gate does not inherit the attempt's `HOME`** (D-013). Gates run in the factory's sandbox
 with a fresh tmpfs `HOME`; only the worktree survives from the attempt into the gate. Whatever a
