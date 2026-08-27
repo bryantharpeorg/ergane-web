@@ -63,8 +63,9 @@ the factory's workflows answer (`epic_status`, `roadmap_status`,
 `escalation_status`), `CallbackBridge.handle_relay`, the `escalation_resolved`
 signal, and the verify store's evidence readers `node_history`, `attempt_timings`,
 `pending_escalations` and `get_escalation` over `connect_readonly`, and the
-spec-corpus checkers `derive_workgraph`, `check_slice_coverage` and
-`check_prompt_assembly` (list amended by D-010, D-020 and D-022). Composing those
+roadmap's corpus reader `read_roadmap`, and the spec-corpus checkers
+`derive_workgraph`, `check_slice_coverage` and `check_prompt_assembly` (list
+amended by D-010, D-020, D-022 and D-025). Composing those
 last three into a verdict is forbidden: `ergane spec validate` has no library form,
 so a composed verdict is re-derived policy, not a borrowed seam (D-022).
 Re-implementing
