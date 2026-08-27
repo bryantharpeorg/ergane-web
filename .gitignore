@@ -25,6 +25,11 @@ web/node_modules/
 web/dist/
 web/test-results/
 web/playwright-report/
+# What the `unit` gate measures about itself (015 US2), at the path
+# `web/vitest.config.ts` declares. A build product of a single run, exactly as
+# the backend's `coverage.xml` is: committing it would commit whatever the last
+# person to run the suite happened to have.
+web/coverage/
 # Vitest's run cache. It lands wherever vitest was invoked from, which is the
 # repository root when the runner is reached as `npx --prefix web vitest`
 # rather than through `npm --prefix web run test:unit`.

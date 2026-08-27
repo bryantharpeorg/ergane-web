@@ -222,6 +222,11 @@ APPROVED_NODE = {
     "@types/react-dom",
     "@vitejs/plugin-react",
     "jsdom",
+    # 015 US2 (T007): the second of the three dependencies the operator's flip
+    # of spec 015 to `ready` approves, and "nothing else" (constitution VII).
+    # It is what lets the `unit` gate say how much of `web/src` the unit suite
+    # executes; `pip-audit` is US3's to add, in its own diff.
+    "@vitest/coverage-v8",
 }
 
 

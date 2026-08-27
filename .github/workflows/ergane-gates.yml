@@ -119,6 +119,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # 015 US2: `@vitest/coverage-v8` is a dev dependency, so `npm ci` is what
+      # puts the coverage provider inside `web/node_modules` -- inside the
+      # worktree, where the factory's gate boundary can also see it (D-013).
+      # Nothing here fetches it at gate time and nothing caches it in `HOME`.
       - run: npm ci --prefix web
+      # The command below is `ergane.yaml`'s `unit` gate verbatim, and since 015
+      # US2 it measures coverage over `web/src` and fails under the floor
+      # committed in `web/vitest.config.ts`. Both files changed in one diff on
+      # purpose: a gate that measures at the boundary and not in the forge
+      # reports two different numbers depending on who asked (FR-011).
       - name: "unit"
         run: "npm --prefix web run test:unit"
