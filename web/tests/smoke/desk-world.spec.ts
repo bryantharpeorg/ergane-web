@@ -55,6 +55,8 @@
 
 import { expect, test } from "@playwright/test";
 
+import { DESK_WIDTHS } from "./support/widths";
+
 /** `#RRGGBB` as a browser reports a computed colour back. */
 function hexToRgb(hex: string): string {
   const value = hex.trim().replace("#", "");
@@ -62,8 +64,11 @@ function hexToRgb(hex: string): string {
   return `rgb(${channels.join(", ")})`;
 }
 
-/** The three viewports US1-S1 names. */
-const WIDTHS = [1280, 1600, 2560] as const;
+/**
+ * The three viewports US1-S1 names — now `support/widths.ts`'s, so the law
+ * sweep in `desk.spec.ts` and this frame sweep read one list (017 FR-008).
+ */
+const WIDTHS = DESK_WIDTHS;
 
 /** The content cap the first world shipped, and the defect FR-001 retires. */
 const FIRST_WORLD_CAP = 1280;
