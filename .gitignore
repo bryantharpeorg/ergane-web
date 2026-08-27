@@ -10,6 +10,15 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+# What the `test` gate measures about itself (015 US1). Both land at the
+# repository root because that is the declared, stable path PR-3's collector
+# will read them from — and both are build products of a single run, not
+# committed facts. A committed coverage.xml would be whatever the last person
+# to run the suite happened to have, which is exactly the "green means two
+# different things" failure 009 spent a story closing.
+.coverage
+.coverage.*
+coverage.xml
 
 # Frontend (npm / Vite / Playwright)
 web/node_modules/

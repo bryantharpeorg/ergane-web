@@ -106,7 +106,12 @@ def test_ergane_yaml_gates():
         cfg = yaml.safe_load(f)
     assert cfg["version"] == 2
     gates = cfg["gates"]
-    assert gates["test"] == "uv run pytest -q"
+    # 015 US1: the `test` gate carries the coverage flags now.  The floor is
+    # deliberately NOT among them -- `tests/test_the_gates_measure_themselves.py`
+    # is where that is asserted, and why.
+    assert gates["test"] == (
+        "uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml"
+    )
     assert gates["typecheck"] == "npm --prefix web run typecheck"
     assert gates["unit"] == "npm --prefix web run test:unit"
     assert gates["smoke"] == "npm --prefix web run test:smoke"
@@ -196,6 +201,11 @@ APPROVED_PYTHON = {
     "httpx",
     "pytest",
     "pytest-asyncio",
+    # 015 US1 (T001): approved by the operator's flip of spec 015 to `ready`,
+    # which names `pytest-cov`, `@vitest/coverage-v8` and `pip-audit` and
+    # "nothing else" (constitution VII).  The other two are US2's and US3's to
+    # add, in their own diffs, beside the gate that needs them.
+    "pytest-cov",
 }
 
 APPROVED_NODE = {
