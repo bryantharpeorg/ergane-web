@@ -131,3 +131,35 @@ jobs:
       # reports two different numbers depending on who asked (FR-011).
       - name: "unit"
         run: "npm --prefix web run test:unit"
+
+  # 015 US3, and FR-011 is why it is here at all: a gate the forge does not run
+  # does not exist. `ergane.yaml` gained an `audit` gate in this same diff, so
+  # this job carries the same name and runs the same command verbatim.
+  #
+  # What this job deliberately does NOT do is `npm ci`. `npm audit` builds its
+  # tree from `web/package-lock.json` alone, which is the lockfile the story
+  # asks it to audit — installing 280 packages first would audit the same file
+  # more slowly and would make an offline runner fail at the install rather than
+  # at the audit, where FR-010's message belongs.
+  #
+  # This gate is NOT in the `dev` or `main` branch ruleset, on purpose (D-024).
+  # It runs here and it blocks every node at the factory's boundary; it does not
+  # block the merge queue, so a human can still land the lockfile bump that
+  # turns it green. Adding it to the ruleset is the operator's to do and a node
+  # has neither `gh` nor admin.
+  audit:
+    name: "audit"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # `pip-audit` is a backend dev dependency, so `uv sync` is what puts it in
+      # `.venv` inside the worktree — the same shape as US2's coverage provider,
+      # and the same reason (D-013): nothing is fetched into `HOME` at gate time
+      # and nothing is cached there.
+      - run: uv sync
+      - name: "audit"
+        run: "uv run python scripts/audit_gate.py"

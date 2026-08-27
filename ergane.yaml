@@ -18,7 +18,7 @@ version: 2
 
 runtime: bwrap
 
-# Four gates, two package worlds. `uv` owns the backend, `npm` owns web/ (D-006,
+# Five gates, two package worlds. `uv` owns the backend, `npm` owns web/ (D-006,
 # constitution VII). The npm gates assume dependencies are installed — the CI
 # workflow that wiring scaffolds runs `npm ci --prefix web` before the checks, and
 # spec 001's scaffold story owes a fresh checkout the same courtesy locally.
@@ -49,11 +49,40 @@ runtime: bwrap
 # measure something the documented local command does not.  As with the backend,
 # the floor is committed rather than passed (plan D1, FR-007), and both
 # artefacts land inside the worktree (D-013).
+#
+# 015 US3: a FIFTH gate, `audit`, inventories what this repository depends on
+# and reports what is known about it -- `pip-audit` over `uv.lock`, `npm audit`
+# over `web/package-lock.json`, each tool's own JSON written verbatim at the
+# path `pyproject.toml`'s `[tool.audit-gate.reports]` declares (FR-008).  The
+# command carries no threshold and no paths for the same reason the coverage
+# gates carry no floor: a security policy passed on a command line is a policy
+# hidden inside a quoted string.  Everything the gate obeys is committed in
+# `[tool.audit-gate]`, where a reader finds it without running anything, and
+# there is no allowlist and must not be one (D-024).
+#
+# It fails on the declared severity and on one other thing: a lookup that did
+# not complete.  An audit that could not reach the advisory database names the
+# network and refuses to print a count, because "0 vulnerabilities" from a
+# question nobody answered is the failure constitution III exists to prevent
+# (FR-010).
+#
+# `audit` is ALSO deliberately absent from the `dev` and `main` branch rulesets
+# (D-024), which is the one asymmetry `CLAUDE.md` § Landing discipline admits.
+# It blocks every node at the boundary -- which is what stops work landing on a
+# known-vulnerable tree -- and it does not block the merge queue, so the one
+# actor who can fix an overnight CVE is not locked out by the gate asking for
+# the fix.  A node cannot change a ruleset and must not try.
+#
+# Both artefacts and both tool caches land under `audit/` inside the worktree,
+# so this gate needs nothing from its fresh tmpfs `HOME` either (FR-004,
+# D-013): `pip-audit` would otherwise cache into `~/.cache/pip` and `npm` into
+# `~/.npm`.  Nothing in this repository reads the artefacts (SC-003).
 gates:
   test: "uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml"
   typecheck: "npm --prefix web run typecheck"
   unit: "npm --prefix web run test:unit"
   smoke: "npm --prefix web run test:smoke"
+  audit: "uv run python scripts/audit_gate.py"
 
 # The document every agent attempt in this repo is told to read and obey.
 standards: .specify/memory/constitution.md

@@ -13,6 +13,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pip-audit>=2.10.1",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
@@ -90,3 +91,52 @@ fail_under = 90.8
 # Relative, so it resolves against the worktree the gate runs in and nowhere
 # else.
 output = "coverage.xml"
+
+# --- 015 US3: the audit gate inventories what this repository depends on -----
+#
+# The `audit` gate's whole policy, and nothing else, lives below.  It is here
+# for the same reason the coverage floor above is here (plan D1): a threshold
+# passed on a command line is a security policy hidden inside a quoted string,
+# where changing it shows up in a diff as an edit to a manifest rather than as
+# what it is.  `ergane.yaml`'s `audit` gate is a bare
+# `uv run python scripts/audit_gate.py`; every number and path it obeys is read
+# from this table.
+#
+# It covers BOTH package worlds even though it sits in the backend's manifest.
+# One gate audits two lockfiles, so its policy is one table; splitting the
+# threshold across `pyproject.toml` and `web/vitest.config.ts` would let the two
+# halves drift and would make "the declared severity threshold" two numbers.
+
+[tool.audit-gate]
+# THE THRESHOLD, and by D-024 the ONLY dial (FR-009).
+#
+# A finding at or above this severity fails the gate.  Everything below it is
+# still written to the JSON -- recorded, not fatal -- which is the difference
+# between an audit and a tripwire.  `high` is the line because it is where an
+# advisory stops being something to schedule and starts being something to stop
+# for: the spec's own edge case ("a moderate advisory in a transitive dev
+# dependency with no fix available") lands below it deliberately, and the two
+# critical and one high advisories this repository carried on 2026-08-27 land
+# above it and were fixed by the lockfile bump that landed with this story
+# rather than by moving this number.
+#
+# THERE IS NO ALLOWLIST AND MUST NOT BE ONE (D-024, spec § Out of scope).  A
+# finding above this line stops the line even when no fix exists, and a human
+# decides what happens next -- bump, vendor, remove the dependency, or move this
+# number deliberately and visibly.  An ignore file is the change that turns an
+# audit gate into decoration, because it is the cheapest possible response to a
+# red gate at three in the morning.
+fail_on = "high"
+
+[tool.audit-gate.reports]
+# The declared paths (FR-008).  Each tool's OWN JSON, verbatim, at a stable
+# location -- no bespoke wrapper (plan D3), because a Cobertura file and a
+# `pip-audit -f json` document are what a collector already understands and an
+# invented envelope is what earns a rewrite when PR-3 ships.
+#
+# Relative, so they resolve against the directory the gate runs in -- the
+# worktree -- and never against the fresh tmpfs `HOME` a gate is handed
+# (FR-004, D-013).  Both are gitignored build products of a single run, and
+# nothing in this repository reads them (SC-003).
+python = "audit/pip-audit.json"
+node = "audit/npm-audit.json"

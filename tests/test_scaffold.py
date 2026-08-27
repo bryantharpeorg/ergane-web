@@ -206,6 +206,12 @@ APPROVED_PYTHON = {
     # "nothing else" (constitution VII).  The other two are US2's and US3's to
     # add, in their own diffs, beside the gate that needs them.
     "pytest-cov",
+    # 015 US3 (T012): the third and last of them, added in its own diff beside
+    # the `audit` gate that runs it.  With this the spec's approval is spent --
+    # a fourth dependency is a stop-and-ask, not a judgement call, and in
+    # particular this story must not grow an SBOM generator, a SARIF converter
+    # or a second audit tool because the first one's output looked awkward.
+    "pip-audit",
 }
 
 APPROVED_NODE = {
