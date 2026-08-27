@@ -1,8 +1,8 @@
 {
   "epic_id": "015-the-gates-measure-themselves",
   "feature": "015-the-gates-measure-themselves",
-  "specs_root": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-015/specs",
-  "target_repo": "/tmp/claude-1000/-home-tharpeboxadmin-code-ergane-web/a2c0043d-7554-49b5-9c45-dee8f54379ac/scratchpad/wt-015",
+  "specs_root": "/home/tharpeboxadmin/code/ergane-web/specs",
+  "target_repo": "/home/tharpeboxadmin/code/ergane-web",
   "nodes": [
     {
       "id": "us1",
