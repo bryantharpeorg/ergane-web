@@ -150,13 +150,26 @@ on disk; but derivation asks git for that same spec **at the landing branch's he
 `derive_spec` on every tick — `fatal: path 'specs/…/spec.md' exists on disk, but not in
 '<sha>'` — and parks with no name in the count.
 
-`[operator]` **The branch your checkout is standing on is an input to the factory.** The
-roadmap's `clone_target` runs `git symbolic-ref --short HEAD` on this working copy every
-300 s and hard-resets that branch to its remote. An unpushed operator branch stops the
-whole line at `clone` (6h34m of it on 2026-08-27); a pushed one is worse, because the
-factory will happily derive and land epics against your feature branch. Do operator work
-on a branch, but know that the line is stopped while you are there, and return to `dev`
-when you are done. Filed as ergane spec `087-the-operators-checkout-is-an-input`.
+`[operator]` **The branch your checkout is standing on is an input to the factory, and it
+will fight you for it.** Every 300 s the roadmap's `clone_target` runs
+`git symbolic-ref --short HEAD` on this working copy, then **checks that branch out again**
+and hard-resets it to its remote. Three ways that bites, all measured on 2026-08-27:
+
+- An **unpushed** operator branch stops the whole line at `clone` — 6h34m and ~78 ticks,
+  surfaced only as `parked: 3` with no name in it.
+- A **pushed** one is worse: the reset succeeds, and the factory derives and lands epics
+  against your feature branch as though it were the trunk.
+- **`git checkout dev` is not enough to get out.** A tick already in flight reads HEAD
+  before your checkout and writes it back after. Observed inside one second:
+  `checkout: moving from spec/010-… to dev` immediately followed by
+  `checkout: moving from dev to spec/010-…`, after which the factory ran on the feature
+  branch for eight minutes while `git status` said *working tree clean*.
+
+**So do operator work in a worktree, not by switching branches** — `git worktree add
+<scratchpad>/wt-x <branch>` leaves this checkout on `dev`, which is the only HEAD the
+factory reads. If you did switch, push the branch and then `git branch -D` it locally so
+the name cannot be resolved at all. Filed as ergane spec
+`087-the-operators-checkout-is-an-input` (FR-012).
 
 ## A spec dispatches only through its `## Work Graph`
 

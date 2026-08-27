@@ -970,6 +970,17 @@ Two consequences, both observed rather than reasoned about:
 - **An operator branch that *has* been pushed is worse than the unpushed one**, because the clone
   succeeds: the factory then derives and dispatches epics from an operator's working branch as though
   it were the trunk, and lands nodes against it.
+- **And you cannot simply walk back out.** `_refresh_to_default` does not only reset — it
+  *re-checks-out*, reading `HEAD` at activity start and writing it back afterwards. Measured within a
+  single second on 2026-08-27: `checkout: moving from spec/010-d025-grooming-plan to dev`, the
+  operator's, immediately followed by `checkout: moving from dev to spec/010-d025-grooming-plan`, the
+  factory's. The branch had by then been pushed, so the reset succeeded and the factory ran on a
+  feature branch for the next eight minutes with `git status` reporting a clean tree and nothing on
+  the floor naming the branch. **The mitigation this entry first recorded — return to `dev` when you
+  are done — is therefore a race the operator loses whenever a tick is already running.** What works
+  is to deny the name: do operator work in a `git worktree`, so this checkout's `HEAD` never leaves
+  the landing branch; or, having switched, push and then `git branch -D` locally. `CLAUDE.md` is
+  amended to say so.
 
 **A second false claim, and a second correction to `CLAUDE.md`.** This repository has told every node
 and every operator session that "the roadmap scheduler reads the local working tree … so an
