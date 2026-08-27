@@ -30,6 +30,18 @@ broken.  The fallback lives here rather than in `LiveReader` on purpose: the
 seam should keep meaning "the path the factory would write", and what to do
 when it is silent is a policy of the assembly that owns degradation.
 
+**And the epic says which of the two answered** (017 US2).  012's ordering is
+right and is not reopened here — but the seam is a path nothing in the factory
+writes, so the file that appears there is an operator's `ergane spec derive`
+output, and a stale one outranks the archive the operator reviewed before
+dispatch.  Nothing failed, so honest degradation never fires and the document
+had no vocabulary for *"this came from somewhere, and here is where."*  It has
+one now: `workgraph_source` is `"seam"`, `"archive"`, or `None`, and it is read
+off which branch of the fallback ran and off nothing else.  Never by asking the
+filesystem or git which file exists — that is a second read that can disagree
+with the first, and the read path may spawn no subprocess (016 FR-002).  It is
+not a `degraded` entry, because a fallback that worked is not a degradation.
+
 **And a graph is joined only when it is about this epic's stories** (012 US2).
 A graph found under the right name can still be about the wrong work — the
 archive is compiled once and committed, and the stories under it can be renamed
@@ -80,8 +92,18 @@ def _archive_root(reader: "Reader") -> Path | None:
 #: Both are "exists and will not parse", which FR-005 separates from "absent".
 UNPARSEABLE_ARCHIVE = (json.JSONDecodeError, UnicodeDecodeError)
 
+#: The two names a provenance can carry, and there is no third (017 FR-004,
+#: FR-005).  They are the two doors `_read_workgraph` can come back through, so
+#: the value is decided by *which branch ran* and never by asking the
+#: filesystem which file exists — a second read can disagree with the first,
+#: and 016's spawn watcher fails the suite outright if one reaches git.
+SEAM_SOURCE = "seam"
+ARCHIVE_SOURCE = "archive"
 
-def _read_workgraph(reader: "Reader", spec_dir: str, archive_root: Path | None) -> dict:
+
+def _read_workgraph(
+    reader: "Reader", spec_dir: str, archive_root: Path | None
+) -> tuple[dict, str]:
     """The seam's graph, else the archived one: `_BoundReads.workgraph`'s rule.
 
     Three outcomes, and the third is the one that is easy to get wrong:
@@ -98,23 +120,37 @@ def _read_workgraph(reader: "Reader", spec_dir: str, archive_root: Path | None) 
     up as itself, so that `_assemble_epic` names it `unparseable` rather than
     `transport`.  A file that exists and is malformed is a different fact from
     a file that is not there, and the operator is owed the difference (FR-005).
+
+    **And the graph now comes back with the door it came through** (017 US2).
+    012 made the seam first because "the seam is where the graph belongs", and
+    that ordering stands — but the seam is a path nothing in the factory writes,
+    so in practice the only file that ever appears there is an operator's
+    `ergane spec derive` output, and a successful read and a *current* read were
+    indistinguishable in the document.  The provenance is the second return
+    value, taken from which of the two branches above ran and from nothing else:
+    no probe, no stat, no git.  A read that raised has no door and therefore no
+    provenance, which is why this returns a pair rather than annotating an
+    exception.
     """
     try:
-        return reader.workgraph(spec_dir)
+        graph = reader.workgraph(spec_dir)
     except (TransportFailed, QueryRefused) as first:
         if archive_root is None:
             raise
         archived = archive_root / f"{spec_dir}.json"
         try:
-            return json.loads(archived.read_text(encoding="utf-8"))
+            return json.loads(archived.read_text(encoding="utf-8")), ARCHIVE_SOURCE
         except UNPARSEABLE_ARCHIVE:
             # The archive is there.  Do NOT collapse this into the seam's
             # failure below: that would report `transport` for a file that was
-            # found, which is precisely the confusion FR-005 forbids.
+            # found, which is precisely the confusion FR-005 forbids.  It leaves
+            # by this door carrying no provenance, which is the point: a graph
+            # that was never read has no source to name (017 FR-004 edge case).
             raise
         except OSError:
             # No archive either.  The seam's failure is the one worth naming.
             raise first from None
+    return graph, SEAM_SOURCE
 
 
 def _story_names(node: dict) -> set[str]:
@@ -269,9 +305,13 @@ async def _assemble_epic(
         degraded.append(_degraded_entry("epics", mode, read, detail, epic_id))
         status = exc
 
-    # workgraph read: the seam, and the archive behind it (012 FR-001)
+    # workgraph read: the seam, and the archive behind it (012 FR-001).
+    # `workgraph_source` starts as `None` and is only ever set by a read that
+    # returned: every `except` arm below leaves it `None`, because a graph that
+    # was never read has no source to name (017 FR-004, FR-005, spec Edge Cases).
+    workgraph_source: str | None = None
     try:
-        workgraph = _read_workgraph(reader, ref.workgraph_ref, archive_root)
+        workgraph, workgraph_source = _read_workgraph(reader, ref.workgraph_ref, archive_root)
     except (TransportFailed, QueryRefused) as exc:
         degraded.append(_degraded_entry("epics", _exc_mode(exc), exc.read, exc.detail, ref.epic_id))
         workgraph = exc
@@ -350,6 +390,12 @@ async def _assemble_epic(
         "stage": stage,
         "status_seam": f"EpicWorkflow.epic_status on {ref.workflow_id}",
         "workgraph_seam": workgraph_seam,
+        # Which of the two doors answered: `"seam"`, `"archive"`, or `None` for
+        # a graph that was never read (017 FR-004, FR-005).  It rides here and
+        # not in `degraded` because `degraded` means a read *failed*, and a
+        # fallback that answered is not a failure — 012 FR-002 forbids an entry
+        # for it, and this spec does not reopen that (plan D4).
+        "workgraph_source": workgraph_source,
     }
 
     return entry, degraded
