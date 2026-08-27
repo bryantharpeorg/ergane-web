@@ -1,6 +1,37 @@
 ---
-state: ready
+state: landed
 depends_on_landed: []
+# Attested landed 2026-08-26. US1 13d22b12e3d2 (#88), observed on dev by
+# content, not by a merged flag.
+#
+# Dispatched 2:50 PM CT, complete 4:06 PM CT: 1h15m for one story, TWO ATTEMPTS
+# FOR ONE STORY. Agent build 23m (attempt 1) and 42m (attempt 2); landing
+# overhead ~9m. Landing history, verbatim: CHECKS_FAILED at 2026-08-26T20:15:49Z
+# on `test`, MERGED at 2026-08-26T21:06:05Z.
+#
+# THE RECOVERY CYCLE WAS NOT THE DIFF'S FAULT, AND THE IRONY IS WORTH THE INK.
+# This spec exists because the review room's smoke depended on the runner's git
+# history. Attempt 1's diff was correct and its `test` gate went red anyway - on
+# `test_the_live_read_never_falls_back_to_a_recording`, which proves the
+# degradation path by `shutil.rmtree`-ing a real `.git`, and lost the race
+# against git's own background maintenance:
+#
+#   FileNotFoundError: [Errno 2] No such file or directory: 'bitmap-ref-tips_5AH8V1'
+#   /usr/lib/python3.12/shutil.py:715
+#
+# Attempt 2 passed WITHOUT touching that test, so nothing was fixed. The race is
+# on dev now and will redden the gate at random. Filed as
+# `gates/rmtree-of-a-live-dot-git-races-git-maintenance`, with the fix shape:
+# make the checkout unwalkable by renaming rather than by deleting a directory
+# another process owns. It is a candidate for the next spec that touches this
+# suite; nothing here should be edited to chase it (N51).
+#
+# WHAT LANDED, BY NAME. `tests/spawnwatch.py` (+111) is the mechanism behind
+# FR-002 - it watches the review path at runtime and fails on a git subprocess,
+# rather than trusting an import scan. `pane/fixture_floor.py` (+124) gives the
+# review room its recorded landings. `pane/landing.py` was NOT touched, honouring
+# plan D1: the live read keeps its seam, and demo mode diverts before it.
+#
 # Flipped `ready` 2026-08-26, 2:37 PM CT, by the operator, the moment the spec
 # itself landed at 7abd22f (#86). Nothing gates it: `depends_on_landed` is empty
 # and the recorded fixture it needs is committed alongside it.
@@ -25,8 +56,6 @@ depends_on_landed: []
 # workflow changes (#84, #85) deepen the history and neither survives to the test.
 # What re-shallows it is unidentified. This spec makes that stop mattering rather
 # than claiming to have solved it.
-#
-# `state: draft` until the operator flips it.
 ---
 
 # Feature Specification: The demo floor owns its landings
