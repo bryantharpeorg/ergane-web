@@ -24,11 +24,20 @@ npm ci --prefix web   # postinstall installs the Playwright chromium binary
 Then run the four gates declared in `ergane.yaml`:
 
 ```bash
-uv run pytest -q
+uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml
 npm --prefix web run typecheck
 npm --prefix web run test:unit
 npm --prefix web run test:smoke
 ```
+
+The `test` gate measures itself as it runs (spec 015 US1): it writes Cobertura
+`coverage.xml` at the repository root, prints a terminal summary, and exits
+non-zero if line coverage over `pane/` falls below the floor. The floor is
+committed in `pyproject.toml` under `[tool.coverage.report] fail_under`, never
+passed on the command line, so you can read it without running anything. Both
+`coverage.xml` and coverage's `.coverage` data file are gitignored build
+products; nothing in this repository reads them, by design — they are emitted
+for the platform collector ergane's PR-3 describes.
 
 To run the demo pane locally after building the frontend:
 

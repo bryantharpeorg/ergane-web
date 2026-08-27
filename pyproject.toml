@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-asyncio",
+    "pytest-cov",
 ]
 
 [tool.uv]
@@ -24,3 +25,68 @@ package = false
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
+
+# --- 015 US1: the backend gate measures its own reach ------------------------
+#
+# Three artefacts of policy live below and nothing else does.  The gate command
+# in `ergane.yaml` turns coverage *on* (`--cov=pane`) and says which reports to
+# write; what "over `pane/`" means, where the reports land, and what the floor
+# is are settled here, in a committed file, so a reader learns all three without
+# running anything (FR-003, plan D1).
+
+[tool.coverage.run]
+# What the gate measures.  `--cov=pane` on the command line says the same thing;
+# this is here so a bare `coverage` invocation, and any collector that reads
+# this file, agree with the gate rather than guessing.
+source = ["pane"]
+# Every path coverage writes is relative to the directory the gate runs in --
+# the worktree root -- and coverage reads no configuration out of `HOME`.  That
+# is FR-004 and D-013: a gate gets a fresh tmpfs `HOME` and only the worktree
+# survives into it, so an artefact that resolved against `HOME` would be written
+# somewhere the boundary cannot collect and the operator cannot see.
+data_file = ".coverage"
+# Cobertura paths come out as `pane/readers.py` rather than
+# `/home/.../worktrees/<attempt>/pane/readers.py`.  PR-3's collector reads the
+# same file from a runner, a sandbox and an operator's checkout; an absolute
+# path would name a directory that exists on exactly one of them.
+relative_files = true
+
+[tool.coverage.report]
+# The terminal summary FR-001 asks for is `--cov-report=term-missing` on the
+# gate command; this makes the missing-line column the default for any other
+# reader of this configuration too.
+show_missing = true
+# Two decimals, because the floor below is quoted to one and the comparison
+# rounds the measured total to this precision before making it.  At the default
+# of 0 a floor of 90.8 would be met by anything that rounds to 91, which is a
+# floor half a point lower than the one written down.
+precision = 2
+# THE FLOOR (FR-002, FR-003).  Committed here, never passed on a command line.
+#
+# Measured on this diff, whole suite, `--cov=pane`, three interpreters inside
+# this project's `requires-python = ">=3.12"`:
+#
+#     3.12.12   1967 / 2163 lines   90.94%
+#     3.13.7    1967 / 2163 lines   90.94%
+#     3.14.2    1942 / 2138 lines   90.83%
+#
+# Same suite, same source, three different statement counts: 3.14 attributes 25
+# statements differently.  CI pins no interpreter (`astral-sh/setup-uv` takes
+# what the runner offers), so the honest baseline is the LOWEST of the three,
+# not the one this machine happens to produce -- a floor set from 3.13's 90.94
+# would have failed its own landing on a 3.14 runner.
+#
+# So: the minimum measured, truncated down to a tenth.  Not a round number
+# chosen in advance (plan D2) -- a tenth is simply the precision a figure with
+# an observed 0.11-point spread across interpreters can carry.  It leaves about
+# two thirds of one statement of slack, which is the point: this floor stops a
+# regression, it does not fund one.  Raising it over time is the operator's
+# policy and explicitly out of this spec's scope.
+fail_under = 90.8
+
+[tool.coverage.xml]
+# FR-001: Cobertura, at the repository root, at a stable declared path, because
+# that is the format and the location PR-3's collector will take unchanged.
+# Relative, so it resolves against the worktree the gate runs in and nowhere
+# else.
+output = "coverage.xml"

@@ -97,7 +97,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync
       - name: "test"
-        run: "uv run pytest -q"
+        run: "uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml"
 
   typecheck:
     name: "typecheck"

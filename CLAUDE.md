@@ -39,13 +39,23 @@ is built to `DESIGN.md`.
 
 | World | Tool | Lives in | Gates |
 |---|---|---|---|
-| Backend (FastAPI, ergane seams) | `uv` | `pane/`, `pyproject.toml` | `uv run pytest -q` |
+| Backend (FastAPI, ergane seams) | `uv` | `pane/`, `pyproject.toml` | `uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml` |
 | Frontend (Vite + React + TypeScript, React Flow) | `npm` | `web/` | `npm --prefix web run typecheck` · `test:unit` · `test:smoke` |
 
 Declared in `ergane.yaml` (schema v2) and nowhere else. Fresh-checkout setup is
 `uv sync` then `npm ci --prefix web` (the smoke gate also needs
 `npx --prefix web playwright install chromium`). Spec 001's scaffold story is what makes
 every gate command exist and exit 0; until it lands, `ergane.yaml` is a promise.
+
+**The `test` gate measures its own reach** (spec 015 US1). It writes Cobertura
+`coverage.xml` at the repository root, prints a terminal summary, and exits
+non-zero when line coverage over `pane/` falls below the floor. The floor lives
+in `pyproject.toml` under `[tool.coverage.report] fail_under` — committed, never
+passed on the command line, so a reader sees the number without running anything.
+Both artefacts are gitignored build products and **nothing in this repository
+reads them**: they are emitted at a stable path in a standard format for the
+platform collector ergane's PR-3 describes, and a pane-side reader for them is
+the fragmentation N54 refused (spec 015 § Out of scope).
 
 **A gate does not inherit the attempt's `HOME`** (D-013). Gates run in the factory's sandbox
 with a fresh tmpfs `HOME`; only the worktree survives from the attempt into the gate. Whatever a

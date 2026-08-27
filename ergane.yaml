@@ -27,8 +27,17 @@ runtime: bwrap
 # 0.2.0; D-011) and `npm ci` fetches packages plus the Playwright chromium binary. A sandbox that
 # denies egress at gate time fails US1 by construction (001's Assumptions name
 # this); provide a cached channel before dispatch if the runtime is sealed.
+#
+# 015 US1: the `test` gate now measures its own reach as it runs.  The flags
+# turn coverage on and name the two reports FR-001 asks for -- Cobertura at the
+# repository root, and a terminal summary a human reads in the gate tail.  What
+# they deliberately do NOT carry is the floor: `--cov-fail-under` here would
+# hide the number inside this string, so it lives in `pyproject.toml`'s
+# `[tool.coverage.report] fail_under` where a reader finds it without running
+# anything (plan D1, FR-003).  Both artefacts land inside the worktree, so the
+# gate needs nothing from its fresh tmpfs `HOME` (FR-004, D-013).
 gates:
-  test: "uv run pytest -q"
+  test: "uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml"
   typecheck: "npm --prefix web run typecheck"
   unit: "npm --prefix web run test:unit"
   smoke: "npm --prefix web run test:smoke"
