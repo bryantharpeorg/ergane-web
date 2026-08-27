@@ -57,6 +57,14 @@ reads them**: they are emitted at a stable path in a standard format for the
 platform collector ergane's PR-3 describes, and a pane-side reader for them is
 the fragmentation N54 refused (spec 015 § Out of scope).
 
+**So does the `unit` gate** (spec 015 US2), over `web/src`. `test:unit` is
+`vitest run --coverage`; the reports, the path they land at
+(`web/coverage/`, holding vitest's `json-summary`) and the floor
+(`test.coverage.thresholds.lines`) are all declared in **`web/vitest.config.ts`**
+— a new file that owns the whole test run and merges `web/vite.config.ts` for the
+build's plugins. Like the backend's, the floor is committed rather than passed
+and the report is a gitignored build product nothing here reads.
+
 **A gate does not inherit the attempt's `HOME`** (D-013). Gates run in the factory's sandbox
 with a fresh tmpfs `HOME`; only the worktree survives from the attempt into the gate. Whatever a
 gate needs must be inside the worktree or fetched by the gate command itself (the boundary has

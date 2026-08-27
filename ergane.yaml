@@ -36,6 +36,19 @@ runtime: bwrap
 # `[tool.coverage.report] fail_under` where a reader finds it without running
 # anything (plan D1, FR-003).  Both artefacts land inside the worktree, so the
 # gate needs nothing from its fresh tmpfs `HOME` (FR-004, D-013).
+#
+# 015 US2: the `unit` gate now measures its own reach too, over `web/src`, on
+# the same terms.  Its command is unchanged and that is deliberate.  The two
+# reports FR-005 asks for -- vitest's `json-summary` at the declared path
+# `web/coverage/coverage-summary.json`, and the `text` summary a human reads in
+# the gate tail -- and the floor that fails the gate below it are configured in
+# `web/vitest.config.ts`, and coverage is switched on by `--coverage` inside
+# `web/package.json`'s `test:unit` script.  So `npm --prefix web run test:unit`
+# means exactly the same thing at the boundary, in the forge, and on an
+# operator's machine; passing the flag here instead would have made the gate
+# measure something the documented local command does not.  As with the backend,
+# the floor is committed rather than passed (plan D1, FR-007), and both
+# artefacts land inside the worktree (D-013).
 gates:
   test: "uv run pytest -q --cov=pane --cov-report=term-missing --cov-report=xml"
   typecheck: "npm --prefix web run typecheck"

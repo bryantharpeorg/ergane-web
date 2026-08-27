@@ -79,7 +79,11 @@ def workflow() -> dict:
 
 
 def gate_command() -> str:
-    return manifest()["gates"]["test"]
+    return gate_command_named("test")
+
+
+def gate_command_named(gate: str) -> str:
+    return manifest()["gates"][gate]
 
 
 def job_scripts(job: dict) -> list[str]:
@@ -237,6 +241,27 @@ def test_the_test_job_runs_the_declared_gate_command():
 
     assert command in scripts, (
         f"the workflow's test job does not run the declared gate command.\n"
+        f"  ergane.yaml: {command}\n  workflow:    {scripts}"
+    )
+
+
+def test_the_unit_job_runs_the_declared_gate_command():
+    """015 US2, FR-011: the frontend gate's two files, changed in one diff.
+
+    The same claim as the test above, for the gate US2 taught to measure itself.
+    It matters more here than it reads: the `unit` gate command is unchanged by
+    that story -- what changed is `web/package.json`'s `test:unit` script and the
+    floor in `web/vitest.config.ts` -- so the thing worth asserting is that the
+    manifest and the workflow still name the one command that reaches them.
+    `web/tests/gates/theUnitGateMeasuresItself.test.ts` asserts the rest of that
+    chain from the frontend side, where the vitest configuration can be read as
+    an object rather than as text.
+    """
+    command = gate_command_named("unit")
+    scripts = job_scripts(workflow()["jobs"]["unit"])
+
+    assert command in scripts, (
+        f"the workflow's unit job does not run the declared gate command.\n"
         f"  ergane.yaml: {command}\n  workflow:    {scripts}"
     )
 

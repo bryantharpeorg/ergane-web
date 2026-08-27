@@ -39,6 +39,16 @@ passed on the command line, so you can read it without running anything. Both
 products; nothing in this repository reads them, by design — they are emitted
 for the platform collector ergane's PR-3 describes.
 
+The `unit` gate does the same for the frontend (spec 015 US2). `vitest run
+--coverage` writes vitest's machine-readable `json-summary` to
+`web/coverage/coverage-summary.json`, prints a terminal summary, and exits
+non-zero if line coverage over `web/src` falls below the floor committed in
+`web/vitest.config.ts` under `test.coverage.thresholds` — again a number you can
+read without running anything, and again a gitignored build product nothing here
+reads. `web/vitest.config.ts` is where the whole test run is configured now; it
+imports `web/vite.config.ts` for the build's plugins and merges its own `test`
+block on top.
+
 To run the demo pane locally after building the frontend:
 
 ```bash

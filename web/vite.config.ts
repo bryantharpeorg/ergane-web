@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -29,10 +29,10 @@ function rawText() {
   };
 }
 
+// The build. Everything about the *test* run -- the environment, what counts as
+// a unit test, and since 015 US2 the coverage the `unit` gate measures over
+// `src/` -- lives in `vitest.config.ts`, which imports this file and merges its
+// own `test` block onto it. One `test` block, in the file the spec names.
 export default defineConfig({
   plugins: [react(), rawText()],
-  test: {
-    environment: "jsdom",
-    include: ["tests/unit/**/*.test.{ts,tsx}"],
-  },
 });
