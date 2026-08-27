@@ -1,6 +1,37 @@
 ---
-state: ready
+state: landed
 depends_on_landed: []
+# ATTESTED LANDED 2026-08-27. US1 36038d4 (#96), US2 1eed329 (#97), both MERGED,
+# observed by content on `dev`. Every gate green on both landing attempts.
+#
+# 25 MINUTES FOR TWO PARALLEL STORIES, first boundary verification 8:31:57 PM CT
+# to last merge 8:56:33 PM CT -- the fastest epic this repository has run, and
+# the chain depth of 1 predicted below is why. Landing overhead 6:15 and 7:47.
+#
+# US2 TOOK TWO ATTEMPTS FOR A REASON THAT HAS NOTHING TO DO WITH US2. Attempt 1
+# died at the boundary `smoke` gate after 1.32s at 2026-08-27T01:43:40Z, before
+# one test ran, because 127.0.0.1:8787 was already held -- leaked Playwright
+# webServer children from an earlier interrupted run, against the three fixed
+# ports `web/playwright.config.ts` declares. Attempt 2 passed every gate four
+# minutes later having changed nothing about it. Not concurrency: the roadmap
+# ran at `max_concurrent_nodes: 1`. The full trace is in 015's attestation;
+# known as `gates/concurrent-epics-collide-on-a-fixed-gate-port`.
+#
+# THE IRONY IS THE ONE 016 RECORDED, TWICE IN A ROW NOW. A spec written because
+# the repository tells itself something true and reports something else lost an
+# attempt to a gate reporting a port collision as a story defect.
+#
+# WHAT LANDED, BY NAME. US1: `tests/test_no_test_destroys_a_fixture_repository.py`
+# (+202) is the mechanism, and its shape is the point -- a committed test that
+# fails when ANY test destroys a live `.git`, rather than a patch to the one test
+# that did; `tests/test_the_demo_floor_owns_its_landings.py` (+60/-18) stops
+# racing git's background maintenance. US2: `pane/floor_document.py` (+52/-6)
+# makes the Desk say which source answered, with
+# `tests/test_desk_finds_the_graph.py` (+190) and a new
+# `web/tests/smoke/support/widths.ts` (+35) behind it. `.gitignore` grew in both
+# stories, which is the operator's scratch finally leaving the seam's path.
+#
+# US1 PASSED FIRST ATTEMPT, all four gates green at 2026-08-27T01:33:13Z.
 # FLIPPED `ready` 2026-08-26, 8:25 PM CT, by the operator, in the same session
 # that authored it. Both defects it fixes were filed the same evening with
 # reproductions, and the floor was empty enough to take a second epic beside 015.

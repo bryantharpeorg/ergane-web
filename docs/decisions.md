@@ -936,8 +936,8 @@ recommendation stands and is now acted on: filed, not designed around — as erg
 
 **OQ3 — where the edit lands.** Worse than 010 recorded it, and the correction matters. The
 roadmap's `clone_target` resets to **`origin/<default>`**, and it runs *before* the spec text is read
-(`factory/roadmap/workflow.py:1166`, then `:1178`). `_default_branch` resolves to `dev` for this
-repository. So there is **no durable place in the operator's checkout for a grooming write to land**:
+(`factory/roadmap/workflow.py:1166`, then `:1178`). So there is **no durable place in the operator's
+checkout for a grooming write to land**:
 uncommitted is destroyed by `reset --hard`; committed locally on `dev` is destroyed too, because the
 reset is to the remote ref; and a direct push to `dev` is refused by ruleset. N50 does not merely
 threaten an in-pane editor — it eats the writes of any authoring seam ergane ever ships. It is
@@ -950,6 +950,39 @@ verified, and gone on the next tick — `reset: moving to origin/dev`, four time
 checkout with nothing dispatched into it. Spec 018's file survived because it was untracked. The
 argument for ordering 087 first is not theoretical and did not need to be reconstructed from the
 2026-08-25 incident; it re-ran during the drafting of the entry that makes it.
+
+**CORRECTED 2026-08-27, AND THE CORRECTION MAKES IT WORSE.** The paragraph above originally read
+"`_default_branch` resolves to `dev` for this repository". It does not. `_default_branch`
+(`factory/workgraph/worktree.py:982`) is `git symbolic-ref --short HEAD` — **whatever branch the
+operator's checkout happens to be standing on** — and `_refresh_to_default` then fetches, checks that
+branch out and resets it to `origin/<that branch>`, while its own docstring says the epic derives from
+"the trunk's current head". So N50 is not "the roadmap resets `dev`". It is: *the roadmap resets
+whichever branch the operator is working on, to that branch's remote, and derives the epic from it.*
+Two consequences, both observed rather than reasoned about:
+
+- **An operator branch that has never been pushed stops the whole line.** Measured 2026-08-27: this
+  entry was written on `spec/010-d025-grooming-plan`, an unpushed branch, and every roadmap tick from
+  00:00:18 CT onward failed at `clone_target` with `fatal: ambiguous argument
+  'origin/spec/010-d025-grooming-plan'`, parking all three `ready` specs — ~78 consecutive ticks over
+  6h34m, reported to the operator only as `parked: 3` with no name in it. The workaround that
+  protected this entry from N50 is the same act that stopped the factory, and neither the pane nor
+  the CLI said so.
+- **An operator branch that *has* been pushed is worse than the unpushed one**, because the clone
+  succeeds: the factory then derives and dispatches epics from an operator's working branch as though
+  it were the trunk, and lands nodes against it.
+
+**A second false claim, and a second correction to `CLAUDE.md`.** This repository has told every node
+and every operator session that "the roadmap scheduler reads the local working tree … so an
+uncommitted `ready` is live immediately". Half true, and the false half is the expensive half. The
+*corpus* read is a working-tree read (`read_spec_text_activity`, `factory/roadmap/workflow.py:502`),
+which is why `ergane spec list` cheerfully shows a spec that exists only on disk. But `derive_spec`
+calls `landed_facts`, which reads the same spec **at the landing branch's head commit** through
+`_spec_requirements_at` with `missing_ok=False` (`factory/workgraph/landed.py:136`, `:298`) — while
+its sibling `_frontmatter_at` reads it with `missing_ok=True`. One spec file, two absence policies.
+An uncommitted `ready` is therefore *listed as dispatchable and cannot be derived*: measured
+2026-08-27T04:50Z, three attempts in one tick, `fatal: path 'specs/018-every-spec-has-a-door/spec.md'
+exists on disk, but not in '0088cf3'`. It parks, forever, unnamed. `CLAUDE.md` is amended with this
+entry; the requirement is added to ergane spec 087.
 
 **OQ4 — determinism and the credential boundary.** Answered by removing the requirement. Commission
 is out of 010's scope (below), so no model call goes behind a page and the pane's read path stays

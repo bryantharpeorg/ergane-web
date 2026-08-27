@@ -140,9 +140,23 @@ Applies to everyone, operator and node alike.
 - **Spec Kit** writes `**Status**: Draft` as prose in the body. Ergane does not read it.
 
 Only `state: ready` with every `depends_on_landed` edge landed will dispatch. Check what
-Ergane sees: `ergane spec list specs`. The roadmap scheduler reads the **local working
-tree** on a 300 s timer, so an uncommitted `ready` is live immediately — but the node
-works in a worktree, which carries only committed files. Commit before you flip.
+Ergane sees: `ergane spec list specs`. **Commit and push before you flip.**
+
+An earlier revision of this file promised that "an uncommitted `ready` is live
+immediately". It is not, and it never was — corrected 2026-08-27 (D-025). The *corpus*
+read is a working-tree read, which is why `ergane spec list` shows a spec that exists only
+on disk; but derivation asks git for that same spec **at the landing branch's head**, with
+`missing_ok=False`, so an uncommitted `ready` is listed as dispatchable and then fails
+`derive_spec` on every tick — `fatal: path 'specs/…/spec.md' exists on disk, but not in
+'<sha>'` — and parks with no name in the count.
+
+`[operator]` **The branch your checkout is standing on is an input to the factory.** The
+roadmap's `clone_target` runs `git symbolic-ref --short HEAD` on this working copy every
+300 s and hard-resets that branch to its remote. An unpushed operator branch stops the
+whole line at `clone` (6h34m of it on 2026-08-27); a pushed one is worse, because the
+factory will happily derive and land epics against your feature branch. Do operator work
+on a branch, but know that the line is stopped while you are there, and return to `dev`
+when you are done. Filed as ergane spec `087-the-operators-checkout-is-an-input`.
 
 ## A spec dispatches only through its `## Work Graph`
 
