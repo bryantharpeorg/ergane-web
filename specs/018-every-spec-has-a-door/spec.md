@@ -27,14 +27,18 @@ depends_on_landed: [014-a-draft-shows-what-will-run]
 
 ## Context
 
-The pane has four rooms. Three of them are on the Masthead. The fourth —
-014's drafting table, landed 2026-08-26 — is on nothing.
+The pane has four rooms. **Two of them are on the Masthead.** The other two —
+011's review room and 014's drafting table — are on nothing. Measured
+2026-08-26: `reviewPathFor` and `draftPathFor` are exported by
+`web/src/routes.ts` and called from no component in `web/src`.
 
-That is not a cosmetic gap. The drafting table is the room where the operator
-reads a spec's trio, sees what each of ergane's checkers says about it, and looks
-at the graph the factory would run. It is the room a spec is *reviewed* in. A
-room nobody can find is a room nobody reviews in, and the corpus it serves has
-seventeen directories in it.
+That is not a cosmetic gap. The drafting table is where the operator reads a
+spec's trio, sees what each of ergane's checkers says about it, and looks at the
+graph the factory would run; the review room is where a landed epic is inspected
+against the thing it claimed to build. Two of the four rooms this pane has
+shipped are reachable only by an operator who types a URL from memory, which is
+not a room, it is a keyboard shortcut. The corpus they serve has eighteen
+directories in it.
 
 There is also nothing that answers the question the operator actually asks first,
 which is not "show me spec 014" but **"what is in the corpus, and what state is
@@ -68,6 +72,9 @@ the room it makes reachable is already built and already landed.
 2. **Given** any listed spec, **When** its row is rendered, **Then** the row links
    to that spec's drafting table at `/draft/<spec-dir>`, and the link is the row
    itself rather than a separate control (FR-002).
+2a. **Given** a spec declaring `landed`, **When** its row is rendered, **Then** it
+   also offers its review room at `/review/<spec-dir>`, so the fourth room stops
+   being reachable only by a typed URL (FR-010).
 3. **Given** a spec declaring each of `draft`, `ready`, `deferred` and `landed`,
    **When** the index renders, **Then** each state renders as the chip DESIGN.md's
    vocabulary gives it, and no row carries a glyph from the eleven-state grammar
@@ -130,6 +137,11 @@ the room it makes reachable is already built and already landed.
 - **FR-009**: The API route this story adds, and every source path that reaches it,
   MUST be listed in `route-manifest.json`. The two committed tests that assert the
   manifest is complete are the gate on this, not review.
+- **FR-010**: A row for a spec declaring `landed` MUST also link to its review room
+  at `/review/<spec-dir>`, through the `reviewPathFor` helper `web/src/routes.ts`
+  already exports. No other declared state offers it: the review room refuses an
+  epic the landing branch does not carry whole, and offering it for a `draft` spec
+  is offering a refusal.
 
 ### Key Entities
 
@@ -147,7 +159,8 @@ the room it makes reachable is already built and already landed.
 - **SC-002**: A committed test asserts an unreadable corpus produces a named
   degraded entry and no empty index.
 - **SC-003**: A committed unit test asserts every row's href equals
-  `draftPathFor(specDir)` for the spec it names.
+  `draftPathFor(specDir)` for the spec it names, and that a `landed` row — and only
+  a `landed` row — also carries `reviewPathFor(specDir)`.
 - **SC-004**: The manifest tests pass with the new route listed, proving the room
   is reachable from the manifest as well as from the Masthead.
 - **SC-005**: A committed smoke test navigates from the Masthead to the index to a
@@ -169,9 +182,13 @@ the room it makes reachable is already built and already landed.
 - **Readiness.** The index shows what each spec *declares*, never whether it could
   dispatch. That answer is `ergane spec validate`'s, it has no library form, and
   composing one here is what D-022 forbade by name.
-- **Filtering, search, sorting by anything but `read_roadmap`'s order.** Seventeen
+- **Filtering, search, sorting by anything but `read_roadmap`'s order.** Eighteen
   rows do not need a control, and a second sort would be this repository deciding
   an order the seam already decided.
+- **Putting the review room on the Masthead.** It has no bare form — a review room
+  with no epic is a room with nothing in it, exactly as 014 said of the drafting
+  table — so its door is a row in this index, not a nav item. The Masthead grows by
+  one entry in this story, not two.
 
 ## Work Graph
 
@@ -179,6 +196,6 @@ the room it makes reachable is already built and already landed.
 US1:
   depends_on: []
   depends_on_merged: []
-  implements: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009]
+  implements: [FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010]
   timeout: 3600
 ```
