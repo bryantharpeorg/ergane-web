@@ -1,0 +1,41 @@
+{
+  "epic_id": "017-a-gate-tells-the-truth-twice",
+  "feature": "017-a-gate-tells-the-truth-twice",
+  "specs_root": "/home/tharpeboxadmin/code/ergane-web/specs",
+  "target_repo": "/home/tharpeboxadmin/code/ergane-web",
+  "nodes": [
+    {
+      "id": "us1",
+      "story_key": "US1",
+      "persona": "implementer",
+      "spec_ref": "017-a-gate-tells-the-truth-twice:US1",
+      "requirement_keys": [
+        "US1",
+        "FR-001",
+        "FR-002",
+        "FR-003"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": 3600
+    },
+    {
+      "id": "us2",
+      "story_key": "US2",
+      "persona": "implementer",
+      "spec_ref": "017-a-gate-tells-the-truth-twice:US2",
+      "requirement_keys": [
+        "US2",
+        "FR-004",
+        "FR-005",
+        "FR-006",
+        "FR-007",
+        "FR-008"
+      ],
+      "depends_on": [],
+      "depends_on_merged": [],
+      "timeout_override_s": 3600
+    }
+  ],
+  "inferred_edges": []
+}
