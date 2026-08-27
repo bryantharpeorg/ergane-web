@@ -1,6 +1,20 @@
 ---
-state: draft
+state: ready
 depends_on_landed: []
+# FLIPPED `ready` 2026-08-26, 8:10 PM CT, by the operator, after reading the
+# compiled graph. The flip IS the constitution VII approval for the three
+# dependencies named below and nothing else: `pytest-cov`, `@vitest/coverage-v8`,
+# `pip-audit`. The floor was empty when it dispatched -- 42 of 45 stories landed,
+# every finished spec attested, 011 and 016 both closed out the same evening.
+#
+# THE OPERATOR WAS SHOWN THE GRAPH FIRST AND ASKED FOR IT DELIBERATELY. Depth 3,
+# fully serial on merge edges, no parallelism available: US1 -> US2 -> US3, one
+# dependency per story, and US3 is the one that edits `ergane.yaml` and
+# `.github/workflows/ergane-gates.yml`. That last fact is a named risk, not a
+# surprise: PRs #84 and #85 both edited the workflow file on 2026-08-26 and
+# NEITHER received PR checks -- the operator had to submit both to the merge queue
+# by hand. If US3's PR sits with no checks, that is the same symptom and it needs
+# the operator, not a retry.
 # THIS SPEC REVERSES A DECISION THIS REPOSITORY ALREADY RECORDED, DELIBERATELY AND
 # ON THE OPERATOR'S INSTRUCTION. On 2026-08-25 at 6:30 PM CT the operator was asked
 # whether this repository should add coverage and security gates so the pane would
@@ -40,8 +54,6 @@ depends_on_landed: []
 #   2. No allowlist. A finding above the threshold stops the line even with no
 #      fix available. The threshold is the only dial, and US3 must not grow an
 #      ignore file.
-#
-# `state: draft` until the operator flips it.
 ---
 
 # Feature Specification: The gates measure themselves
