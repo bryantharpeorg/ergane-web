@@ -140,9 +140,36 @@ Applies to everyone, operator and node alike.
 - **Spec Kit** writes `**Status**: Draft` as prose in the body. Ergane does not read it.
 
 Only `state: ready` with every `depends_on_landed` edge landed will dispatch. Check what
-Ergane sees: `ergane spec list specs`. The roadmap scheduler reads the **local working
-tree** on a 300 s timer, so an uncommitted `ready` is live immediately — but the node
-works in a worktree, which carries only committed files. Commit before you flip.
+Ergane sees: `ergane spec list specs`. **Commit and push before you flip.**
+
+An earlier revision of this file promised that "an uncommitted `ready` is live
+immediately". It is not, and it never was — corrected 2026-08-27 (D-025). The *corpus*
+read is a working-tree read, which is why `ergane spec list` shows a spec that exists only
+on disk; but derivation asks git for that same spec **at the landing branch's head**, with
+`missing_ok=False`, so an uncommitted `ready` is listed as dispatchable and then fails
+`derive_spec` on every tick — `fatal: path 'specs/…/spec.md' exists on disk, but not in
+'<sha>'` — and parks with no name in the count.
+
+`[operator]` **The branch your checkout is standing on is an input to the factory, and it
+will fight you for it.** Every 300 s the roadmap's `clone_target` runs
+`git symbolic-ref --short HEAD` on this working copy, then **checks that branch out again**
+and hard-resets it to its remote. Three ways that bites, all measured on 2026-08-27:
+
+- An **unpushed** operator branch stops the whole line at `clone` — 6h34m and ~78 ticks,
+  surfaced only as `parked: 3` with no name in it.
+- A **pushed** one is worse: the reset succeeds, and the factory derives and lands epics
+  against your feature branch as though it were the trunk.
+- **`git checkout dev` is not enough to get out.** A tick already in flight reads HEAD
+  before your checkout and writes it back after. Observed inside one second:
+  `checkout: moving from spec/010-… to dev` immediately followed by
+  `checkout: moving from dev to spec/010-…`, after which the factory ran on the feature
+  branch for eight minutes while `git status` said *working tree clean*.
+
+**So do operator work in a worktree, not by switching branches** — `git worktree add
+<scratchpad>/wt-x <branch>` leaves this checkout on `dev`, which is the only HEAD the
+factory reads. If you did switch, push the branch and then `git branch -D` it locally so
+the name cannot be resolved at all. Filed as ergane spec
+`087-the-operators-checkout-is-an-input` (FR-012).
 
 ## A spec dispatches only through its `## Work Graph`
 

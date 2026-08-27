@@ -1,6 +1,57 @@
 ---
-state: ready
+state: landed
 depends_on_landed: []
+# ATTESTED LANDED 2026-08-27. US1 e9e1c6c (#98), US2 4f2d57d (#99), US3 0088cf3
+# (#100) -- all three MERGED, observed by content on `dev` and confirmed against
+# the epic's own landing history. Every gate green on the landing attempt.
+#
+# 70 MINUTES FOR THREE FULLY SERIAL STORIES, first boundary verification
+# 8:40:55 PM CT to last merge 9:51:24 PM CT, one node at a time at chain depth 3.
+# Landing overhead per story (PR created -> merged): 6:58, 6:14, 6:56.
+#
+# US1 TOOK THREE ATTEMPTS AND NOT ONE OF THE FAILURES WAS THE DIFF'S FAULT.
+# Attempts 1 and 2 died at the boundary `smoke` gate after 1.37s and 1.32s --
+# before a single test ran -- on:
+#
+#   Error: http://127.0.0.1:8787/ is already used, make sure that nothing is
+#   running on the port/url or set reuseExistingServer:true in config.webServer.
+#
+# `web/playwright.config.ts` fixes three webServer ports (8787, 8788, 8789) with
+# `reuseExistingServer: false`, and leaked Playwright webServer children from an
+# earlier interrupted run were still holding them. 017/us2 attempt 1 died the
+# same way at 2026-08-27T01:43:40Z, between the two. THREE OF THIS RUN'S THREE
+# RECOVERY CYCLES ARE THAT ONE DEFECT -- so this repository's apparent 50%
+# rework rate for the night is, on inspection, 0% story rework and one piece of
+# leaked infrastructure. It reads as story quality until you open the output
+# tail. Known as `gates/concurrent-epics-collide-on-a-fixed-gate-port`, whose
+# name is a misnomer it already corrects in its own notes.
+#
+# IT WAS NOT CONCURRENCY, AND THE FIRST DRAFT OF THIS ATTESTATION SAID IT WAS.
+# The roadmap ran at `max_concurrent_nodes: 1`, so two boundary gates cannot
+# overlap, and the three failing windows are disjoint from each other and from
+# the last gate that passed, which ended at 01:33:13Z -- seven minutes before
+# the first failure. The gate record's own `concurrent_gates` field read `0` for
+# all three and nothing read it.
+#
+# WHAT ACTUALLY CLEARED IT WAS TIME. Attempt 3 passed at 01:53:09Z having
+# changed nothing about ports, exactly as 017/us2 attempt 2 had at 01:47:26Z.
+# Do not read attempt 3 as a correction of attempts 1 and 2: all three diffs
+# were fine, and the ladder learned that a retry fixes this, which is why it
+# will keep paying for it.
+#
+# WHAT LANDED, BY NAME. US1: `pyproject.toml` (+66) carries the committed
+# coverage floor and `tests/test_the_gates_measure_themselves.py` (+422) proves
+# it. US2: `web/vitest.config.ts` (+98), a new file that owns the whole frontend
+# test run, with `web/tests/gates/theUnitGateMeasuresItself.test.ts` (+377).
+# US3: `scripts/audit_gate.py` (+613), `tests/test_the_audit_gate.py` (+665) and
+# six recorded audit fixtures under `tests/recorded/audit/`, plus the lockfile
+# bump CLAUDE.md records. US3's boundary run is the first in this repository to
+# show FIVE gates -- test, typecheck, unit, smoke and audit -- all PASS, which is
+# D-024 working as written.
+#
+# THE US3 RISK NAMED BELOW DID NOT MATERIALISE. #100 edited
+# `.github/workflows/ergane-gates.yml` and received its checks normally; no hand
+# submission to the merge queue was needed.
 # FLIPPED `ready` 2026-08-26, 8:10 PM CT, by the operator, after reading the
 # compiled graph. The flip IS the constitution VII approval for the three
 # dependencies named below and nothing else: `pytest-cov`, `@vitest/coverage-v8`,

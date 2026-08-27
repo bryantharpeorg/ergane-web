@@ -151,6 +151,7 @@ this table is a defect:
 | `building` / `verifying` / `queue` | accent on accent-w | live work |
 | `ready` | muted on sunken | reviewed, waiting its turn |
 | `draft` | faint, transparent, **dashed border** | unreviewed specs |
+| `deferred` | muted, transparent, **dashed border** | specs parked out of the build order by operator choice |
 | `waiting on you` | gold on gold-w | `awaiting_operator`, open escalations |
 | `killed` / `failed` | alarm on alarm-w | terminal states, regressed findings |
 
@@ -296,6 +297,19 @@ measure and a vocabulary for a check that has not been run.
   Showfloor's stage assets and the same two edge strokes, with every node in the
   unlit form. No node carries a run state, because none has run. Do not add a
   twelfth glyph for "not yet": that is the absence of state, not a state.
+- **The index is a table, not a room of its own** (D-025, spec 018). Bare
+  `/draft` lists the corpus in the roadmap's order: spec directory in mono, its
+  declared state as the chip that state already owns, nothing else. A declared
+  state is an *intent*, never a run state — it takes a chip from the vocabulary
+  above and never a glyph from the eleven-state grammar, for the same reason the
+  pre-dispatch stage is unlit. The row is the link; there is no separate control.
+- **A write states its consequence on the control, not beside it** (D-025, spec
+  010). A grooming write renders the seam's composed bytes as a document in the
+  room's reading measure, and the control under them carries the consequence in
+  its own label — the sentence the operator reads last, before the press, in the
+  room's warning face when the write starts a factory. Not a tooltip, not a
+  confirmation modal the eye learns to dismiss, and never a bare verb. A control
+  whose consequence is one hop away is a control that will be pressed unread.
 
 ### The review room in this world
 

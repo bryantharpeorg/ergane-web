@@ -914,3 +914,233 @@ a trap so no node tries to "fix" a working gate by suppressing it.
 
 Change a ruleset (it has no `gh` and no admin), add a suppression mechanism, or treat the absence of a
 required `audit` check on `dev` as a defect. All three are named in spec 015's plan.
+
+## D-025 · 010 becomes one verb, and its blockers are named in the right repository (decided 2026-08-26)
+
+**Raised by** the operator, 2026-08-26, asking for a plan that finalizes spec 010 — the last TBD in
+this corpus and the only spec whose frontmatter still says its blocking question is open. It is not.
+D-021 answered it on 2026-08-25 and 010 was never rewritten to know that. This entry settles all six
+of 010's open questions, cuts the spec down to what survives them, and files the rest where it
+belongs, which is mostly not here.
+
+### The six questions, answered
+
+**OQ1 — the constitution.** Already decided. D-021 replaced principle I's forbidden *list* with a
+six-clause test over four named grooming writes. 010 needs no amendment; it needs clause 1. The
+frontmatter's "BLOCKING, AND IT BLOCKS THE OTHER FIVE" is stale text and is removed with this entry.
+
+**OQ2 — which seam authors the trio.** None, still. `ergane spec` exports `list`, `validate`,
+`derive` and `landed` (`factory/cli/nouns/spec.py:90`) and all four are read-only. The
+recommendation stands and is now acted on: filed, not designed around — as ergane spec
+`088-intent-is-declared-by-a-verb`.
+
+**OQ3 — where the edit lands.** Worse than 010 recorded it, and the correction matters. The
+roadmap's `clone_target` resets to **`origin/<default>`**, and it runs *before* the spec text is read
+(`factory/roadmap/workflow.py:1166`, then `:1178`). So there is **no durable place in the operator's
+checkout for a grooming write to land**:
+uncommitted is destroyed by `reset --hard`; committed locally on `dev` is destroyed too, because the
+reset is to the remote ref; and a direct push to `dev` is refused by ruleset. N50 does not merely
+threaten an in-pane editor — it eats the writes of any authoring seam ergane ever ships. It is
+therefore a **hard prerequisite of 010**, ahead of the seam itself, and is filed as ergane spec
+`087-the-operators-checkout-is-an-input`.
+
+**This entry was itself destroyed once while being written.** On 2026-08-26 the first draft of D-025,
+together with the `DESIGN.md` and constitution amendments below and the rewrite of 010, was written,
+verified, and gone on the next tick — `reset: moving to origin/dev`, four times in the reflog of a
+checkout with nothing dispatched into it. Spec 018's file survived because it was untracked. The
+argument for ordering 087 first is not theoretical and did not need to be reconstructed from the
+2026-08-25 incident; it re-ran during the drafting of the entry that makes it.
+
+**CORRECTED 2026-08-27, AND THE CORRECTION MAKES IT WORSE.** The paragraph above originally read
+"`_default_branch` resolves to `dev` for this repository". It does not. `_default_branch`
+(`factory/workgraph/worktree.py:982`) is `git symbolic-ref --short HEAD` — **whatever branch the
+operator's checkout happens to be standing on** — and `_refresh_to_default` then fetches, checks that
+branch out and resets it to `origin/<that branch>`, while its own docstring says the epic derives from
+"the trunk's current head". So N50 is not "the roadmap resets `dev`". It is: *the roadmap resets
+whichever branch the operator is working on, to that branch's remote, and derives the epic from it.*
+Two consequences, both observed rather than reasoned about:
+
+- **An operator branch that has never been pushed stops the whole line.** Measured 2026-08-27: this
+  entry was written on `spec/010-d025-grooming-plan`, an unpushed branch, and every roadmap tick from
+  00:00:18 CT onward failed at `clone_target` with `fatal: ambiguous argument
+  'origin/spec/010-d025-grooming-plan'`, parking all three `ready` specs — ~78 consecutive ticks over
+  6h34m, reported to the operator only as `parked: 3` with no name in it. The workaround that
+  protected this entry from N50 is the same act that stopped the factory, and neither the pane nor
+  the CLI said so.
+- **An operator branch that *has* been pushed is worse than the unpushed one**, because the clone
+  succeeds: the factory then derives and dispatches epics from an operator's working branch as though
+  it were the trunk, and lands nodes against it.
+- **And you cannot simply walk back out.** `_refresh_to_default` does not only reset — it
+  *re-checks-out*, reading `HEAD` at activity start and writing it back afterwards. Measured within a
+  single second on 2026-08-27: `checkout: moving from spec/010-d025-grooming-plan to dev`, the
+  operator's, immediately followed by `checkout: moving from dev to spec/010-d025-grooming-plan`, the
+  factory's. The branch had by then been pushed, so the reset succeeded and the factory ran on a
+  feature branch for the next eight minutes with `git status` reporting a clean tree and nothing on
+  the floor naming the branch. **The mitigation this entry first recorded — return to `dev` when you
+  are done — is therefore a race the operator loses whenever a tick is already running.** What works
+  is to deny the name: do operator work in a `git worktree`, so this checkout's `HEAD` never leaves
+  the landing branch; or, having switched, push and then `git branch -D` locally. `CLAUDE.md` is
+  amended to say so.
+
+**A second false claim, and a second correction to `CLAUDE.md`.** This repository has told every node
+and every operator session that "the roadmap scheduler reads the local working tree … so an
+uncommitted `ready` is live immediately". Half true, and the false half is the expensive half. The
+*corpus* read is a working-tree read (`read_spec_text_activity`, `factory/roadmap/workflow.py:502`),
+which is why `ergane spec list` cheerfully shows a spec that exists only on disk. But `derive_spec`
+calls `landed_facts`, which reads the same spec **at the landing branch's head commit** through
+`_spec_requirements_at` with `missing_ok=False` (`factory/workgraph/landed.py:136`, `:298`) — while
+its sibling `_frontmatter_at` reads it with `missing_ok=True`. One spec file, two absence policies.
+An uncommitted `ready` is therefore *listed as dispatchable and cannot be derived*: measured
+2026-08-27T04:50Z, three attempts in one tick, `fatal: path 'specs/018-every-spec-has-a-door/spec.md'
+exists on disk, but not in '0088cf3'`. It parks, forever, unnamed. `CLAUDE.md` is amended with this
+entry; the requirement is added to ergane spec 087.
+
+**OQ4 — determinism and the credential boundary.** Answered by removing the requirement. Commission
+is out of 010's scope (below), so no model call goes behind a page and the pane's read path stays
+deterministic. The question returns intact if a later spec wants Commission.
+
+**OQ5 — concurrency with the operator's own CLI session.** Answered mechanically rather than by
+convention: every write verb is a `plan`/`apply` pair and the plan carries the revision it was
+computed against (below). A tree that moved between preview and confirm is a refusal from the seam,
+not a silent overwrite.
+
+**OQ6 — debugging sessions.** Unchanged: captured, not designed, and it does not widen anything here.
+
+### 010 is one verb: Declare
+
+Of D-021's four grooming writes, 010 claims **Declare** — `state: ready` or `deferred` — and nothing
+else. The other three are named out of scope in the spec with their reasons, and all three keep their
+constitutional standing: clause 2 admits a named verb whenever a requirement needs it, so dropping
+them costs nothing that a later spec cannot pick up.
+
+- **Save** is dropped because it needs a content-write seam PR-7 does not ask for *and* an answer to
+  N50 for ordinary editing, which is a larger fix than the one 087 makes.
+- **Commission** is dropped on PR-7's own reasoning: it is a Claude Code invocation and should stay
+  one. Putting a model route, a key and a refusal vocabulary behind a page is a second spec's problem.
+- **Create** is dropped, and this is the ruling that is easy to get wrong. With Save gone, `ergane
+  spec new` produces a skeleton `spec.md` the pane cannot then fill in; the operator opens a session
+  and runs `/speckit-specify`, which would have created the directory itself and written better
+  content into it. Create's product is a dead file that makes the next tool's job worse. It is not
+  refused on principle — it is refused because it delivers nothing on its own.
+
+What is left stands entirely on its own merits. Declaring `ready` is the most expensive act in the
+product and today it is an unaudited two-character `sed` with no precondition check and no audit row;
+it silently lost a flip of spec 013 inside a multi-file pull request on 2026-08-25 (#58, redone as
+#60). Clause 6 puts the consequence on the control. Clause 4 puts the bytes in front of the operator.
+That is worth a spec by itself, which is what 010 now is.
+
+### The seam is asked for library-first, and the ask is corrected
+
+PR-7 as filed asks for CLI verbs and says each "should be `--json`-capable". **That is not a seam this
+pane can ride**, and D-022 already paid for the lesson: `ergane spec validate` has had `--json` since
+it shipped, produced by a `print` at `factory/cli/nouns/spec.py:388` over policy that lives in a
+private `_validate_command` at `:231`, and the pane still cannot use it. Constitution II forbids
+shelling the CLI, so a `--json` CLI verb leaves a consumer exactly where it started.
+
+The feedback entry is restated: **typed functions in `factory.*`, with the CLI verb as a thin wrapper
+over them.** And **PR-7 and PR-8 ship as one ergane spec**, because `spec ready`'s preconditions are
+"validate clean, every `depends_on_landed` edge satisfiable" — the first half *is* PR-8. Splitting
+them would either duplicate the check or ship a `ready` verb that cannot refuse honestly, and PR-7's
+own acceptance forbids the first.
+
+**A consequence worth naming:** the same landing retires D-022's compromise. Once validate has a
+typed report, 014's "the CLI's verdict is not available to the pane" banner is a statement that has
+stopped being true, and a later spec may replace it with the seam's own verdict. Nothing in 010
+depends on that; it is recorded so it is not rediscovered as a defect.
+
+### Every write verb is a plan/apply pair, and the plan carries its revision
+
+Clause 4 requires the operator to see *the exact bytes that will be written* before confirming. PR-7's
+verbs write and then report what they wrote, which is the wrong side of the confirmation. And a pane
+that composed the preview itself — hardcoding that `ready` is two characters inside frontmatter — is
+D-005 by construction, drifting the first time ergane changes the format.
+
+**Decided:** the seam exports, per verb, a pure `plan_*() -> Change` returning the exact bytes and the
+revision they were computed against, and an `apply(Change) -> Result` that refuses when the tree has
+moved since. Clause 4 becomes mechanical rather than a thing each room re-invents, and OQ5's
+concurrent-writer race is closed by the seam rather than by asking the operator to be careful. The
+cost is a doubled API surface on the ergane side and it is accepted.
+
+### The demo floor gets a corpus of its own
+
+`pane/config.py:60` resolves `specs_root` from `PANE_SPECS_ROOT` or ergane's default, and **demo mode
+does not divert it** — so the drafting table under `PANE_DEMO=1` reads this repository's real `specs/`,
+and the smoke gate runs `PANE_DEMO=1` inside the worktree. A Playwright test that pressed Declare
+would flip a real spec's frontmatter in the tree the gate is about to diff, manufacturing the #58/#60
+failure from inside CI.
+
+**Decided:** under `PANE_DEMO=1`, `specs_root` resolves to a copy of the corpus made in a temporary
+directory at startup — the shape `pane/config.py:109` already uses for the demo attention store. The
+rooms render identically, the smoke gate can prove the whole plan → confirm → apply round trip, and
+nothing a demo does can reach the worktree. This is a narrowing of 003's "accept the press and send
+nothing" doctrine (`pane/fixture_floor.py:346`) rather than a break with it: Answer has no artefact to
+show, and a grooming write is nothing but its artefact.
+
+### The corpus index is carved out as 018, and it ships first
+
+`grep draftPathFor web/src --include=*.tsx` returns nothing: **no room links to 014's drafting table**,
+which is reachable today only by typing a URL. Bare `/draft` names no room by 014's own design, and
+Declare needs somewhere to be reached from.
+
+**Decided:** `/draft` becomes the corpus index — every spec, its declared state, a link to its table —
+carved into spec **018, every spec has a door**. It rides `factory.roadmap.models.read_roadmap`, needs
+no write seam, no N50 fix and no pin bump, and is `state: ready` once it carries a trio. It fixes a
+live defect in a landed room, and it is the same carve D-022 made when it took 010's read-only half
+into 014.
+
+**And it ratifies a seam already in use.** `read_roadmap` is imported by `pane/showfloor.py:647` and
+appears in neither constitution II's list nor any decision entry — a seam that arrived without a
+ruling. It is exactly the right one (it owns the frontmatter grammar, the sorted order and the
+`state` default, so this repository parses none of them) and it **joins the approved list here**.
+Constitution II's parenthetical becomes "list amended by D-010, D-020, D-022 and D-025".
+
+### What actually gates 010, and who holds it
+
+The chain runs through a repository this corpus cannot name:
+
+    ergane 087 (N50) → ergane 088 (the seam) → ergane-cli release → pin bump here → 010 dispatches
+
+`depends_on_landed` can only name spec directories in this corpus, so **"blocked on another
+repository's release" is inexpressible in frontmatter**. The only mechanism is `state: draft` plus
+operator discipline — which is the mechanism that failed in #58/#60, so it is written down rather than
+assumed.
+
+**Decided:** the operator lands the `ergane-cli` pin bump **by hand**, as its own pull request, before
+flipping 010 `ready`. Not a node's story: every node branches from `dev` at dispatch, so a bump living
+inside 010's first story would leave a later story's node building against a tree without the seam;
+and a pinned-dependency change is constitution VII's business, which is the operator's. Doing both
+acts himself makes the flip its own gate — 010 cannot dispatch early because the person who would
+flip it is the person who has not yet bumped it.
+
+A runtime capability guard was considered and refused. The pin is exact, so a branch that renders the
+controls unavailable for want of a seam is unreachable in every environment the gates run: a
+degradation path that cannot occur is its own kind of dishonesty, and principle III is about reads
+that genuinely might fail.
+
+### The face
+
+`DESIGN.md` gains three things, because constitution VIII makes an appearance it does not name a
+defect rather than a choice, and both 018 and 010 would otherwise have to invent one.
+
+- **A `deferred` chip.** The chip table carried `landed`, `ready` and `draft` and no fourth, and the
+  table's own preamble says a chip outside it is a defect. `deferred` is a state `SpecState` has
+  exported since the roadmap shipped (`factory/roadmap/models.py:66`) and the index renders it on day
+  one. Muted, transparent, dashed border — the `draft` treatment at a different weight, because both
+  are specs the factory is not going to take.
+- **The index is a table, and a declared state is not a run state.** `read_roadmap`'s order, spec
+  directory in mono, the state's own chip, the row is the link. It takes a chip and never a glyph,
+  for exactly the reason D-022 refused a twelfth glyph for the unlit stage: intent is declared,
+  progress is observed, and the eleven-state grammar describes only the second.
+- **A write states its consequence on the control itself.** Clause 6 says the sentence must be on
+  screen before the operator confirms; this says *where*. In the control's own label, in the room's
+  warning face when the write starts a factory — not a tooltip and not a modal, both of which are
+  surfaces the eye is trained to dismiss. A control whose consequence is one hop away is a control
+  that will be pressed unread, which is the failure clause 6 exists to prevent rather than to
+  document.
+
+### What this entry does not change
+
+Constitution I's four grooming verbs stay four. Nothing here amends the constitution except II's seam
+list. Create, Save and Commission remain admissible the day a requirement needs them and a seam exists
+to ride; they simply have no requirement behind them today, and D-001's rule still holds — a
+requirement that needs a write the principle does not name is a defect in the requirement.
