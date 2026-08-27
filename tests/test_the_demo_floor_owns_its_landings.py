@@ -85,6 +85,36 @@ def scratch_floor(tmp_path: Path, name: str = "fixtures") -> Path:
     return root
 
 
+def make_unwalkable(repo: Path) -> Path:
+    """Take `repo`'s history away without deleting a directory git may hold open.
+
+    A test that wants a checkout the live read cannot walk used to remove
+    `.git` outright, and removing a directory another process owns is a race
+    with git's own background maintenance: 016 US1 went red on CI with
+    `FileNotFoundError: [Errno 2] ... 'bitmap-ref-tips_5AH8V1'` raised out of
+    `shutil.rmtree`, a pack-bitmap temporary a maintenance child wrote into the
+    directory while `rmtree` was walking it.  The next attempt passed without
+    touching the test, so nothing was fixed — the race simply did not fire.
+
+    No assertion in this file ever needed the deletion.  Renaming `.git` aside
+    produces exactly the condition they want: `repo` is no longer a repository
+    and no parent of it is one either, so every git read over it fails the way
+    it fails on the plain directory a runner handed the review room — and it
+    takes nothing away from a process that still holds the old directory open.
+    `chmod` is the tempting alternative and is worse: it does nothing when the
+    suite runs as root, which is how it runs in some containers, so the guard
+    would silently no-op into a false green (017 FR-001, plan D1).
+
+    The renamed directory stays inside the tree pytest built for the test, so
+    the fixture's own teardown clears it exactly as it cleared the original,
+    and the `os.rename` the observer sees carries two absolute paths under
+    `tmp_path` rather than the bare names `rmtree` raised (`landed`).
+    """
+    moved = repo / ".git-renamed-aside"
+    (repo / ".git").rename(moved)
+    return moved
+
+
 # --- T001, FR-001: the recording replays -----------------------------------
 
 
@@ -134,19 +164,22 @@ def landed(tmp_path, monkeypatch):
     descriptor*, so the `os.remove`/`os.rmdir`/`open` audit events it raises
     carry bare names (`objects`, `HEAD`, `refs`, `dev`) with no directory on
     them, and `tests/hermetic.py` resolves a relative audit path against
-    `os.getcwd()` — a base those names never had.  Every `.git` a test here
-    destroys therefore *reads*, to the observer, as a touch of
-    `<cwd>/objects`, `<cwd>/HEAD`, … and whether that is a violation depends
-    entirely on where pytest happened to be launched from.  Run from the
-    repository it is silently inside the tree; run from anywhere else — and
+    `os.getcwd()` — a base those names never had.  A `.git` destroyed that way
+    therefore *reads*, to the observer, as a touch of `<cwd>/objects`,
+    `<cwd>/HEAD`, … and whether that is a violation depends entirely on where
+    pytest happened to be launched from.  Run from the repository it is
+    silently inside the tree; run from anywhere else — and
     `test_reads_no_host_state.py` deliberately runs the whole suite from a
     working directory of its own — it is a host read this file did not make.
     A suite green or red by launch directory is the exact defect 009 exists to
     remove, so the fixture pins the one thing the phantom paths hang off.
 
-    `demo_floor` and `live_app` chdir to the same directory for their own
-    reasons; doing it here as well makes the property structural for the file
-    rather than remembered per test.
+    No test here destroys a `.git` any more — `make_unwalkable` renames it, and
+    `os.rename` carries two absolute paths, so the phantoms have no way to
+    appear.  The pin stays because it is the property that must not depend on
+    remembering: `demo_floor` and `live_app` chdir to the same directory for
+    their own reasons, and doing it here as well makes it structural for the
+    file rather than remembered per test.
     """
     monkeypatch.chdir(tmp_path)
     return build_landed_repository(
@@ -406,15 +439,15 @@ def test_every_room_answers_the_same_in_a_directory_that_is_not_a_repository(
 ):
     """SC-001, and the property `CLAUDE.md` already claimed for every gate.
 
-    The checkout is destroyed between the two reads — not shallowed, removed:
-    after `.git` goes, `specs/` sits in a plain directory, which is what a runner
-    handed the review room on the night this spec was written.  Every room must
-    answer exactly what it answered while the branch was there.
+    The checkout loses its history between the two reads — not shallowed, gone:
+    with `.git` renamed aside, `specs/` sits in a plain directory, which is what
+    a runner handed the review room on the night this spec was written.  Every
+    room must answer exactly what it answered while the branch was there.
     """
     client = TestClient(demo_floor, headers=auth_headers)
 
     with_history = rooms(client)
-    shutil.rmtree(landed.repo / ".git")
+    make_unwalkable(landed.repo)
     assert not (landed.repo / ".git").exists()
     without_history = rooms(client)
 
@@ -426,14 +459,14 @@ def test_the_rooms_answer_from_the_recording_and_not_from_the_branch(
 ):
     """A demo room that agreed with the branch by accident would prove nothing.
 
-    So the branch is made to disagree: `.git` goes, and the landings the rooms
-    render are still the recording's — the showfloor's landing SHAs and the
+    So the branch is made to disagree: `.git` is renamed aside, and the landings
+    the rooms render are still the recording's — the showfloor's landing SHAs and the
     review room's document both, and the review room does not refuse the epic it
     can no longer see on any branch (011 FR-004, the refusal this spec exists to
     stop mis-firing).
     """
     client = TestClient(demo_floor, headers=auth_headers)
-    shutil.rmtree(landed.repo / ".git")
+    make_unwalkable(landed.repo)
 
     recorded = FixtureReader(Path(demo_floor.state.settings.fixtures_root)).landing_facts(SPEC)
 
@@ -533,7 +566,7 @@ def test_the_live_read_never_falls_back_to_a_recording(landed, tmp_path):
     landings with a months-old recording, silently.  It cannot: a checkout the
     live read cannot walk is a degraded read, in words, and never the fixture.
     """
-    shutil.rmtree(landed.repo / ".git")
+    make_unwalkable(landed.repo)
     readers = ReviewReaders.from_reader(
         LiveReader(landed.specs_root), landed.specs_root, landing_branch="dev"
     )
@@ -567,7 +600,7 @@ def test_a_recorded_change_list_puts_the_review_room_s_file_rows_back(
             source=f"the repository this test built, commit {fact.commit}",
         )
 
-    shutil.rmtree(landed.repo / ".git")
+    make_unwalkable(landed.repo)
     client = TestClient(demo_floor, headers=auth_headers)
     document = client.get(f"/api/review/{SPEC}").json()
 
