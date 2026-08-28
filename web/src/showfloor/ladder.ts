@@ -28,14 +28,22 @@ export const LADDER_STOPS = [
  * The six rows of § Chips, as class-safe names.
  *
  * `landed` is olive, `building` accent, `ready` muted-on-sunken, `draft` dashed
- * and faint, `wait` gold, `dead` alarm. `unknown` is not a row of the table — it
- * is what the pane says when the factory said nothing.
+ * and faint, `deferred` dashed and muted, `wait` gold, `dead` alarm. `unknown`
+ * is not a row of the table — it is what the pane says when the factory said
+ * nothing.
+ *
+ * `deferred` is the row only a *declared* state wears: nothing the factory runs
+ * is ever deferred, so it reaches no ladder and no stage — it reaches the
+ * drafting table's index, where a spec says what its author intends (018 US1,
+ * DESIGN.md § Chips). It lives here rather than in that room because § Chips is
+ * one vocabulary, and a word dressed twice is dressed two ways eventually.
  */
 export type ChipTone =
   | "landed"
   | "building"
   | "ready"
   | "draft"
+  | "deferred"
   | "wait"
   | "dead"
   | "unknown";
@@ -50,6 +58,7 @@ const CHIP_TONES: Record<string, ChipTone> = {
   "pr open": "building",
   ready: "ready",
   draft: "draft",
+  deferred: "deferred",
   "waiting on you": "wait",
   killed: "dead",
   failed: "dead",

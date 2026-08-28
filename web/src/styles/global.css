@@ -1160,6 +1160,131 @@ a {
   margin: 0.7rem 0 0;
 }
 
+/* ── The corpus index (018 US1, DESIGN.md § The drafting table) ────────────
+   "Bare `/draft` lists the corpus in the roadmap's order: spec directory in
+   mono, its declared state as the chip that state already owns, nothing else.
+   The row is the link; there is no separate control." § The Desk in this
+   world's table treatment supplies the rest — micro uppercase headers over a
+   hairline, cells `.5rem .8rem`. Not one colour literal below. */
+.draft-index-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  margin: 0;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.draft-index-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The row is the hit area, which is what makes the *row* the link: the anchor
+   below covers it with an inset `::after`, so there is nothing to aim at and no
+   "open" control to add. `position: relative` is what that overlay is measured
+   against, and it is the only reason it is here. */
+.draft-index-row {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.draft-index-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.5rem 0.8rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+.draft-index-open::after { content: ""; position: absolute; inset: 0; }
+.draft-index-row:hover { background: var(--accent-w); }
+.draft-index-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* § Epic rail's spelling for a spec's identity: mono, in the accent, because it
+   is the thing on the row that is a link to somewhere. It wraps rather than
+   escaping the frame — § Layout's containment law. */
+.draft-index-dir {
+  font-family: var(--mono);
+  font-size: var(--t-small);
+  color: var(--accent);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The fourth room's door, and the only labelled control on the row (FR-010).
+   Stacked above the row-wide overlay so it is reachable, and worded rather than
+   drawn: a glyph here would be a twelfth state in a room that has none. */
+.draft-index-review {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 0.5rem 0.8rem;
+  text-decoration: none;
+  border-left: 1px solid var(--hairline);
+}
+.draft-index-review:hover { text-decoration: underline; }
+
+/* A corpus that holds nothing, in words. It is not a degraded note and must
+   never read like one: the read succeeded (FR-005). */
+.draft-index-empty {
+  font-size: var(--t-small);
+  font-style: italic;
+  color: var(--muted);
+  max-width: 68ch;
+  margin: 1.2rem 0 0;
+}
+
+/* § Chips' geometry and four of its rows, scoped to this room the way the
+   Desk's copy is scoped to its own — one vocabulary, two rooms, and neither
+   dressing a word the other way. These four are the states a spec may
+   *declare*; nothing here is a glyph from the eleven-state grammar, because
+   intent is declared and progress is observed (FR-004). */
+.draft-index .chip {
+  font-family: var(--mono);
+  font-size: var(--t-chip);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.24em 0.55em;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.draft-index .chip.landed { color: var(--olive); background: var(--olive-w); }
+.draft-index .chip.ready { color: var(--muted); background: var(--sunken); }
+.draft-index .chip.draft { color: var(--faint); background: transparent; border-style: dashed; }
+.draft-index .chip.deferred { color: var(--muted); background: transparent; border-style: dashed; }
+/* Not a fifth row: the Unknown Rule's italic muted, worn by a word § Chips does
+   not name — which is what the pane says when the seam said something new. */
+.draft-index .chip.unknown {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  font-style: italic;
+  text-transform: none;
+}
+
 @media (max-width: 900px) {
   .draft { padding: 0 1rem 1.4rem; }
 }
