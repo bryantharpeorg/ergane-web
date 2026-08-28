@@ -68,12 +68,49 @@ export interface Selection {
  */
 export function isBuilding(entry: RailEntry): boolean {
   if (entry.epic_id === null) return false;
-  return entry.stories.some(
-    (story) =>
-      story.ladder.state !== null &&
-      !story.ladder.frozen &&
-      story.ladder.stop_key !== "merged",
+  return entry.stories.some(isStoryLive);
+}
+
+/**
+ * The story half of the sentence above: an epic answered for this story, and
+ * the answer has neither frozen nor reached `merged`.
+ *
+ * Factored out rather than written twice because `isBuilding` *is* this
+ * predicate over an epic's stories, and two spellings of one rule are how the
+ * rail and the pane come to disagree about which epic is working.
+ */
+export function isStoryLive(story: ShowfloorStory): boolean {
+  return (
+    story.ladder.state !== null &&
+    !story.ladder.frozen &&
+    story.ladder.stop_key !== "merged"
   );
+}
+
+/**
+ * The story the factory is *working*, which is tighter than the one above.
+ *
+ * `isStoryLive` is the epic-level question — has any node of this epic still
+ * got something to do — and at that level `PENDING` counts, because an epic
+ * with pending nodes is unfinished. Asked about a single story it is too loose:
+ * a half-landed epic reads `merged · RUNNING · PENDING · PENDING`, and three of
+ * those four are live while only one is being built. So a story is being built
+ * when its ladder has left `ready` without reaching `merged` and without
+ * freezing — which is the document's own `stop_key`, not a state word this
+ * component re-derived.
+ *
+ * A story `awaiting_operator` qualifies, and deliberately: it has left `ready`,
+ * it is the thing most likely to be why the operator opened the room, and a
+ * rule that stepped over it would open on the story behind it instead.
+ */
+export function isStoryBuilding(story: ShowfloorStory): boolean {
+  if (!isStoryLive(story)) return false;
+  return story.ladder.stop_key !== null && story.ladder.stop_key !== "ready";
+}
+
+/** The identity a selection is carried by — the document's own, never an index. */
+export function storyIdOf(story: ShowfloorStory): string | null {
+  return story.id ?? story.story_key;
 }
 
 /**
@@ -102,6 +139,49 @@ export function defaultSelection(rail: RailEntry[]): RailEntry | null {
   if (landed.length > 0) return landed[landed.length - 1];
 
   return rail.length > 0 ? rail[0] : null;
+}
+
+/**
+ * § Epic rail's rule, one level down: the story the room opens on (019 US2,
+ * FR-006, FR-007, plan D6).
+ *
+ * The rail already answers "which spec is this room about" with *building,
+ * else newest landed, else first*, and shipped the room answered "which story"
+ * with `null` — so an arrival was one row of cards over an empty surface, and
+ * the `26rem` detail track D-016 collapses stayed collapsed until the operator
+ * clicked. The same sentence, said about stories, is what fills it: **the story
+ * being built, else the newest merged, else the first.**
+ *
+ * Two differences from `defaultSelection`, both deliberate:
+ *
+ * * **Building takes the *first* story being built, not the last.** At the
+ *   rail's level "newest" is right because a later spec is later work. Inside
+ *   one epic it is not: a half-landed epic reads `merged · RUNNING · PENDING ·
+ *   PENDING`, and the last of those is a story nothing has started. The front
+ *   of the unfinished work is the story the factory is working, and it is the
+ *   first one `isStoryBuilding` admits.
+ * * **Merged keeps the rail's "newest".** All-merged is a finished epic read
+ *   backwards, and the last story to land is the one an operator arriving at it
+ *   wants open — the same reasoning that makes the rail prefer the newest
+ *   landed spec.
+ *
+ * **This does not make the track permanent** (FR-009, D-016). A spec carrying
+ * no stories has no default, this returns `null`, and the track collapses to
+ * `0` exactly as it does today: the rule is that the track is a story's track,
+ * and arrival now has a story rather than the track having stopped being one.
+ */
+export function defaultStory(entry: RailEntry | null): ShowfloorStory | null {
+  if (entry === null) return null;
+  const stories = Array.isArray(entry.stories) ? entry.stories : [];
+  if (stories.length === 0) return null;
+
+  const building = stories.find(isStoryBuilding);
+  if (building !== undefined) return building;
+
+  const merged = stories.filter((story) => story.ladder.stop_key === "merged");
+  if (merged.length > 0) return merged[merged.length - 1];
+
+  return stories[0];
 }
 
 /**
@@ -156,9 +236,17 @@ export default function Showfloor(): JSX.Element {
   const [floorUnread, setFloorUnread] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // The room opens on no story: the pane's own two sentences are how an
-  // operator who has never seen it learns what the stage is for (FR-015).
-  const [selectedStory, setSelectedStory] = useState<string | null>(null);
+  // The room opens on a story (019 US2, FR-006): `defaultStory` below decides
+  // which, and what is held here is only the operator's *pick* on top of it.
+  //
+  // The pick is tagged with the spec it was made on, and a bare story id would
+  // not do: `us2` names a story of every epic on the rail, so an untagged pick
+  // outlives the spec it belongs to and the room shows a story of a spec that
+  // is no longer on stage. A tag that does not match the staged spec is simply
+  // not consulted, which is why a change of spec **re-derives** rather than
+  // remembering (FR-008, plan D5). Nothing here is written to the URL — a spec
+  // is a place, a story is a reading (FR-010, D-016).
+  const [pick, setPick] = useState<{ specDir: string; storyId: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,13 +339,19 @@ export default function Showfloor(): JSX.Element {
   // The one story the pane is telling, resolved once. Everything the selection
   // decides is decided from this: what the pane renders, whether the room is
   // explained beneath the stage, and which shape the grid takes. A second
-  // reading of `selectedStory` could disagree with the first and collapse a
-  // track over a pane that has something in it (008 US2).
-  const story =
-    entry === null
+  // reading could disagree with the first and collapse a track over a pane that
+  // has something in it (008 US2).
+  //
+  // A pick of the staged spec wins; otherwise the room reads its own default.
+  // A spec carrying no stories has neither, so `story` stays null and the track
+  // goes on collapsing (FR-009).
+  const picked =
+    entry === null || pick === null || pick.specDir !== entry.spec_dir
       ? null
-      : (entry.stories.find((candidate) => (candidate.id ?? candidate.story_key) === selectedStory) ??
-        null);
+      : (entry.stories.find((candidate) => storyIdOf(candidate) === pick.storyId) ?? null);
+
+  const story = picked ?? defaultStory(entry);
+  const selectedStory = story === null ? null : storyIdOf(story);
 
   // D-016 clause (a): "the detail track is a story's track, not a permanent
   // one". The selection is carried into the grid as a *state hook* rather than
@@ -299,9 +393,10 @@ export default function Showfloor(): JSX.Element {
               entry={entry}
               floor={floor}
               selectedStory={selectedStory}
-              onSelectStory={(story: ShowfloorStory) =>
-                setSelectedStory(story.id ?? story.story_key)
-              }
+              onSelectStory={(chosen: ShowfloorStory) => {
+                const storyId = storyIdOf(chosen);
+                if (storyId !== null) setPick({ specDir: entry.spec_dir, storyId });
+              }}
             />
           )}
           {/* § Stage and § Detail pane, amended by D-019: the band beneath the
