@@ -20,10 +20,18 @@ export const SHOWFLOOR_PATH = "/showfloor";
 export const REVIEW_PATH = "/review";
 
 /**
- * The drafting table (014 US1). It is the one room with no bare form: a
- * Showfloor with no selection is still a room, but a drafting table with no
- * spec is a table with nothing on it, so `/draft` alone names no room and the
- * spec directory is part of the address.
+ * The drafting table (014 US1), and since 018 US1 its bare form too.
+ *
+ * 014 shipped this room with a spec directory always in its address, on the
+ * reasoning that a drafting table with no spec is a table with nothing on it.
+ * D-025 answered that: the thing to put on the empty table is the corpus. So
+ * `/draft` is the index — every spec `read_roadmap` returns, its declared
+ * state, and a link to its own table — and `/draft/<spec-dir>` is the trio,
+ * unchanged. Both are the same room in the appbar (`isDraftPath`).
+ *
+ * The review room keeps 011's shape and is still the one room with no bare
+ * form: it refuses an epic the landing branch does not carry whole, so a bare
+ * `/review` could only name a refusal. Its door is a `landed` row of the index.
  */
 export const DRAFT_PATH = "/draft";
 

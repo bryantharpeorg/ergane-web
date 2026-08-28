@@ -219,6 +219,10 @@ export default function DraftIndex(): JSX.Element {
           <div className="degraded" role="status" data-mode="transport" data-corpus-note>
             <p className="lead">The corpus could not be read.</p>
             <p>
+              {/* The room's own read, named for the request it made: this
+                  failure happened before the backend answered, so no seam of
+                  the backend's — `specs_root`, `read_roadmap` — could be named
+                  for it without saying something the pane does not know. */}
               The read <span className="read num">draft_index</span> failed before the pane
               answered: <span className="detail num">{errorStatus || "—"}</span>. Shown as
               unavailable, not hidden.
