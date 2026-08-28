@@ -1,5 +1,5 @@
 ---
-state: ready
+state: landed
 depends_on_landed: [014-a-draft-shows-what-will-run]
 # Carved out of 010 on 2026-08-26 by D-025, on the same reasoning D-022 used when
 # it carved 014 out of 010: what is left of the grooming room after the writes are
@@ -17,6 +17,27 @@ depends_on_landed: [014-a-draft-shows-what-will-run]
 # a table with nothing on it" (`web/src/routes.ts`). That was right about a table
 # and wrong about a door: the room is reachable today only by an operator who
 # types a URL from memory, which is not a room, it is a keyboard shortcut.
+#
+# LANDED 2026-08-28. US1 at 10ec6ba022da (#102), attempt 1, no rework -- the
+# first single-attempt epic this repository has run end to end. Persona
+# `implementer`, model claude-opus-5, route `subscription`, so the epic cost
+# nothing per token. Measured: dispatched 00:55:42Z, PR opened 01:16:37Z
+# (20m55s of agent build), merged 01:23:37Z (7m00s of landing overhead),
+# 27m55s from dispatch to landed.
+#
+# IT IS ALSO THE FIRST LANDING IN THIS REPOSITORY GUARDED BY FIVE REQUIRED
+# CHECKS. `audit` was added to `dev`'s ruleset at 00:50:52Z, reversing the
+# asymmetry D-024 chose; see D-026, decided in this diff. All five ran green on
+# the merge commit -- audit 0:14, typecheck 0:21, unit 0:42, test 0:59, smoke
+# 3:00. The gate D-024 feared would stop the queue is the cheapest one on the
+# board.
+#
+# WHAT PARKED IT FOR 11h40m WAS NOT THIS SPEC. `gate_check:audit` is a blocking
+# onboarding finding, and `RoadmapWorkflow._dispatch` parks *every* spec of a
+# repository behind it, so a manifest gate that the ruleset deliberately did not
+# require stopped the whole line. Filed as
+# `init/onboarding-refuses-a-deliberately-unrequired-gate`; the ergane-side fix
+# is spec 089, which proposes declaring such a gate rather than forbidding it.
 ---
 
 # Feature Specification: Every spec has a door

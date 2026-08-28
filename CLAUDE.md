@@ -12,7 +12,7 @@ a state-lit DAG). Today it has exactly one verb, **Answer**, and it never replac
 CLI. D-021 admits four further *grooming* writes by test rather than by list, and every
 one is refused today for want of an ergane authoring seam — see constitution I.
 
-Start with `CONTEXT.md` (the conceptual model), then `docs/decisions.md` (D-001…D-024,
+Start with `CONTEXT.md` (the conceptual model), then `docs/decisions.md` (D-001…D-026,
 the binding design decisions), then `specs/`. `docs/greenfield-log.md` is the append-only
 record of how the repository came to be.
 
@@ -123,11 +123,16 @@ Applies to everyone, operator and node alike.
   One story per PR.
 - **Every gate in `ergane.yaml` has a job of the same name** in
   `.github/workflows/ergane-gates.yml`. A gate the forge does not run does not exist.
-  `dev` required *exactly* those checks until D-024, which admits one deliberate
-  asymmetry: a gate may be in `ergane.yaml` and the workflow while being absent from
-  the ruleset. Such a gate blocks every **node** at the boundary and does not block
-  the **merge queue**, so a human can still land a fix when the line is stopped.
-  `audit` (spec 015) is the only one; the four original gates stay required.
+  **`dev` requires *exactly* those checks, all five of them, with no exceptions.**
+  D-024 admitted one deliberate asymmetry -- `audit` in `ergane.yaml` and the workflow
+  but absent from the ruleset, so it bound nodes without binding the merge queue --
+  and **D-026 reversed it on 2026-08-27** after that asymmetry stopped the entire line
+  for 11h40m. `gate_check:<gate>` is a *blocking* onboarding finding, and a blocking
+  onboarding finding parks every spec in the repository, so a gate the ruleset does not
+  require does not merely leave a hatch open: it refuses to dispatch anything at all.
+  The hatch D-024 wanted still exists, as an explicit act -- when a published CVE turns
+  `audit` red on unchanged code, un-require it, land the lockfile bump by hand, put it
+  back.
 - The merge queue re-runs the gates on a `merge_group` event after the PR checks pass, so
   expect two workflow runs per landing.
 
@@ -255,9 +260,13 @@ unauthenticated `GET /api/floor` **or** `GET /showfloor` answers 401.
   model-constrained virtual key per attempt. Drive it with `./up.sh`.
 - **Secrets** — `~/.config/ergane/*.env`, mode 600, outside any repo. Never print values.
 - **Registry** — `~/.config/ergane/personas.yaml` is the only place a model name may
-  appear. This build: Kimi (`ollama-cloud/kimi-k2.7-code`) builds, GLM
-  (`ollama-cloud/glm-5.2`) judges, `local/qwen3.6-27b` is every fallback, and no persona
-  routes to a metered provider (D-011).
+  appear. This build: `implementer` and `debugger` build on `claude-opus-5` over
+  `agent: subscription`, GLM (`ollama-cloud/glm-5.2`) judges, `architect` and
+  `researcher` are on Kimi (`ollama-cloud/kimi-k2.7-code`), and no persona routes to a
+  metered provider (D-011) -- subscription runs on the operator's own Claude Code login
+  and bills nothing per token. Corrected 2026-08-27: this line read "Kimi builds" until
+  018/us1 landed on `implementer`/`claude-opus-5`, which is the Fable-to-Opus flip and
+  had not been written down. Read the registry, never this sentence.
 - **Feedback** — this build is a dogfooding run. Every friction point with ergane goes in
   `~/code/ergane-feedback-round2-2026-08-22.md` as it happens, with `file:line` into the
   read-only checkout at `~/code/ergane`.

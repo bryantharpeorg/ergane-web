@@ -1144,3 +1144,57 @@ Constitution I's four grooming verbs stay four. Nothing here amends the constitu
 list. Create, Save and Commission remain admissible the day a requirement needs them and a seam exists
 to ride; they simply have no requirement behind them today, and D-001's rule still holds — a
 requirement that needs a write the principle does not name is a defect in the requirement.
+
+## D-026 · The audit gate joins the required checks, and the hatch becomes explicit (decided 2026-08-27)
+
+**Reverses the enforcement half of D-024.** The allowlist half is untouched and still absolute:
+`[tool.audit-gate] fail_on` remains the only dial, and there is still no ignore file, no suppression
+flag and no allowlist.
+
+### What D-024 got right, and what it cost
+
+D-024 kept `audit` out of `dev`'s ruleset on a real argument: the gate can go red without anything in
+this repository changing, and if it also blocks the merge queue, the one actor who could fix it — a
+human with a lockfile bump — is locked out by the gate asking for the fix. That risk is real and it
+has not gone away.
+
+What D-024 did not model is where the asymmetry is *read*. `factory.mergequeue.onboard` treats a
+declared gate with no required check of the same name as a **blocking** finding, `gate_check:<gate>`,
+and `RoadmapWorkflow._dispatch` parks **every spec of the repository** behind a blocking onboarding
+finding. So the asymmetry did not cost a hatch's worth of risk; it stopped the entire line. Measured:
+spec 018 sat `ready` and `dispatchable` and parked for **11h40m**, from #101's merge at
+2026-08-27T12:42Z to the ruleset change at 2026-08-28T00:50:52Z, surfaced only as `parked: 1` with no
+name in it. For most of that window the stop was invisible because a second, unrelated outage was
+masking it.
+
+The trade D-024 actually made was therefore: accept a certain, repeating, whole-line stop in order to
+avoid a hypothetical one. That is the wrong side of the trade.
+
+**Decided:** `audit` is added to `dev`'s required checks. All five gates are required again, and
+`CLAUDE.md` § Landing discipline returns to its original absolute form — every gate in `ergane.yaml`
+has a job of the same name *and* a required check of the same name, with no permitted asymmetry.
+
+### The hatch is not lost; it is made explicit
+
+D-024's scenario still needs an answer, and it has one that does not cost a standing stop. When a
+published CVE turns `audit` red on unchanged code, the operator removes `audit` from the ruleset's
+required checks, lands the lockfile bump by hand, and puts it back. That is one API call in each
+direction, it is recorded where ruleset changes are recorded, and — unlike a standing asymmetry — it
+is visible as a deliberate act at the moment it is taken rather than as a permanent property nobody
+re-reads. An always-open hatch is a hole; a hatch you have to open is a hatch.
+
+The first landing under five required checks was 018/us1 at `10ec6ba` (#102), and it settles the
+latency question D-024 raised in passing: `audit` ran in **14 seconds**, against smoke's 3:00. It is
+the cheapest gate on the board.
+
+### What still needs fixing upstream, and where
+
+Requiring the gate is the right call for this repository and the wrong fix for the general case. An
+operator who deliberately leaves a gate unrequired should get a warning, not a stopped line —
+`factory.mergequeue.onboard` already has exactly that shape in `noop_gate`, whose own docstring makes
+the argument: *"an operator evaluating Ergane without gates is making a choice, and the requirement is
+that the choice be visible, not that it be forbidden."* Filed as
+`init/onboarding-refuses-a-deliberately-unrequired-gate` and drafted as ergane spec
+**089-a-gate-may-bind-the-boundary-alone**, which proposes a `boundary_only_gates:` declaration beside
+`gates:`. If 089 lands, this entry may be revisited; until then, requiring the gate is what keeps the
+line running.
