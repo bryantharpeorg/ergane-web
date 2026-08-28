@@ -33,6 +33,7 @@ import {
   landedEntry,
   ladderOf,
   readyEntry,
+  storylessEntry,
 } from "./support/showfloor-builder";
 import {
   installEventSourceDouble,
@@ -442,17 +443,34 @@ describe("the badge follows floor events (003's guarantee, on the new frame)", (
  * room's two sentences to the case where no spec is selected at all. So the
  * mounting-point case below now measures `[data-spec-goal]`, and every
  * assertion about the room explainer moved to the describe that follows.
+ *
+ * **019 US2 changed the arrival, not the release.** "Opens on none" was never
+ * D-016's rule — the rule is that the track is a *story's* track, and 019
+ * FR-006 gives arrival a story to be about. So the case below that asserted an
+ * empty selection on a spec carrying stories now asserts the collapse where it
+ * still belongs: a spec carrying none. Nothing about the release is weakened,
+ * and the `0`-width measurement in `tests/smoke/showfloor.spec.ts` runs against
+ * that same shape.
  */
 describe("the released detail track (008 US2, FR-004 … FR-006)", () => {
   const cols = (container: HTMLElement) =>
     container.querySelector("[data-showfloor-cols]") as HTMLElement;
 
-  it("hooks the grid with the selection, and opens on none", async () => {
-    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", CORPUS);
+  it("hooks the grid with the selection, and reads `none` with no story to tell", async () => {
+    // Succeeds this file's "opens on none": 019 FR-006 gives an arriving spec
+    // with stories a story, and FR-009 keeps the collapse for a spec with none.
+    // The hook is what this case is about, and both of its values are read here.
+    const storyless = { ...storylessEntry("020-a-spec-with-no-stories"), intent: GOAL };
+    const container = await renderAt("/showfloor/020-a-spec-with-no-stories", [storyless]);
 
     expect(cols(container).getAttribute("data-selection")).toBe("none");
+    expect(container.querySelector("[data-detail-title]")).toBeNull();
 
     document.body.removeChild(container);
+
+    const withStories = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", CORPUS);
+    expect(cols(withStories).getAttribute("data-selection")).toBe("story");
+    document.body.removeChild(withStories);
   });
 
   it("mounts the band beneath the stage, above the legend", async () => {
@@ -468,7 +486,12 @@ describe("the released detail track (008 US2, FR-004 … FR-006)", () => {
     // the track it used to hold open.
     expect(stage.contains(band)).toBe(true);
     expect(pane.contains(band)).toBe(false);
-    expect((pane.textContent ?? "").trim()).toBe("");
+    // The pane holds a story now (019 FR-006), so "the pane is empty" is no
+    // longer the proof that the band is not in it. This is: whatever the pane
+    // is telling, it is not the goal — the band is mounted once, under the
+    // stage, and the track never gets a copy of it.
+    expect(pane.querySelector("[data-spec-goal]")).toBeNull();
+    expect(pane.textContent ?? "").not.toContain(GOAL);
 
     // Above the legend row, in document order: `DOCUMENT_POSITION_FOLLOWING`
     // is the DOM's own word for "comes after me".
@@ -524,13 +547,33 @@ describe("the spec's goal takes the band (009 US4, FR-010 … FR-013)", () => {
   const goal = (container: HTMLElement) =>
     container.querySelector("[data-spec-goal]") as HTMLElement | null;
 
-  it("renders the entry's own intent, verbatim, with no story selected", async () => {
+  it("renders the entry's own intent, verbatim, on arrival", async () => {
     const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", WITH_GOALS);
+
+    // 019 FR-006 filled the arrival, and D-019's band is unmoved by it: the
+    // goal is true of the graph whether or not a story is being told, which is
+    // the whole reason the band was given to the goal in the first place.
+    expect(container.querySelector("[data-showfloor-cols]")!.getAttribute("data-selection")).toBe(
+      "story",
+    );
+    expect(goal(container)!.textContent).toBe(`${GOAL} (002-the-showfloor-stages-an-epic)`);
+
+    document.body.removeChild(container);
+  });
+
+  it("renders it for a spec with no story to select either (FR-011, 019 FR-009)", async () => {
+    // Succeeds the "with no story selected" half of the case above, which 019
+    // FR-006 took away from a spec carrying stories. A spec carrying none still
+    // selects none, and the band is still its goal.
+    const storyless = { ...storylessEntry("020-a-spec-with-no-stories"), intent: GOAL };
+    const container = await renderAt("/showfloor/020-a-spec-with-no-stories", [storyless]);
 
     expect(container.querySelector("[data-showfloor-cols]")!.getAttribute("data-selection")).toBe(
       "none",
     );
-    expect(goal(container)!.textContent).toBe(`${GOAL} (002-the-showfloor-stages-an-epic)`);
+    expect(goal(container)!.textContent).toBe(GOAL);
+    // And never the room's explainer alongside it (D-019).
+    expect(container.querySelector("[data-detail-empty]")).toBeNull();
 
     document.body.removeChild(container);
   });
