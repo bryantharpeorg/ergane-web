@@ -477,6 +477,123 @@ test.describe("selection deep-links (FR-009)", () => {
   });
 });
 
+/* ─────────────────────────────────────────────────────────────────────────
+   019 US2 — the room reads on arrival (FR-006 … FR-010, SC-002).
+
+   Shipped, the room opened on no story: D-016 collapsed the `26rem` detail
+   track to zero and the arrival was one row of cards over an empty surface —
+   measured on 2026-08-28, content ending 440px into a 1000px frame. The rail
+   had always picked a default *spec*; this is the same sentence said about
+   stories, so a room that has something to say says it before anything is
+   clicked.
+
+   The rule itself is unit-tested at all four of its answers, where a document
+   of each shape can be handed to it (`tests/unit/Showfloor.test.tsx`). What
+   only a browser can settle is SC-002: that a bare `/showfloor` really lands
+   an operator in a filled pane with the track open — the two facts the
+   measurement above was about, and neither of them provable in jsdom, which
+   computes no cascade.
+   ───────────────────────────────────────────────────────────────────────── */
+
+test.describe("the room reads on arrival (019 US2, FR-006, SC-002)", () => {
+  /** FR-007's rule, written out over the document the room was handed. */
+  function expectedStory(entry: StageEntry) {
+    const live = (story: StageEntry["stories"][number]) =>
+      story.ladder.state !== null && !story.ladder.frozen && story.ladder.stop_key !== "merged";
+    const building = entry.stories.find(
+      (story) => live(story) && story.ladder.stop_key !== null && story.ladder.stop_key !== "ready",
+    );
+    if (building !== undefined) return building;
+    const merged = entry.stories.filter((story) => story.ladder.stop_key === "merged");
+    if (merged.length > 0) return merged[merged.length - 1];
+    return entry.stories[0];
+  }
+
+  test("a bare /showfloor arrives with the pane filled and the track open (SC-002)", async ({
+    page,
+    request,
+  }) => {
+    const rail = await stageRail(request);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+
+    const path = "/showfloor";
+    await page.goto(path);
+    await page.waitForSelector("[data-stage]");
+
+    const staged = (await page.getAttribute("[data-stage]", "data-spec-dir")) ?? "";
+    const entry = rail.find((row) => row.spec_dir === staged);
+    expect(entry, "the default selection is a row of the rail").toBeDefined();
+    expect(
+      entry!.stories.length,
+      "the default spec on this floor carries stories to open on",
+    ).toBeGreaterThan(0);
+
+    // FR-006: a story is selected, and the pane is telling it — the document's
+    // own words for the story FR-007's rule names, not merely some story.
+    const story = expectedStory(entry!);
+    await expect(page.locator("[data-detail-title]")).toHaveText(story.title);
+    await expect(page.locator("[data-detail-id]")).toHaveText(
+      (story.story_key ?? story.id ?? "").toUpperCase(),
+    );
+    await expect(page.locator("[data-node-card][aria-pressed='true']")).toHaveCount(1);
+    await expect(
+      page.locator(`[data-node-card][data-story-id="${story.id}"]`),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    // SC-002's other half, and the number D-016 measured: the track is open at
+    // `26rem` rather than collapsed, the pane paints it, and the room's content
+    // reaches down the frame instead of stopping 440px into it.
+    const arrival = await page.evaluate(() => {
+      const cols = document.querySelector("[data-showfloor-cols]") as HTMLElement;
+      const detail = document.querySelector("[data-detail]") as HTMLElement;
+      const tracks = getComputedStyle(cols)
+        .gridTemplateColumns.split(/\s+/)
+        .map((track) => parseFloat(track));
+      return {
+        selection: cols.getAttribute("data-selection"),
+        tracks,
+        detailWidth: detail.getBoundingClientRect().width,
+        detailBottom: detail.getBoundingClientRect().bottom,
+        root: parseFloat(getComputedStyle(document.documentElement).fontSize),
+      };
+    });
+
+    expect(arrival.selection, "the grid says a story is being told").toBe("story");
+    expect(arrival.tracks[2], "the detail track is open at 26rem").toBeCloseTo(
+      26 * arrival.root,
+      1,
+    );
+    expect(arrival.detailWidth, "the pane paints the track it was given").toBeCloseTo(
+      26 * arrival.root,
+      1,
+    );
+    expect(arrival.detailBottom, "the filled pane reaches down the frame").toBeGreaterThan(440);
+
+    // FR-010: a pick is a reading, not a place. The URL names the spec the
+    // rail chose — which a bare path leaves bare — and never the story.
+    expect(page.url().endsWith(path), `the URL is still ${path}`).toBe(true);
+
+    // And the four laws still hold in the room an operator actually arrives in.
+    const report = await measureLaws(page);
+    expect(report.escaped, "a stage child escaped its stage").toEqual([]);
+    expect(report.past, "text past the viewport").toEqual([]);
+    expect(report.overlapping, "two text leaves overlap").toEqual([]);
+    expect(report.occluded, "a box paints over text it does not own").toEqual([]);
+  });
+
+  test("a spec with no stories still arrives collapsed (FR-009)", async ({ page }) => {
+    // D-016 is not repealed by this story: the track is a *story's* track, and
+    // a spec with none still gives it back. Served through the route double for
+    // 008 US1's reason — whether this morning's corpus carries a spec with no
+    // work graph is an ordinary edit away from changing.
+    const released = await releasedRoom(page, 1440);
+
+    expect(released.selection, "nothing is selected").toBe("none");
+    expect(released.tracks[2], "the detail track computes to 0").toBe(0);
+    expect(released.detailWidth, "the released pane paints nothing").toBe(0);
+  });
+});
+
 test.describe("the room has no verb (constitution I, FR-017)", () => {
   /**
    * **Succeeds US2's "no control, one badge, and every request a GET"**, whose
@@ -541,7 +658,14 @@ interface StageEntry {
     requirement_keys: string[];
     depends_on: string[];
     depends_on_merged: string[];
-    ladder: { stops: Array<{ key: string; status: string }>; chip: string | null };
+    ladder: {
+      stops: Array<{ key: string; status: string }>;
+      chip: string | null;
+      /** The three fields FR-007's default-story rule reads (019 US2). */
+      state: string | null;
+      stop_key: string | null;
+      frozen: boolean;
+    };
   }>;
   unknown: string[];
 }
@@ -917,16 +1041,17 @@ test.describe("the four layout laws (FR-014, 009 FR-005)", () => {
     await page.goto("/showfloor");
     await page.waitForSelector("[data-stage-canvas]");
 
-    // 008 US2 (FR-008): this control now runs over the *released* room — the
-    // room opens on no story, so the detail track is collapsed and the stage
-    // holds the width it used to lose. That is the geometry the three laws
-    // have to keep catching things in, so it is asserted here rather than
-    // assumed: a control that quietly measured the old shape would guarantee
-    // nothing about the new one.
+    // 008 US2 (FR-008) ran this control over the *released* room, because the
+    // room opened on no story. **019 US2 (FR-006) changed the geometry the
+    // control runs in**: the default spec carries stories, so arrival now
+    // selects one and the `26rem` track is open. The reason the assertion is
+    // here is unchanged — a control that quietly measured a shape the room is
+    // not in guarantees nothing about the room — so it is re-pointed rather
+    // than dropped, and it still reads the hook rather than assuming it.
     expect(
       await page.getAttribute("[data-showfloor-cols]", "data-selection"),
-      "the control runs with the detail track released",
-    ).toBe("none");
+      "the control runs in the room the operator arrives in",
+    ).toBe("story");
 
     const clean = await measureLaws(page);
     expect(clean.escaped).toEqual([]);
@@ -1250,11 +1375,15 @@ test.describe("the detail pane tells the selected story (FR-015)", () => {
     await page.goto(`/showfloor/${entry.spec_dir}`);
     await page.waitForSelector("[data-node-card]");
 
-    // Nothing is selected until something is picked. Since D-019 the band
-    // beneath the stage says what the *spec* is for rather than describing the
-    // room, and the room's own explainer is not mounted while a spec is
-    // selected — the two never stack (009 FR-012, FR-013).
-    await expect(page.locator("[data-detail-title]")).toHaveCount(0);
+    // **019 US2 (FR-006) replaced the assertion that stood here** — "nothing is
+    // selected until something is picked", `[data-detail-title]` at count 0.
+    // The arrival is a reading now: a spec carrying stories opens on one, so
+    // the pane is already telling something and exactly one card reports it.
+    // What survives untouched is D-019's rule about the band — the band says
+    // what the *spec* is for, and the room's own explainer is not mounted
+    // beside it (009 FR-012, FR-013).
+    await expect(page.locator("[data-detail-title]")).toHaveCount(1);
+    await expect(page.locator("[data-node-card][aria-pressed='true']")).toHaveCount(1);
     await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
     await expect(page.locator("[data-spec-goal]")).toHaveCount(entry.intent === "" ? 0 : 1);
 
@@ -1425,7 +1554,22 @@ test.describe("the room is keyboard-operable (FR-016)", () => {
     const rail = page.locator("[data-rail-row]").first();
     // A card other than the one the tab walk lands on, so "no outline before
     // selection" is measured on a card that is neither focused nor selected.
-    const card = page.locator("[data-node-card]").last();
+    //
+    // **Unselected is now a filter, not the last row** (019 US2, FR-006): the
+    // room arrives with a story already picked, and for an all-merged spec
+    // that story is the newest merged — the very card `.last()` used to
+    // return. `aria-pressed` is the room's own report of the selection, so
+    // asking it for an unpressed card measures the same thing it always did.
+    const unselected = page.locator("[data-node-card][aria-pressed='false']");
+    await expect(
+      unselected,
+      "the arriving room leaves a card unselected to measure",
+    ).not.toHaveCount(0);
+    // Pinned by story id rather than by the filter that found it: the filter is
+    // live, and the click below is precisely what stops the card matching it.
+    const unselectedId = await unselected.last().getAttribute("data-story-id");
+    expect(unselectedId, "the unselected card names its story").not.toBeNull();
+    const card = page.locator(`[data-node-card][data-story-id="${unselectedId}"]`);
 
     // § Shapes: the ring is drawn for `:focus-visible`, which is what a
     // keyboard focus matches and a mouse press does not. Measured on a *card*,
@@ -1727,6 +1871,36 @@ test.describe("the laws hold with the pane full (FR-014, FR-015, 009 FR-005)", (
 
    2560 stands in for D-016's 3008 (spec § Assumptions): the frame caps at
    96rem, so every width above it renders the identical room.
+
+   ── 019 US2 changed the state these three cases run in ───────────────────
+
+   Not one of them was written against "the room opens empty" as a *claim*; all
+   three used it as the way to reach the released geometry. 019 FR-006 gives
+   arrival a story, so that route is gone for a spec carrying stories, and each
+   case is re-pointed at the state it is actually about. Written down here
+   because a reader comparing this block to 008's own words needs to know which
+   of them moved, and why none of them was dropped:
+
+   * **the sweep** now reads the grid's hook rather than asserting one value of
+     it, and its fit measurement becomes the form of D-016's claim that
+     survives: `scrollWidth <= clientWidth + the detail track` — *the width is
+     on the screen; the pane is holding it* — which is true on every spec at
+     every width, plus the assertion that whatever the open pane is holding
+     scrolls rather than being clipped away.
+   * **the round trip** is measured as the two shapes it is made of, because
+     the transition is no longer one click: the arriving room at `26rem`, and a
+     spec with no stories at `0`, with FR-004's arithmetic asserted across
+     them. The click still proves no remount, an unmoved band and wires that
+     follow their cards.
+   * **the words** are unchanged. D-019 had already retired the explainer to
+     the no-spec case, which 019 US2 does not touch.
+
+   What is genuinely given up: arrival is no longer the fitted state for the
+   five-node graphs — 235px of overflow at 1280 and 27px above it, D-016's own
+   two numbers, on 8 of 18 specs at 1280 and 5 of 18 above it. 019 spends them
+   on a story rather than on two sentences of room explanation, which is the
+   trade D-016 clause (a) licensed when it said the track is a *story's* track,
+   and 008 US3's chrome already dresses the scroll it produces.
    ───────────────────────────────────────────────────────────────────────── */
 
 const US2_WIDTHS = [1280, 1600, 2560] as const;
@@ -1738,7 +1912,12 @@ const ROOM_EXPLAINED =
   "moves through, the facts the factory recorded, and the requirements it implements.";
 
 interface RoomMetrics {
-  /** The grid's own state hook: `none` while no story is selected. */
+  /**
+   * The grid's own state hook: `none` while no story is selected.
+   *
+   * Since 019 US2 that is a spec carrying no stories, never an arrival — the
+   * room opens on a story wherever it has one to tell (FR-006, FR-009).
+   */
   selection: string | null;
   /** The three grid tracks as they resolved, in px. */
   tracks: number[];
@@ -1772,6 +1951,57 @@ async function roomMetrics(page: Page): Promise<RoomMetrics> {
       root: parseFloat(getComputedStyle(document.documentElement).fontSize),
     };
   });
+}
+
+/**
+ * The released room, measured — a spec carrying no stories (019 FR-009).
+ *
+ * Since 019 US2 this is the only shape the room releases the `26rem` track in,
+ * so a test that needs the released geometry has to be handed a document that
+ * produces it. The rail is *made* rather than waited for, for the reason 008
+ * US1 gives about the two document-contract cases: whether this morning's
+ * corpus happens to carry a spec with no work graph is an ordinary edit away
+ * from changing, and a measurement pinned to it would go red for a reason that
+ * has nothing to do with the room.
+ *
+ * It leaves the route unrouted on the way out, so the caller's next navigation
+ * reaches the real backend again.
+ */
+async function releasedRoom(page: Page, width: number): Promise<RoomMetrics> {
+  await page.route("**/api/showfloor", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        reference_instant: null,
+        specs_root: "specs",
+        rail: [
+          {
+            spec_dir: "020-a-spec-with-no-stories",
+            name: "a spec with no stories",
+            intent: "",
+            state: "draft",
+            chip: "draft",
+            stories_landed: 0,
+            stories_total: 0,
+            epic_id: null,
+            epic_state: null,
+            stories: [],
+            story_source: "workgraph",
+            notes: [],
+            unknown: ["stories"],
+          },
+        ],
+        degraded: [],
+      }),
+    }),
+  );
+
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto("/showfloor/020-a-spec-with-no-stories");
+  await page.waitForSelector("[data-showfloor-cols]");
+  const metrics = await roomMetrics(page);
+  await page.unroute("**/api/showfloor");
+  return metrics;
 }
 
 /** One band under the stage, measured as the browser lays it out. */
@@ -1930,12 +2160,28 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
 
           const metrics = await roomMetrics(page);
 
-          // The room opens on no story and this sweep never picks one, so
-          // every measurement below is of the released state (FR-004).
-          expect(metrics.selection, `${where}: nothing is selected`).toBe("none");
+          // **019 US2 (FR-006) moved the state this sweep runs in.** It used to
+          // run released, because the room opened on no story; now a spec
+          // carrying stories opens on one and the `26rem` track is open on
+          // arrival. Both shapes are read here, from the room's own hook rather
+          // than assumed, so a sweep that measured a shape the room is not in
+          // cannot pass for the wrong reason.
           expect(metrics.tracks, `${where}: the room resolved three tracks`).toHaveLength(3);
-          expect(metrics.tracks[2], `${where}: the detail track computed to 0`).toBe(0);
-          expect(metrics.detailWidth, `${where}: the released pane paints nothing`).toBe(0);
+          if (entry.stories.length === 0) {
+            expect(metrics.selection, `${where}: no story to tell`).toBe("none");
+            expect(metrics.tracks[2], `${where}: the detail track computed to 0`).toBe(0);
+            expect(metrics.detailWidth, `${where}: the released pane paints nothing`).toBe(0);
+          } else {
+            expect(metrics.selection, `${where}: the room opened on a story`).toBe("story");
+            expect(metrics.tracks[2], `${where}: the track is 26rem`).toBeCloseTo(
+              26 * metrics.root,
+              1,
+            );
+            expect(metrics.detailWidth, `${where}: the pane paints its track`).toBeCloseTo(
+              26 * metrics.root,
+              1,
+            );
+          }
 
           if (metrics.scroll === null) {
             // "an epic whose stage document has no nodes renders as its
@@ -1944,12 +2190,33 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
             expect(entry.stories.length, `${where} declares no story to stage`).toBe(0);
           } else {
             staged++;
-            // SC-003, the whole point: 235px at 1280 and 27px at 1600 and
-            // 2560 before this story, on every spec on the floor. Now none.
+            // SC-003 in the form that survives 019 US2, and it is D-016's own
+            // claim: *"the width was already on the screen: the pane was
+            // holding it."* The graph fits the stage the room has **when the
+            // pane is not using it** — the scroller plus whatever the detail
+            // track is holding. Measured on this floor: 797px of graph against
+            // 562 + 416 at 1280 and 770 + 416 at 1600 and 2560.
+            //
+            // What this no longer says, and 008 US2's version did, is that
+            // *arrival* is the fitted state. It is not, for the five-node
+            // graphs: 235px at 1280 and 27px above it, which are D-016's own
+            // two numbers. 019 spends them on a story rather than on two
+            // sentences of room explanation, which is the trade D-016 clause
+            // (a) always licensed — the track is a story's track — and 008 US3
+            // already dressed the scroll it produces. The excess scrolls and is
+            // never clipped away, and that is asserted rather than assumed.
             expect(
-              metrics.scroll.scrollWidth - metrics.scroll.clientWidth,
-              `${where}: the stage clips its graph`,
-            ).toBe(0);
+              metrics.scroll.scrollWidth,
+              `${where}: the graph outgrows the room, not just the open pane`,
+            ).toBeLessThanOrEqual(metrics.scroll.clientWidth + metrics.tracks[2] + 0.5);
+
+            const overflowX = await page.evaluate(
+              () => getComputedStyle(document.querySelector("[data-stage-scroll]")!).overflowX,
+            );
+            expect(
+              ["auto", "scroll"].includes(overflowX),
+              `${where}: the excess scrolls rather than being clipped (${overflowX})`,
+            ).toBe(true);
           }
 
           // FR-008: the same laws, the same floors 005 committed. The width
@@ -1978,7 +2245,25 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
     );
   });
 
-  test("picking a story restores the 26rem track, and the wires follow the cards", async ({
+  /**
+   * **019 US2 split this round trip in two, and both halves are still here.**
+   *
+   * 008 US2 could take collapse and restore in one navigation: the room opened
+   * released, and the first click restored the track. FR-006 gave arrival a
+   * story, so a spec carrying stories has no released state to click out of —
+   * `NodeCard` only ever selects, and `data-selection="none"` now belongs to a
+   * spec carrying no stories.
+   *
+   * So the transition is measured as the two shapes it is made of, at each of
+   * the three widths: the arriving room with the track at `26rem`, and a spec
+   * with no stories with it at `0`. FR-004's arithmetic survives that split
+   * intact and is asserted on it — the rail track is identical in both and the
+   * *stage* track differs by exactly `26rem`, which is "the stage takes the
+   * room the pane is not using" measured across the two rooms rather than
+   * across one click. What a click still has to prove is the rest: no remount,
+   * the band unmoved, and the wires following the cards (FR-004, 009 FR-012).
+   */
+  test("the arriving room holds the 26rem track, a storyless one releases it, and the wires follow the cards", async ({
     page,
     request,
   }) => {
@@ -1992,7 +2277,6 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
       .filter((entry) => edgeCount(entry) > 0)
       .sort((a, b) => edgeCount(b) - edgeCount(a))[0];
     expect(wired, "some spec on this floor declares dependencies").toBeDefined();
-    const story = wired.stories.find((candidate) => candidate.id !== null)!;
 
     for (const width of US2_WIDTHS) {
       await page.setViewportSize({ width, height: 1000 });
@@ -2001,8 +2285,16 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
       const where = `${wired.spec_dir} at ${width}`;
 
       const before = await roomMetrics(page);
-      expect(before.selection, `${where}: opens on no story`).toBe("none");
-      expect(before.tracks[2], `${where}: the track is collapsed`).toBe(0);
+      // FR-006: the room arrives with the track open and a story in the pane.
+      expect(before.selection, `${where}: opens on a story`).toBe("story");
+      expect(before.tracks[2], `${where}: the track is 26rem on arrival`).toBeCloseTo(
+        26 * before.root,
+        1,
+      );
+      expect(before.detailWidth, `${where}: the pane paints its track`).toBeCloseTo(
+        26 * before.root,
+        1,
+      );
       // The band beneath the stage carries this spec's goal (009 FR-012), and
       // the room's own explainer is not mounted beside it.
       await expect(
@@ -2010,11 +2302,43 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
         `${where}: the spec's goal is beneath the stage`,
       ).toHaveCount(wired.intent === "" ? 0 : 1);
       await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
-      await expect(page.locator("[data-detail-title]")).toHaveCount(0);
+      await expect(page.locator("[data-detail-title]")).toHaveCount(1);
+      await expect(page.locator("[data-node-card][aria-pressed='true']")).toHaveCount(1);
+
+      // FR-004, on the two shapes rather than on one click: a spec with no
+      // stories releases the track, its rail track is the same `17rem`, and
+      // its *stage* track is wider by exactly what the pane gave back.
+      const released = await releasedRoom(page, width);
+      expect(released.selection, `${where}: a storyless spec releases the track`).toBe("none");
+      expect(released.tracks[2], `${where}: the released track computes to 0`).toBe(0);
+      expect(released.detailWidth, `${where}: the released pane paints nothing`).toBe(0);
+      expect(released.tracks[0], `${where}: the same rail in both rooms`).toBeCloseTo(
+        before.tracks[0],
+        1,
+      );
+      expect(
+        released.tracks[1] - before.tracks[1],
+        `${where}: the stage takes the room the pane is not using`,
+      ).toBeCloseTo(26 * before.root, 1);
+
+      await page.goto(`/showfloor/${wired.spec_dir}`);
+      await page.waitForSelector("[data-stage-canvas]");
 
       const wiresBefore = await wireGeometry(page);
       expect(wiresBefore.length, `${where}: the graph is wired`).toBeGreaterThan(0);
-      expectWiresFollowCards(wiresBefore, `${where}, released`);
+      expectWiresFollowCards(wiresBefore, `${where}, on arrival`);
+
+      // A card the arrival did not select, so the click is a change of story.
+      const unpicked = page.locator("[data-node-card][aria-pressed='false']").first();
+      expect(
+        await unpicked.count(),
+        `${where}: the arrival leaves a card to pick`,
+      ).toBeGreaterThan(0);
+      const story = {
+        id: await unpicked.getAttribute("data-story-id"),
+        title: (await unpicked.locator("[data-node-title]").textContent()) ?? "",
+      };
+      expect(story.id, `${where}: the card names its story`).not.toBeNull();
 
       // The pick. Nothing remounts: the grid element is the same element
       // before and after, and only its state hook changed (FR-004).
@@ -2044,28 +2368,28 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
 
       const after = await roomMetrics(page);
 
-      // FR-006: the track returns at `26rem`, read through the room's own root
-      // font size rather than assumed to be 416px.
-      expect(after.selection, `${where}: the grid says a story is selected`).toBe("story");
-      expect(after.tracks[2], `${where}: the track returned at 26rem`).toBeCloseTo(
+      // 008 FR-006 asked whether the track *returned* at `26rem` after a pick;
+      // since 019 FR-006 it never left, and the claim that replaces it is the
+      // stronger one for a room that arrives open: a change of story moves the
+      // pane's contents and moves no track at all. A room that re-laid itself
+      // out on every glance is the flicker D-016 and 008 were both about.
+      expect(after.selection, `${where}: the grid still says a story is selected`).toBe("story");
+      expect(after.tracks[2], `${where}: the track stayed at 26rem`).toBeCloseTo(
         26 * after.root,
         1,
       );
-      expect(after.detailWidth, `${where}: the pane paints its track`).toBeCloseTo(
+      expect(after.detailWidth, `${where}: the pane still paints its track`).toBeCloseTo(
         26 * after.root,
         1,
       );
-
-      // FR-004, the other half: the stage track is wider by exactly what the
-      // pane released, at this width and at every other.
-      expect(
-        before.tracks[1] - after.tracks[1],
-        `${where}: the stage took the width the pane released`,
-      ).toBeCloseTo(26 * after.root, 1);
-      expect(
-        before.scroll!.clientWidth - after.scroll!.clientWidth,
-        `${where}: the scroller gained the released width`,
-      ).toBeCloseTo(26 * after.root, 0);
+      expect(after.tracks[1], `${where}: the stage track did not move`).toBeCloseTo(
+        before.tracks[1],
+        1,
+      );
+      expect(after.scroll!.clientWidth, `${where}: the scroller did not move`).toBeCloseTo(
+        before.scroll!.clientWidth,
+        0,
+      );
 
       // The pane is telling the story — and the band beneath the stage did not
       // empty behind it, which is the layout jump D-019 closes. 008's
@@ -2077,6 +2401,10 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
         `${where}: the band survived the pick`,
       ).toHaveCount(wired.intent === "" ? 0 : 1);
       await expect(page.locator("[data-detail-title]")).toHaveText(story.title);
+      await expect(
+        page.locator(`[data-node-card][data-story-id="${story.id}"]`),
+        `${where}: the picked card is the one reporting itself selected`,
+      ).toHaveAttribute("aria-pressed", "true");
 
       // And the wires still join the cards they name, measured against the
       // boxes as the restored pane leaves them.
@@ -2094,7 +2422,7 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
       // two renders, which jsdom will let a test say and a browser will not.
       const wiresAfter = await wireGeometry(page);
       expect(wiresAfter.map((wire) => wire.edge)).toEqual(wiresBefore.map((wire) => wire.edge));
-      expectWiresFollowCards(wiresAfter, `${where}, selected`);
+      expectWiresFollowCards(wiresAfter, `${where}, after the pick`);
     }
   });
 
@@ -2199,8 +2527,17 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
    * second state to compare. Both themes, because the assertion is about the
    * words and a theme that dropped them would be the same defect wearing
    * different clothes.
+   *
+   * **019 US2 moved the first of the two states, not the comparison.** The room
+   * arrives with a story already told (FR-006), so "before" is now the default
+   * selection and the pick is a change *of* story rather than the first one.
+   * FR-012's claim is unchanged and so is what would falsify it: a band whose
+   * words move when the selection does. The state this story genuinely took
+   * away — a staged spec with nothing selected — is measured at the foot of
+   * this test against a spec carrying no stories, which is the shape that still
+   * has it (019 FR-009).
    */
-  test("the band reads identically with and without a story selected (009 FR-012, SC-005)", async ({
+  test("the band reads identically across the story selection (009 FR-012, SC-005)", async ({
     page,
     request,
   }) => {
@@ -2211,20 +2548,24 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
     for (const scheme of SCHEMES) {
       await page.emulateMedia({ colorScheme: scheme });
       for (const entry of speaking) {
-        const story = entry.stories.find((candidate) => candidate.id !== null);
-        if (story === undefined) continue;
         const where = `${entry.spec_dir} in ${scheme}`;
 
         await page.goto(`/showfloor/${entry.spec_dir}`);
         await page.waitForSelector("[data-stage-canvas]");
 
         const unselected = await bandMetrics(page, "[data-spec-goal]");
-        expect(unselected, `${where}: a band with nothing selected`).not.toBeNull();
+        expect(unselected, `${where}: a band on arrival`).not.toBeNull();
         expect(unselected!.text, `${where}: the document's own words`).toBe(entry.intent);
-        expect(unselected!.selection, `${where}: nothing is selected yet`).toBe("none");
+        expect(unselected!.selection, `${where}: the room opened on a story`).toBe("story");
 
-        await page.locator(`[data-node-card][data-story-id="${story.id}"]`).click();
-        await page.waitForSelector("[data-detail-title]");
+        // A card the arrival did **not** select, so the click is a real change
+        // of selection rather than a re-press of the default (019 FR-006).
+        const other = page.locator("[data-node-card][aria-pressed='false']").first();
+        const changes = (await other.count()) > 0;
+        if (!changes) continue;
+        const before = await page.locator("[data-detail-title]").textContent();
+        await other.click();
+        await expect(page.locator("[data-detail-title]")).not.toHaveText(before ?? "");
 
         const selected = await bandMetrics(page, "[data-spec-goal]");
         expect(selected, `${where}: the band survived the pick`).not.toBeNull();
@@ -2247,6 +2588,57 @@ test.describe("the stage takes the room the pane is not using (FR-004, FR-007, F
         expect(selected!.insideStage, `${where}: still in the stage column`).toBe(true);
       }
     }
+
+    // The half 019 US2 took away from a spec carrying stories, measured where
+    // it still lives: a spec with none selects none, and its band is still its
+    // own goal — not the room's explainer standing in for it (D-019).
+    const goal = "A spec whose stories the corpus does not carry yet.";
+    await page.route("**/api/showfloor", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          reference_instant: null,
+          specs_root: "specs",
+          rail: [
+            {
+              spec_dir: "020-a-spec-with-no-stories",
+              name: "a spec with no stories",
+              intent: goal,
+              state: "draft",
+              chip: "draft",
+              stories_landed: 0,
+              stories_total: 0,
+              epic_id: null,
+              epic_state: null,
+              stories: [],
+              story_source: "workgraph",
+              notes: [],
+              unknown: ["stories"],
+            },
+          ],
+          degraded: [],
+        }),
+      }),
+    );
+
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto("/showfloor/020-a-spec-with-no-stories");
+      await page.waitForSelector("[data-spec-goal]");
+
+      const band = await bandMetrics(page, "[data-spec-goal]");
+      expect(band, `${scheme}: a band with nothing selected`).not.toBeNull();
+      expect(band!.selection, `${scheme}: nothing is selected`).toBe("none");
+      expect(band!.text, `${scheme}: the document's own words`).toBe(goal);
+      expect(band!.visibility, `${scheme}: visible`).toBe("visible");
+      expect(band!.height, `${scheme}: a box`).toBeGreaterThan(0);
+      expect(band!.insideStage, `${scheme}: in the stage column`).toBe(true);
+      expect(band!.insidePane, `${scheme}: not in the collapsed track`).toBe(false);
+      await expect(page.locator("[data-detail-empty]")).toHaveCount(0);
+      await expect(page.locator("[data-detail-title]")).toHaveCount(0);
+    }
+
+    await page.unroute("**/api/showfloor");
   });
 
   /**
@@ -2658,12 +3050,17 @@ test.describe("the scroll wears the room's clothes (FR-009, FR-010, FR-011)", ()
 
           const read = await scrollerStyle(page);
 
-          // US2's own measurement, re-run: at these three widths, with nothing
-          // picked, no stage clips its graph. This story may not move it.
-          expect(read.scrollWidth, `${where}: the stage still fits its graph`).toBe(
-            read.clientWidth,
-          );
-          fitted++;
+          // **019 US2 gave this test a Given to assert rather than assume.**
+          // 008 US3 ran it over every spec because, with the room opening
+          // released, every spec fitted. FR-006 opens the room on a story, so
+          // the widest graphs now scroll on arrival — 8 of 18 specs at 1280 and
+          // 5 of 18 above it, measured on this floor — and a scrolling stage is
+          // FR-009's subject, not FR-011's. So the ones that scroll are skipped
+          // here exactly as the ones that fit are skipped there, and the count
+          // of what was really measured is asserted at the foot of the test so
+          // a skip that swallowed the floor cannot pass for a green run.
+          // Three of the four claims hold whether or not this stage fits, so
+          // they are measured on every spec and are not behind the skip.
 
           // The box: the content box is the border box less the borders and
           // nothing else. Chrome between them is exactly what FR-011 refuses.
@@ -2671,28 +3068,38 @@ test.describe("the scroll wears the room's clothes (FR-009, FR-010, FR-011)", ()
             read.clientWidth,
           );
 
-          // And the graph's box is unchanged from US2's: the scroller takes
-          // the whole stage track less the stage's own padding, and the canvas
-          // fills the scroller. A reserved gutter shortens the first of these.
+          // And the scroller's box is unchanged from US2's: it takes the whole
+          // stage track less the stage's own padding. A reserved gutter
+          // shortens it.
           expect(
             read.clientWidth,
             `${where}: the scroller is the stage track less its padding`,
           ).toBeCloseTo(read.stageTrack - read.stagePadding, 0);
-          expect(read.canvasWidth, `${where}: the graph fills its scroller`).toBeCloseTo(
-            read.clientWidth,
-            0,
-          );
 
           // Nothing on the chain from the grid track to the graph reserves one.
           expect(read.gutters, `${where}: a gutter was reserved`).toEqual(
             read.gutters.map(() => "auto"),
           );
+
+          if (read.scrollWidth > read.clientWidth) continue;
+          fitted++;
+
+          // The fourth is FR-011's own: a graph that fits fills its scroller
+          // exactly, with no width lost to chrome that was never needed.
+          expect(read.canvasWidth, `${where}: the graph fills its scroller`).toBeCloseTo(
+            read.clientWidth,
+            0,
+          );
         }
       }
     }
 
-    expect(fitted, "fitting stages were measured at every width, in both themes").toBe(
-      staged.length * US2_WIDTHS.length * SCHEMES.length,
+    // A skip that swallowed the floor would leave this at zero, so what was
+    // really measured is asserted. Counted on this floor, arriving with the
+    // pane open: 6 fitting stages at 1280 and 13 at each of 1600 and 2560, per
+    // theme. The floor is set below that and above nothing.
+    expect(fitted, "fitting stages were measured at every width, in both themes").toBeGreaterThanOrEqual(
+      5 * US2_WIDTHS.length * SCHEMES.length,
     );
   });
 });
