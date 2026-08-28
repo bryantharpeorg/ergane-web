@@ -219,10 +219,72 @@ def parse_spec_intent(spec_md_text: str) -> str:
     return ""
 
 
-def _intent_after(lines: list[str], heading_index: int) -> str:
-    """The first paragraph under a story heading, whitespace-collapsed.
+#: A Spec Kit template label — `**Label**:` — which ends a paragraph wherever it
+#: stands, blank line before it or not (FR-002).
+#:
+#: The **shape** is the whole test, and that is 019 US1's fix (plan D3).  The
+#: guard here used to end a paragraph at any line *beginning* with `**`, which
+#: caught the labels and also caught the second line of any paragraph whose wrap
+#: happened to land on a bold word — so a goal band read `… — and` and stopped,
+#: asserting on screen that the spec's goal ended there.  `[^*]+` cannot cross a
+#: `**`, so a prose line carrying two bold phrases and a colon somewhere after
+#: them is prose, and only `**…**:` is a label.
+_TEMPLATE_LABEL_RE = re.compile(r"^\*\*[^*]+\*\*\s*:")
 
-    Never crosses a heading or a template label (`**Why this priority**`, …).
+#: Inline marks, removed so the band renders prose (FR-003, plan D4).  This is
+#: not a Markdown render and brings no dependency with it (constitution VII):
+#: the pairs come off and the words they wrapped stay, in order.  D-019 asked
+#: for the spec's goal "treated as prose", and `**` is what the *file* carries,
+#: not what a reader reads.
+#:
+#: Code spans are lifted out before emphasis is touched and put back after, so
+#: a bold phrase may span one (`**the `flag` matters**`) and an underscore
+#: inside a code span is never read as emphasis.  Bold is matched before italic
+#: and tolerates a single `*` inside itself.  The underscore forms are flanked:
+#: the `_` in `parse_spec_intent` is a word's own character.
+_CODE_SPAN_RE = re.compile(r"`+([^`]*)`+")
+_INLINE_MARK_RES: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\*\*((?:[^*]|\*(?!\*))+)\*\*"),
+    re.compile(r"\*([^*]+)\*"),
+    re.compile(r"(?<![\w\\])__([^_]+)__(?!\w)"),
+    re.compile(r"(?<![\w\\])_([^_]+)_(?!\w)"),
+)
+
+#: Where a lifted code span sits while emphasis is stripped around it.  NUL
+#: cannot occur in a spec's prose, and an unpaired one is left where it is.
+_HELD_SPAN_RE = re.compile(r"\x00(\d+)\x00")
+
+
+def _strip_marks(text: str) -> str:
+    """`text` with inline emphasis and code marks removed, words in order.
+
+    Pairs only (FR-003): an unmatched `*`, `_` or backtick is a character the
+    spec meant, and the reader leaves it alone rather than guessing at a mark.
+    """
+    held: list[str] = []
+
+    def hold(match: re.Match[str]) -> str:
+        held.append(match.group(1))
+        return f"\x00{len(held) - 1}\x00"
+
+    stripped = _CODE_SPAN_RE.sub(hold, text)
+    for pattern in _INLINE_MARK_RES:
+        stripped = pattern.sub(r"\1", stripped)
+    return _HELD_SPAN_RE.sub(lambda match: held[int(match.group(1))], stripped)
+
+
+def _intent_after(lines: list[str], heading_index: int) -> str:
+    """The first paragraph under a heading, whitespace-collapsed, as prose.
+
+    The one reader (FR-004): `parse_story_headings` points it at a
+    `### User Story` heading and `parse_spec_intent` at the spec's own opening
+    one, so a story's intent and its spec's goal cannot end in different
+    places or carry marks the other has stripped.
+
+    A blank line, a heading, a rule or a template label ends the paragraph; a
+    continuation line that merely *starts* bold does not (FR-001, FR-002).  A
+    heading with nothing under it collects nothing and answers `""`, and the
+    caller draws no band at all (FR-005).
     """
     collected: list[str] = []
     for line in lines[heading_index + 1 :]:
@@ -231,10 +293,14 @@ def _intent_after(lines: list[str], heading_index: int) -> str:
             if collected:
                 break
             continue
-        if stripped.startswith("#") or stripped.startswith("**") or stripped.startswith("---"):
+        if (
+            stripped.startswith("#")
+            or stripped.startswith("---")
+            or _TEMPLATE_LABEL_RE.match(stripped)
+        ):
             break
         collected.append(stripped)
-    return " ".join(collected)
+    return _strip_marks(" ".join(collected))
 
 
 def derive_ladder(

@@ -43,6 +43,13 @@ def context_paragraph() -> str:
 
     Composed here from the file rather than typed, so the expectation cannot
     drift from the material the corpus is cut from.
+
+    **The marks come off** since 019 US1 (FR-003): the band renders prose, and
+    the recorded paragraph carries two code spans (`ergane status`,
+    `awaiting_operator`).  Removing the backticks the blunt way keeps this an
+    expectation arrived at independently rather than a call to the stripper
+    under test; the recorded paragraph carries no other mark, which the
+    assertion below holds it to.
     """
     lines = recorded_body().splitlines()
     start = lines.index("## Context") + 1
@@ -54,7 +61,9 @@ def context_paragraph() -> str:
                 break
             continue
         collected.append(stripped)
-    return " ".join(collected)
+    joined = " ".join(collected)
+    assert joined.count("`") % 2 == 0 and "*" not in joined
+    return joined.replace("`", "")
 
 
 # --- FR-010: `## Context` --------------------------------------------------

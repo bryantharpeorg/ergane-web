@@ -74,6 +74,17 @@ ROOT = Path(__file__).resolve().parents[1]
 RECORDED_SPEC = ROOT / "specs" / "001-the-desk-sees-the-floor" / "spec.md"
 RECORDED_GRAPH = ROOT / "docs" / "dags" / "001-the-desk-sees-the-floor.json"
 
+#: Two more recordings, cut for the paragraph reader (019 US1).  Both are spec
+#: bodies of this repository, named *here* for the reason the module docstring
+#: gives — a test may not name the corpus, and this file is the door it names it
+#: through.  Neither is read for its state or its graph, only for the shape of
+#: the prose it happens to carry, which is the shape that exposed the defect:
+#: 015's `## Context` wraps onto a line beginning `**`, and 018's carries bold
+#: and code marks inline.  A recorded paragraph, never one written to pass
+#: (constitution V).
+RECORDED_WRAPPED_BOLD_SPEC = ROOT / "specs" / "015-the-gates-measure-themselves" / "spec.md"
+RECORDED_MARKED_SPEC = ROOT / "specs" / "018-every-spec-has-a-door" / "spec.md"
+
 REPOSITORY_SPECS = ROOT / "specs"
 REPOSITORY_ARCHIVE = ROOT / "docs" / "dags"
 
@@ -101,6 +112,37 @@ def strip_frontmatter(text: str) -> str:
         return text
     _head, separator, body = text[4:].partition("\n---\n")
     return body if separator else text
+
+
+def recorded_wrapped_bold_body() -> str:
+    """A recorded body whose `## Context` paragraph wraps onto a `**` line."""
+    return strip_frontmatter(
+        RECORDED_WRAPPED_BOLD_SPEC.read_text(encoding="utf-8")
+    )
+
+
+def recorded_marked_body() -> str:
+    """A recorded body whose `## Context` paragraph carries inline marks."""
+    return strip_frontmatter(RECORDED_MARKED_SPEC.read_text(encoding="utf-8"))
+
+
+def paragraph_lines(body: str, heading: str = "## Context") -> list[str]:
+    """The raw lines of the first paragraph under `heading`, marks and all.
+
+    The material a reader-expectation is composed from, handed over exactly as
+    the file carries it: the test decides what the answer should be, and it can
+    only do that honestly from the unread bytes.
+    """
+    lines = body.splitlines()
+    collected: list[str] = []
+    for line in lines[lines.index(heading) + 1 :]:
+        stripped = line.strip()
+        if not stripped:
+            if collected:
+                break
+            continue
+        collected.append(stripped)
+    return collected
 
 
 def derived_graph(spec_dir: str, story_keys: Sequence[str]) -> dict:
