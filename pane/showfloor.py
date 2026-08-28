@@ -98,6 +98,13 @@ STOP_WAITING = "waiting"
 STOP_AHEAD = "ahead"
 STOP_FROZEN = "frozen"
 
+#: The stop statuses that say the work reached this stop, and so the only ones
+#: an instant may land on (019 FR-013).  `ahead` has not happened, and there is
+#: no time for something that has not happened; `frozen` is DESIGN.md's word for
+#: a ladder that stopped saying "reached" at all, and a terminal node's recorded
+#: instants stay where the store put them, in the gate-run section.
+STOPS_REACHED: frozenset[str] = frozenset({STOP_DONE, STOP_ACTIVE, STOP_WAITING})
+
 #: DESIGN.md § Chips.  A live story's chip is its active stop's label — which is
 #: how PASSED/PR_OPEN wear `pr open`.
 CHIP_WAITING = "waiting on you"
@@ -399,11 +406,11 @@ def _ladder(
         "state": state,
         "spec_state": spec_state,
         "stops": [
-            # `at` is the instant the factory recorded for this stop.  Only
-            # `merged` can be stamped today — it is the one stop the branch
-            # holds a commit for (FR-002a) — and the slot is on every stop so
-            # the six have one shape, filled by `_stamped` where it is known and
-            # left None where it is not (the Unknown Rule, never a dash here).
+            # `at` is the instant the factory recorded for this stop.  The slot
+            # is on every stop so the six have one shape; which of them a seam
+            # can actually fill is `STOP_INSTANT_SEAMS` below, and a stop no
+            # seam records is left None (the Unknown Rule, never a dash here —
+            # the dash is the room's word, drawn where it finds a null).
             {"key": key, "label": label, "status": status, "at": None}
             for (key, label), status in zip(LADDER_STOPS, statuses, strict=True)
         ],
@@ -484,21 +491,127 @@ def unplaceable_ladder(spec_state: str | None) -> dict:
     )
 
 
+#: Which approved seam records each stop's instant, and which stops none does
+#: (019 FR-011, FR-012).  It is written down because FR-012 asks for the gap to
+#: be an answer rather than a silence: four of the six stops have no seam at all
+#: in the ergane distribution this pane rides, so their `at` stays None and the
+#: room's own `—` is what says so.  Stop by stop:
+#:
+#: * `ready` — nothing records when a node became dispatchable.
+#: * `building` — nothing records when an attempt started.  The evidence store's
+#:   `started_at` brackets one *verification*, not one build, and reaching back
+#:   from it to a build's start is exactly the derivation FR-014 forbids.
+#: * `verifying` — `factory.verify.store.node_history`'s own `started_at`.
+#: * `pr open` — nothing.  The `epic_status` answer carries `pr_number` and
+#:   `landing_state` and no instant for either.
+#: * `queue` — nothing.  The merge queue's `Landing.enqueued_at` is workflow
+#:   state that `NodeStatus` does not carry, and `landing_history` records only
+#:   the five terminal outcomes, none of which is an enqueue.
+#: * `merged` — two seams for one event: the landing branch's own commit date
+#:   (009 FR-002a), and the queue's `landing_history` entry whose outcome is
+#:   `MERGED`.  The branch answers first, which is the order `DetailPane`
+#:   already reads them in.
+STOP_INSTANT_SEAMS: dict[str, str | None] = {
+    "ready": None,
+    "building": None,
+    "verifying": "node_history.started_at",
+    "pr_open": None,
+    "queue": None,
+    "merged": "landing branch commit date, else landing_history MERGED",
+}
+
+
+def _stamp(ladder: dict, key: str, at: str | None) -> None:
+    """Put one seam's own instant on one stop, where the work reached it.
+
+    Three rules, and each is a requirement rather than a taste.  A stop the work
+    has not reached is never stamped (FR-013).  A stop that already carries an
+    instant keeps it, so the two seams that answer for `merged` cannot take
+    turns between refreshes.  And `at` is used exactly as the seam wrote it —
+    nothing here parses, reformats or compares one instant with another
+    (FR-014); anything that is not a non-empty string is no answer at all and is
+    left to the Unknown Rule.
+    """
+    if not isinstance(at, str) or not at:
+        return
+    for stop in ladder["stops"]:
+        if stop["key"] != key:
+            continue
+        if stop["at"] is None and stop["status"] in STOPS_REACHED:
+            stop["at"] = at
+        return
+
+
 def _stamped(ladder: dict, at: str | None) -> dict:
     """The same ladder with the landing commit's instant on its `merged` stop.
 
-    Only a stop that is `done` is stamped: an instant on a stop the work has not
-    reached would be a time for something that has not happened.  This never
+    Only a stop the work reached is stamped: an instant on a stop the work has
+    not reached would be a time for something that has not happened.  This never
     moves a stop or changes a status — a live answer still governs where the
     story is (FR-003); the branch only says *when* the last stop happened, which
     is a fact no `epic_status` answer carries at all.
     """
-    if at is None:
-        return ladder
-    for stop in ladder["stops"]:
-        if stop["key"] == "merged" and stop["status"] == STOP_DONE:
-            stop["at"] = at
+    _stamp(ladder, "merged", at)
     return ladder
+
+
+def _stamp_recorded_instants(
+    ladder: dict, landing_history: Any, attempts: list[dict]
+) -> dict:
+    """Every remaining stop an approved seam recorded an instant for (FR-011).
+
+    `STOP_INSTANT_SEAMS` above is the coverage in words and this is the same
+    thing in code: two stops are filled from the seams that record them, and
+    four are left None for the room's `—` to answer (FR-012).  Each value is
+    read straight out of the record it belongs to and none is worked out from
+    another stop's (FR-014) — which is why there are two small readers below
+    rather than one clever one.
+
+    Called after `_stamped`, so the landing branch keeps `merged` where it could
+    answer and the queue's own observation fills it only where the branch was
+    not read or does not carry the story.
+    """
+    _stamp(ladder, "verifying", _verification_started_at(attempts))
+    _stamp(ladder, "merged", _queue_merged_at(landing_history))
+    return ladder
+
+
+def _verification_started_at(attempts: list[dict]) -> str | None:
+    """When the evidence store says this node's verification first started.
+
+    `node_history` returns a node's attempts oldest first and the `verifying`
+    stop is reached once, so the first of them is the instant the story got
+    there.  A retry's own interval is not lost by taking it: the gate-run
+    section carries every attempt's `started_at` and `finished_at` under the
+    store's own names (013 FR-001), where they bracket a verification rather
+    than standing in for a stop.
+    """
+    for attempt in attempts:
+        started = attempt.get("started_at")
+        if isinstance(started, str) and started:
+            return started
+    return None
+
+
+def _queue_merged_at(landing_history: Any) -> str | None:
+    """When the merge queue observed this node's landing merge.
+
+    The last `MERGED` entry of the answer's own `landing_history` — the same
+    entry `DetailPane.mergedAt` reads, chosen the same way, so the document and
+    the pane cannot name two instants for one landing.  Every other outcome the
+    queue records (`CHECKS_FAILED`, `CONFLICT`, `DEQUEUED_BY_HUMAN`, `STALLED`)
+    is a thing that happened *at* the queue stop and not the stop being reached,
+    so none of them stamps anything.
+    """
+    if not isinstance(landing_history, list):
+        return None
+    for entry in reversed(landing_history):
+        if not isinstance(entry, dict) or entry.get("outcome") != "MERGED":
+            continue
+        at = entry.get("at")
+        if isinstance(at, str) and at:
+            return at
+    return None
 
 
 # --- the reads ------------------------------------------------------------
@@ -987,6 +1100,16 @@ def _story(
             missing.remove("pr_number")
     _stamped(ladder, landing_fact.merged_at if on_branch else None)
 
+    # --- the times the other seams already have (019 FR-011)
+    #
+    # The gate run is read here rather than in the `return` below because the
+    # evidence store is one of those seams: it is the only thing that records
+    # when a verification started, which is when the `verifying` stop happened.
+    # `STOP_INSTANT_SEAMS` names the whole coverage, and the four stops no seam
+    # records stay None on purpose.
+    evidence = _story_evidence(evidence_read, epic_id, node_id)
+    _stamp_recorded_instants(ladder, facts["landing_history"], evidence["attempts"])
+
     return {
         "id": node_id,
         "story_key": story_key,
@@ -1003,8 +1126,9 @@ def _story(
         # ladder, the facts and every other spec on the rail are untouched by it
         # (FR-002).  That is why nothing below appends to `notes` — a note there
         # is the room's word for "this rail entry is degraded", and an evidence
-        # store that is not there does not make the epic's state unknown.
-        "evidence": _story_evidence(evidence_read, epic_id, node_id),
+        # store that is not there does not make the epic's state unknown.  Read
+        # above, where the `verifying` stop takes its instant from it.
+        "evidence": evidence,
         # The live fields the answer did not carry, named rather than defaulted.
         # An undispatched epic is not missing them; an answer that *was* read
         # and skipped this node — 002's skew — is missing all, and says so.

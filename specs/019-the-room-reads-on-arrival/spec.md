@@ -223,6 +223,28 @@ room reads today, and it touches no file under `web/`.
 - **FR-014**: An instant MUST be the recording seam's own value, never derived
   from another stop.
 
+### The six stops and the seams that time them (FR-012)
+
+FR-012's second half, established before anything was filled (plan D7). Of the
+six stops the ladder always has, **two** are recorded by an approved seam
+(constitution II) and **four** are recorded by none. The gap is written down
+here so that a `—` on screen is an answer this spec gave rather than a silence,
+and the same table lives in code as `STOP_INSTANT_SEAMS` in `pane/showfloor.py`.
+
+| Stop | The seam that records its instant |
+|---|---|
+| `ready` | **none** — nothing records when a node became dispatchable. |
+| `building` | **none** — nothing records when an attempt started. The evidence store's `started_at` brackets a *verification*, not a build, and reaching back from it to a build's start is the derivation FR-014 forbids. |
+| `verifying` | `factory.verify.store.node_history` — the verification's own `started_at`, taken from the first recorded attempt, because the stop is reached once. |
+| `pr open` | **none** — the `epic_status` answer carries `pr_number` and `landing_state` and no instant for either. |
+| `queue` | **none** — the merge queue's `Landing.enqueued_at` is workflow state that `NodeStatus` does not carry, and `landing_history` records only the five terminal outcomes, none of which is an enqueue. |
+| `merged` | Two seams for one event: the landing branch's own commit date (009 FR-002a), and the queue's `landing_history` entry whose outcome is `MERGED`. The branch answers first, which is the order `DetailPane` already reads them in. |
+
+All four of those "none"s are a gap in what ergane records, not in what this
+pane reads: closing any of them means a new field on a published contract, and
+inventing one here would be a pane that renders a fixture and not the factory
+(constitution V).
+
 ### Key Entities
 
 - **`_intent_after` / `parse_spec_intent`** (`pane/showfloor.py`) — the one
