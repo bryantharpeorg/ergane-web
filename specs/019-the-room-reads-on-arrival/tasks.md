@@ -57,16 +57,19 @@
 - [ ] T019 [US3] Establish, and write into the spec, which of the six stops the
       approved seams record an instant for and which none does (spec US3-S2,
       plan D7).
-- [ ] T020 [US3] Carry each recorded instant into the story's stop, taking it
-      from the seam that records it and from no other (spec US3-S1, US3-S4,
-      FR-014).
-- [ ] T021 [US3] Show `—` for a stop with no recording seam, so the gap is an
-      answer rather than a silence (spec US3-S2, FR-012).
+- [ ] T020 [US3] Fill each recorded instant into that stop's `at` in
+      `pane/showfloor.py`, taking it from the seam that records it and from no
+      other (spec US3-S1, US3-S4, FR-014).
+- [ ] T021 [US3] Leave `at` null for a stop no seam records, so the room's
+      existing `—` fallback answers for it (spec US3-S2, FR-012).
 - [ ] T022 [US3] Leave a stop the story has not reached carrying no time at all
       (spec US3-S3, FR-013).
-- [ ] T023 [US3] Render the instants in the room's existing format, adding no
-      new formatting rule (spec Edge Cases).
+- [ ] T023 [US3] Change nothing under `web/`: `stepsOf` already renders `at`
+      and the format is the room's (spec Edge Cases, plan D1, Named traps).
 - [ ] T024 [US3] Test that each filled stop equals its seam's own value, and
       that no stop is derived from another (spec US3-S4, FR-014).
-- [ ] T025 [US3] Test the unrecorded and unreached stops render `—` and empty
+- [ ] T025 [US3] Test the unrecorded and unreached stops answer `—` and empty
       respectively, and that the two are distinguishable (spec US3-S2, US3-S3).
+- [ ] T026 [US3] Stay inside the `derive_ladder` family — no import
+      reorganisation, no shared rename — because US1 is editing the same file
+      concurrently (plan D1, Named traps).

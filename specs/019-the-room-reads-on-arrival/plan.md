@@ -19,22 +19,42 @@ same time.
 - **US2 is web-only.** The selection is `Showfloor.tsx` state. Its proof is a
   vitest over the default-selection function plus a smoke assertion that the
   arriving room has a filled pane. **It touches no file under `pane/`.**
-- **US3 touches both**, which is why it waits for both.
+- **US3 is backend-only too.** `stop.at` is already in the document contract and
+  `DetailPane.stepsOf` already renders it with a `—` fallback; every stop but
+  `merged` is `null` because nothing fills it. So US3 fills a field the room
+  reads today. Its proof is a pytest over the filled ladder. **It touches no
+  file under `web/`.**
+
+All three carry empty `depends_on` and empty `depends_on_merged`, so the epic
+dispatches as three concurrent nodes and lands in whatever order the queue
+takes them.
 
 ## Decisions
 
-- **D1 — US1 and US2 share no file, so they dispatch together.** Both carry
-  empty `depends_on` and empty `depends_on_merged`. `ergane.yaml`'s note on
-  `max_concurrent_epics` is about two *epics* colliding in the merge queue; two
-  stories of one epic that touch disjoint package worlds are the case that note
-  explicitly leaves open ("raise this again only for epics that share no
-  package"). If either story is later widened to touch the other's world, the
-  graph is wrong and must be chained — see Named traps.
+- **D1 — all three stories dispatch together.** US2 shares nothing with either
+  of the others: it is the only story under `web/`. US1 and US3 share the
+  *file* `pane/showfloor.py` and nothing else — US1 rewrites `_intent_after`'s
+  paragraph guard, US3 fills `stop.at` inside the `derive_ladder` family. No
+  symbol, no signature and no protocol is common to the two, so a rebase in the
+  merge queue merges two disjoint hunks.
 
-- **D2 — US3 waits on `depends_on_merged`, not `depends_on`.** It edits
-  `pane/showfloor.py` (US1's file) and the web room (US2's world), and every node
-  branches from `dev` at dispatch. Merged, not merely finished, is the only
-  ordering that hands it a tree with both changes in it.
+  **This is a deliberate departure from `CLAUDE.md`'s "prefer
+  `depends_on_merged` when stories share files", and the reason it is safe here
+  is the reason that rule exists.** The collision it was written for is 002 ∥
+  003, recorded in `ergane.yaml`: 003 changed a reader protocol and added four
+  required `Settings` fields, and 002's tests had been written against the old
+  signatures. Nothing conflicted textually; two tests died semantically. A
+  paragraph reader and a ladder assembler cannot do that to each other. If
+  either node finds itself changing a signature the other could be reading, the
+  graph is wrong — stop and say so rather than pressing on (see Named traps).
+
+- **D2 — the risk that remains is the gate, not the diff.** Three nodes run the
+  five gates at once. `gates/smoke-webserver-ports-collide-across-concurrent-nodes`
+  is **resolved**, which is precisely this case; the still-open
+  `gates/concurrent-epics-collide-on-a-fixed-gate-port` is about leaked
+  webServer children across *epics*. If a smoke gate dies on a bound port
+  rather than on an assertion, that finding is the first place to look and the
+  failure is not the story's.
 
 - **D3 — the label guard becomes a shape, not a prefix.** Today any line starting
   with `**` ends the paragraph. Replace the prefix test with a match on the label
@@ -82,6 +102,16 @@ same time.
 
 - **Do not widen US2 into `pane/`.** Same trap, the other direction. Everything
   US2 needs is already in the showfloor document.
+
+- **Do not widen US3 into `web/`.** `stop.at` is already rendered with a `—`
+  fallback. A node editing `DetailPane.tsx` has either missed that or is
+  changing how the column looks, which is D-019's business and not this
+  story's.
+
+- **US1 and US3: stay inside your own function.** The two run at the same time
+  in one file. Neither may reorganise imports, rename a shared constant, or
+  refactor scaffolding either could touch. A tidy-up that is free in a serial
+  build is a merge conflict in a concurrent one.
 
 - **Do not invent an instant.** US3's easiest wrong answer is deriving `pr open`
   from the merge time, or `building` from the attempt's end minus its duration.

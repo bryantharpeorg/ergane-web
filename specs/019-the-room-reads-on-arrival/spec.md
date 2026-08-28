@@ -158,6 +158,13 @@ time that says "unknown" is two readings of one fact, and the weaker one wins
 the glance. P2 because, unlike US1 and US2, nothing on screen is *wrong*
 today: it is thin, and thin is honest.
 
+**The room is already built for this.** `stop.at` is in the document contract
+(`web/src/api/showfloorDocument.ts:27`) and `stepsOf`
+(`DetailPane.tsx:141`) already renders it, falling back to `—` when it is
+`null`. Every stop but `merged` is `null` because nothing fills it in
+`pane/showfloor.py`. So this story is **backend-only**: it fills a field the
+room reads today, and it touches no file under `web/`.
+
 **Acceptance Scenarios**:
 
 1. **Given** a story whose stops the approved seams record an instant for,
@@ -222,8 +229,9 @@ today: it is thin, and thin is honest.
   paragraph reader, serving both the spec goal and every story intent.
 - **`Showfloor.tsx`'s `selectedStory`** — the room's story selection, held as
   state and deliberately not a route segment (005 US4, D-016).
-- **The status stop list** (`DetailPane.tsx`, fed by `derive_ladder`) — six
-  named stops per story.
+- **`stop.at`** — the instant field the showfloor document already carries per
+  stop, filled today only for `merged`. `DetailPane.stepsOf` renders it and
+  falls back to `—`, so US3 fills a field rather than adding one.
 
 ## Success Criteria
 
@@ -277,7 +285,7 @@ US2:
   timeout: 3600
 US3:
   depends_on: []
-  depends_on_merged: [US1, US2]
+  depends_on_merged: []
   implements: [FR-011, FR-012, FR-013, FR-014]
   timeout: 3600
 ```
