@@ -255,6 +255,159 @@ test("the room answers 401 without the token, like every other route", async ({
   }
 });
 
+/**
+ * The navigation this spec exists to create (018 US1, SC-005).
+ *
+ * **No URL is typed here** past the pane's own front door. That is the whole
+ * assertion: before this story the drafting table could only be reached by an
+ * operator who already knew a spec directory and typed it into the address bar,
+ * and a room reachable only that way is a room the pane does not offer. So the
+ * walk is the operator's — open the pane, click the room in the appbar, click a
+ * row — and every hop after the first is a click on something the pane rendered.
+ *
+ * **And nothing here names a spec directory.** The corpus moves; the row this
+ * test opens is whichever one the index listed first, and what is asserted is
+ * that the trio which opens is the one that row named (008 US1's discipline,
+ * kept).
+ */
+test.describe("the corpus opens on one page, and every spec has a door (018 US1)", () => {
+  test("walks appbar → index → a spec's drafting table, with no typed URL", async ({
+    page,
+  }) => {
+    // The pane's front door, and the only address in this test.
+    await page.goto("/");
+
+    // US1-S7 (FR-008): the room is offered in the appbar, beside the other two.
+    const roomLink = page.locator(".mast nav a", { hasText: "Drafting table" });
+    await expect(roomLink).toHaveCount(1);
+    await roomLink.click();
+
+    // US1-S1 (FR-001): the corpus, one row per spec, and the room is current.
+    await page.waitForSelector("[data-index-list]");
+    await expect(page.locator(".mast nav a[aria-current='page']")).toHaveText(
+      "Drafting table",
+    );
+    const rows = page.locator("[data-index-row]");
+    // Non-vacuous: a corpus with no rows would let every claim below pass over
+    // nothing (001 US1-S1, in its smoke shape).
+    expect(await rows.count()).toBeGreaterThan(1);
+
+    // US1-S5 (FR-006): what it read, and when, on the page it read it for.
+    await expect(page.locator("[data-index-stamp]")).toBeVisible();
+
+    // US1-S2 (FR-002): the row is the link, and clicking it opens that spec.
+    const firstRow = rows.first();
+    const specDir = await firstRow
+      .locator("[data-index-link]")
+      .getAttribute("data-spec-dir");
+    expect(specDir, "the first row named no spec directory").toBeTruthy();
+    await firstRow.locator("[data-index-link]").click();
+
+    // 014's room, opened on the spec the row named — and still the same room in
+    // the appbar, with or without a spec in the address (FR-008).
+    await page.waitForSelector("[data-draft-content]");
+    await expect(page.locator("[data-draft-content]")).toHaveAttribute(
+      "data-spec-dir",
+      specDir as string,
+    );
+    await expect(page.locator("[data-draft-trio]")).toBeVisible();
+    await expect(page.locator(".mast nav a[aria-current='page']")).toHaveText(
+      "Drafting table",
+    );
+  });
+
+  test("dresses every declared state in a chip and no row in a glyph", async ({
+    page,
+  }) => {
+    // US1-S3 (FR-004): intent is declared, progress is observed, and only the
+    // second has glyphs. Whatever this corpus declares today, every row wears a
+    // worded chip and nothing on the page wears a ladder.
+    await page.goto("/");
+    await page.locator(".mast nav a", { hasText: "Drafting table" }).click();
+    await page.waitForSelector("[data-index-list]");
+
+    const rows = page.locator("[data-index-row]");
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(1);
+    for (let index = 0; index < count; index += 1) {
+      const row = rows.nth(index);
+      const chip = row.locator("[data-declared-state]");
+      await expect(chip).toHaveCount(1);
+      // State is never colour alone: the word is on the element.
+      expect((await chip.textContent())?.trim()).toBe(await row.getAttribute("data-state"));
+    }
+    await expect(page.locator("[data-index-list] [data-ladder]")).toHaveCount(0);
+    await expect(page.locator("[data-index-list] [data-stop]")).toHaveCount(0);
+  });
+
+  test("offers the review room on landed rows and on no others", async ({ page }) => {
+    // US1-S2a (FR-010). Which specs are `landed` is a fact about the corpus and
+    // moves with it, so the claim is the *relation* — a review link appears on
+    // a row if and only if that row declares `landed` — and it is asserted over
+    // whatever the corpus declares today.
+    await page.goto("/");
+    await page.locator(".mast nav a", { hasText: "Drafting table" }).click();
+    await page.waitForSelector("[data-index-list]");
+
+    const rows = page.locator("[data-index-row]");
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(1);
+    for (let index = 0; index < count; index += 1) {
+      const row = rows.nth(index);
+      const declared = await row.getAttribute("data-state");
+      const offered = await row.locator("[data-review-link]").count();
+      expect(offered, `a ${declared} row offering ${offered} review links`).toBe(
+        declared === "landed" ? 1 : 0,
+      );
+    }
+  });
+
+  for (const width of WIDTHS) {
+    for (const theme of THEMES) {
+      test(`the index reports zero law violations at ${width} in ${theme}`, async ({
+        page,
+      }) => {
+        // § Layout's four laws over the new view. The index is where the row is
+        // itself a link — an anchor covering its own row with an inset overlay
+        // — so "an opaque box painted over text" is the law it could plausibly
+        // break, and it is the reason this sweep is here rather than assumed
+        // from the trio's.
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({ colorScheme: theme });
+        await page.goto("/");
+        await page.locator(".mast nav a", { hasText: "Drafting table" }).click();
+        await page.waitForSelector("[data-index-list]");
+
+        const report = await measureLaws(page);
+
+        expect(report.leaves, "the sweep found no text at all").toBeGreaterThan(10);
+        expect(report.painters, "the sweep found nothing painted").toBeGreaterThan(0);
+        expect(report.escaped, "text outside a scrolling ancestor").toEqual([]);
+        expect(report.past, "an element past its container").toEqual([]);
+        expect(report.overlapping, "two text leaves overlapping").toEqual([]);
+        expect(report.occluded, "an opaque box painted over text").toEqual([]);
+        expect(report.roomScrollsSideways, "the room scrolls sideways").toBe(false);
+        expect(report.documentScrollWidth, "the document is wider than the viewport")
+          .toBeLessThanOrEqual(report.viewport + 1);
+      });
+    }
+  }
+
+  test("the index answers 401 without the token, like every other route", async ({
+    baseURL,
+  }) => {
+    // Node's own `fetch`, for the reason 014's case gives: Playwright's request
+    // context answers the challenge from `use.httpCredentials`, which is what an
+    // assertion about having no credential must not do (US1-S6, FR-007).
+    for (const path of ["/draft", "/api/draft"]) {
+      const response = await fetch(`${baseURL}${path}`);
+      expect(response.status, `${path} served without a token`).toBe(401);
+      expect(response.headers.get("www-authenticate")).toContain("Bearer");
+      expect(await response.text()).not.toContain("spec_dir");
+    }
+  });
+});
+
 test.describe("the graph draws what will run (014 US3)", () => {
   test("draws the compiled graph with the stage's assets, unlit", async ({
     page,
