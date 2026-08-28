@@ -249,9 +249,15 @@ export default function DraftIndex(): JSX.Element {
         ))}
         {doc.specs.length > 0 ? (
           <>
+            {/* The header's two labels ride one cell so they land on the
+                same grid track the row's own cell does — "declared" over the
+                chips, not over the review column (DESIGN.md § The Desk in this
+                world: micro uppercase headers over a hairline). */}
             <p className="draft-index-head micro" data-index-head aria-hidden="true">
-              <span>spec</span>
-              <span>declared</span>
+              <span className="draft-index-head-cells">
+                <span>spec</span>
+                <span>declared</span>
+              </span>
             </p>
             <ul className="draft-index-list" data-index-list>
               {doc.specs.map((entry) => (
