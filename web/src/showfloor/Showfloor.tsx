@@ -87,6 +87,27 @@ export function isStoryLive(story: ShowfloorStory): boolean {
   );
 }
 
+/**
+ * The story the factory is *working*, which is tighter than the one above.
+ *
+ * `isStoryLive` is the epic-level question — has any node of this epic still
+ * got something to do — and at that level `PENDING` counts, because an epic
+ * with pending nodes is unfinished. Asked about a single story it is too loose:
+ * a half-landed epic reads `merged · RUNNING · PENDING · PENDING`, and three of
+ * those four are live while only one is being built. So a story is being built
+ * when its ladder has left `ready` without reaching `merged` and without
+ * freezing — which is the document's own `stop_key`, not a state word this
+ * component re-derived.
+ *
+ * A story `awaiting_operator` qualifies, and deliberately: it has left `ready`,
+ * it is the thing most likely to be why the operator opened the room, and a
+ * rule that stepped over it would open on the story behind it instead.
+ */
+export function isStoryBuilding(story: ShowfloorStory): boolean {
+  if (!isStoryLive(story)) return false;
+  return story.ladder.stop_key !== null && story.ladder.stop_key !== "ready";
+}
+
 /** The identity a selection is carried by — the document's own, never an index. */
 export function storyIdOf(story: ShowfloorStory): string | null {
   return story.id ?? story.story_key;
@@ -133,12 +154,12 @@ export function defaultSelection(rail: RailEntry[]): RailEntry | null {
  *
  * Two differences from `defaultSelection`, both deliberate:
  *
- * * **Building takes the *first* live story, not the last.** At the rail's
- *   level "newest" is right because a later spec is later work. Inside one
- *   epic it is not: a half-landed epic reads `merged · RUNNING · PENDING ·
- *   PENDING`, every one of the last three live by `isStoryLive`, and the last
- *   of them is a story nothing has started. The front of the unfinished work is
- *   the story the factory is working, and it is the first one.
+ * * **Building takes the *first* story being built, not the last.** At the
+ *   rail's level "newest" is right because a later spec is later work. Inside
+ *   one epic it is not: a half-landed epic reads `merged · RUNNING · PENDING ·
+ *   PENDING`, and the last of those is a story nothing has started. The front
+ *   of the unfinished work is the story the factory is working, and it is the
+ *   first one `isStoryBuilding` admits.
  * * **Merged keeps the rail's "newest".** All-merged is a finished epic read
  *   backwards, and the last story to land is the one an operator arriving at it
  *   wants open — the same reasoning that makes the rail prefer the newest
@@ -154,8 +175,8 @@ export function defaultStory(entry: RailEntry | null): ShowfloorStory | null {
   const stories = Array.isArray(entry.stories) ? entry.stories : [];
   if (stories.length === 0) return null;
 
-  const live = stories.find(isStoryLive);
-  if (live !== undefined) return live;
+  const building = stories.find(isStoryBuilding);
+  if (building !== undefined) return building;
 
   const merged = stories.filter((story) => story.ladder.stop_key === "merged");
   if (merged.length > 0) return merged[merged.length - 1];

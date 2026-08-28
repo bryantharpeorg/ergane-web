@@ -18,7 +18,9 @@ import { createRoot } from "react-dom/client";
 import { act } from "react";
 import Showfloor, {
   defaultSelection,
+  defaultStory,
   isBuilding,
+  isStoryBuilding,
   selectFromPath,
 } from "../../src/showfloor/Showfloor";
 import type { AttentionItem, FloorDocument } from "../../src/api/floorDocument";
@@ -34,6 +36,7 @@ import {
   ladderOf,
   readyEntry,
   storylessEntry,
+  waitingEntry,
 } from "./support/showfloor-builder";
 import {
   installEventSourceDouble,
@@ -652,6 +655,252 @@ describe("the spec's goal takes the band (009 US4, FR-010 … FR-013)", () => {
 
     expect(goal(container)).not.toBeNull();
     expect(container.querySelector("[data-detail-empty]")).toBeNull();
+
+    document.body.removeChild(container);
+  });
+});
+
+/**
+ * 019 US2 — the room reads on arrival (FR-006 … FR-010).
+ *
+ * Shipped, `selectedStory` began `null`: D-016 collapsed the `26rem` detail
+ * track to zero and an arrival was one row of cards over an empty surface. The
+ * rail has always picked a *default spec* on the reasoning "building, else the
+ * newest landed, else the first"; this is that same sentence said about
+ * stories, and D-016 survives it whole — a spec with no stories still collapses
+ * the track, because the rule was that the track is a story's track, not that
+ * arrival must be empty.
+ *
+ * The derivation is exported and tested as a rule (plan D6) rather than only
+ * through the room, because a rule inlined into a component is a rule no test
+ * can reach at all four of its answers. The room is then tested for the two
+ * things only the room can be wrong about: that it uses the rule on arrival,
+ * and that it re-derives on a change of spec rather than remembering.
+ */
+describe("the default story, as a rule (019 FR-006, FR-007)", () => {
+  const idOf = (entry: RailEntry) => defaultStory(entry)?.id ?? null;
+
+  it("takes the story the factory is building, over the merged and the pending", () => {
+    // `merged · RUNNING · PENDING · PENDING`: three of those four are live at
+    // the *epic* level, and exactly one is being built.
+    const entry = buildingEntry("019-x", 1, 4);
+    expect(idOf(entry)).toBe("us2");
+    expect(entry.stories.map((story) => isStoryBuilding(story))).toEqual([
+      false,
+      true,
+      false,
+      false,
+    ]);
+  });
+
+  it("takes the first story being built when an epic runs several at once", () => {
+    // This epic's own shape: three concurrent nodes, nothing landed. The front
+    // of the work is the first, not the last — the rail's "newest" is a rule
+    // about specs and does not come down a level with it.
+    const entry = buildingEntry("019-y", 0, 3);
+    const concurrent = {
+      ...entry,
+      stories: entry.stories.map((story) => ({
+        ...story,
+        ladder: ladderOf({
+          state: "RUNNING",
+          specState: "ready",
+          stopKey: "building",
+          chip: "building",
+        }),
+      })),
+    };
+
+    expect(idOf(concurrent)).toBe("us1");
+  });
+
+  it("takes the story waiting on the operator over the pending one before it", () => {
+    // `waitingEntry` puts `awaiting_operator` on us2 and leaves us1 pending at
+    // `ready`. The gold story is why the room was opened.
+    expect(idOf(waitingEntry("019-z"))).toBe("us2");
+  });
+
+  it("takes the newest merged when every story has merged", () => {
+    expect(idOf(landedEntry("019-a", 4))).toBe("us4");
+    expect(idOf(landedEntry("019-b", 1))).toBe("us1");
+  });
+
+  it("takes the newest merged when nothing is building and something has", () => {
+    // Half an epic landed and the rest never dispatched: no story is being
+    // built, so the rule falls to the newest that merged rather than to us1.
+    const entry = buildingEntry("019-c", 2, 4);
+    const stalled = {
+      ...entry,
+      epic_id: null,
+      stories: entry.stories.map((story, index) =>
+        index < 2
+          ? story
+          : { ...story, ladder: ladderOf({ specState: "ready", stopKey: "ready", chip: "ready" }) },
+      ),
+    };
+
+    expect(idOf(stalled)).toBe("us2");
+  });
+
+  it("takes the first story when nothing is building and nothing has merged", () => {
+    expect(idOf(readyEntry("019-d"))).toBe("us1");
+    expect(idOf(draftEntry("019-e"))).toBe("us1");
+  });
+
+  it("takes nothing at all from a spec that carries no stories (FR-009)", () => {
+    expect(defaultStory(storylessEntry("019-f"))).toBeNull();
+    expect(defaultStory(entryOfNoStories())).toBeNull();
+  });
+
+  it("takes nothing from no spec, rather than throwing", () => {
+    expect(defaultStory(null)).toBeNull();
+  });
+
+  /** A spec whose `stories` never arrived at all, not merely an empty list. */
+  function entryOfNoStories(): RailEntry {
+    const entry = storylessEntry("019-g");
+    return { ...entry, stories: undefined as unknown as RailEntry["stories"] };
+  }
+});
+
+describe("the room opens on that story (019 FR-006, FR-008, FR-010)", () => {
+  const title = (container: HTMLElement) =>
+    container.querySelector("[data-detail-title]")?.textContent ?? null;
+  const selection = (container: HTMLElement) =>
+    container.querySelector("[data-showfloor-cols]")!.getAttribute("data-selection");
+  const pressed = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll("[data-node-card][aria-pressed='true']")).length;
+
+  it("tells a story with no click at all, and releases the track for it (FR-006)", async () => {
+    const rail = [...CORPUS.slice(0, 4), buildingEntry("019-one-epic", 1, 4)];
+    const container = await renderAt("/showfloor", rail);
+
+    // The default spec is the building one, and its default story is the one
+    // being built — so the pane is telling something before anything was
+    // clicked, and exactly one card reports itself selected.
+    expect(selectedDir(container)).toBe("019-one-epic");
+    expect(selection(container)).toBe("story");
+    expect(title(container)).toBe("story 2");
+    expect(pressed(container)).toBe(1);
+    // The room's own explainer is not stacked under a stage that has a spec.
+    expect(container.querySelector("[data-detail-empty]")).toBeNull();
+
+    document.body.removeChild(container);
+  });
+
+  it("opens an all-merged spec on its newest merged story (FR-007)", async () => {
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", CORPUS);
+
+    expect(title(container)).toBe("story 4");
+
+    document.body.removeChild(container);
+  });
+
+  it("opens a spec that is neither building nor merged on its first story (FR-007)", async () => {
+    const container = await renderAt("/showfloor/005-one-epic-on-stage", CORPUS);
+
+    expect(title(container)).toBe("story 1");
+
+    document.body.removeChild(container);
+  });
+
+  it("leaves the track collapsed for a spec carrying no stories (FR-009)", async () => {
+    const container = await renderAt("/showfloor/020-empty", [storylessEntry("020-empty")]);
+
+    // D-016 is intact and nothing about this case moved: the hook reads
+    // `none`, the track collapses behind it, and the pane is telling nothing.
+    expect(selection(container)).toBe("none");
+    expect(title(container)).toBeNull();
+    expect((container.querySelector("[data-detail]")?.textContent ?? "").trim()).toBe("");
+    expect(pressed(container)).toBe(0);
+
+    // "The pane holds the room's own explanation, **exactly as today**" — and
+    // today the explanation is not in the pane at all. D-019 took it out of the
+    // `26rem` track and 009 FR-013 retired it to the case where no spec is
+    // selected, so what "exactly as today" preserves here is the band under the
+    // stage holding this spec's own goal. Putting the two sentences back beside
+    // a goal would stack the two explanations D-019 forbids stacking.
+    expect(container.querySelector("[data-detail-empty]")).toBeNull();
+
+    // And with no spec at all, the explanation is exactly where 009 left it.
+    document.body.removeChild(container);
+    const bare = await renderAt("/showfloor", []);
+    expect(selection(bare)).toBe("none");
+    expect(bare.querySelector("[data-detail-empty]")).not.toBeNull();
+    document.body.removeChild(bare);
+  });
+
+  it("re-derives on a change of spec, and never carries the previous pick (FR-008)", async () => {
+    // Stage a landed spec, then pick its *first* story — a pick that differs
+    // from every default, so a room that remembered it would be caught.
+    const container = await renderAt("/showfloor/002-the-showfloor-stages-an-epic", WITH_GOALS);
+    expect(title(container)).toBe("story 4");
+
+    const card = container.querySelector("[data-node-card]") as HTMLButtonElement;
+    await act(async () => {
+      card.click();
+      await Promise.resolve();
+    });
+    expect(title(container)).toBe("story 1");
+    document.body.removeChild(container);
+
+    // Now the rail moves to a spec that is building. Its own default is the
+    // story being built — never `us1` carried over from the spec that was on
+    // stage, and never the *object* that belonged to it.
+    const rail = WITH_GOALS.map((entry) =>
+      entry.spec_dir === "005-one-epic-on-stage" ? buildingEntry("005-one-epic-on-stage", 1, 4) : entry,
+    );
+    const next = await renderAt("/showfloor/005-one-epic-on-stage", rail);
+
+    expect(selectedDir(next)).toBe("005-one-epic-on-stage");
+    expect(title(next)).toBe("story 2");
+    expect(pressed(next)).toBe(1);
+
+    document.body.removeChild(next);
+  });
+
+  it("does not consult a pick made on another spec (FR-008, plan D5)", async () => {
+    // The unit under this scenario is the *keying*: `us1` names a story of
+    // every epic on the rail, so a pick held as a bare id would resolve
+    // against whatever spec is staged next and the room would show a story of
+    // a spec that is no longer there.
+    const rail = [landedEntry("019-first", 4), buildingEntry("019-second", 1, 4)];
+    const container = await renderAt("/showfloor/019-first", rail);
+
+    const card = container.querySelector("[data-node-card]") as HTMLButtonElement;
+    await act(async () => {
+      card.click();
+      await Promise.resolve();
+    });
+    expect(title(container)).toBe("story 1");
+    document.body.removeChild(container);
+
+    const next = await renderAt("/showfloor/019-second", rail);
+    expect(title(next)).toBe("story 2");
+    document.body.removeChild(next);
+  });
+
+  it("keeps the story out of the URL, on arrival and on a pick (FR-010)", async () => {
+    // 005 US4 decided this and D-016 rests on it: a spec is a place, a story is
+    // a reading. A second path segment would make the back button walk an
+    // operator's every glance.
+    const path = "/showfloor/002-the-showfloor-stages-an-epic";
+    const container = await renderAt(path, CORPUS);
+
+    // Arrival selected a story, and the URL still names only the spec.
+    expect(title(container)).toBe("story 4");
+    expect(window.location.pathname).toBe(path);
+
+    const card = container.querySelector("[data-node-card]") as HTMLButtonElement;
+    await act(async () => {
+      card.click();
+      await Promise.resolve();
+    });
+
+    expect(title(container)).toBe("story 1");
+    expect(window.location.pathname).toBe(path);
+    expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("");
 
     document.body.removeChild(container);
   });
