@@ -1,5 +1,5 @@
 ---
-state: draft
+state: ready
 depends_on_landed: []
 # Written 2026-08-28 from a measured pass over the SHIPPED Showfloor, live and
 # demo, at 1440 / 1600 / 2560 in both themes. Screenshots and measurements are
