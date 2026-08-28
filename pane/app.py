@@ -14,6 +14,7 @@ from pane.attention_store import open_store
 from pane.auth import Unauthorized, require_viewer, unauthorized_handler
 from pane.config import Settings
 from pane.draft import read_draft
+from pane.draft_index import read_corpus
 from pane.events import EVENT_TYPES, AttentionBroadcaster, floor_events
 from pane.fixture_floor import FixtureReader
 from pane.floor_document import assemble_floor_document
@@ -103,6 +104,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ),
         )
         return JSONResponse(document)
+
+    # 018 US1: the corpus itself, at the bare path the trio's route extends.
+    # Every spec `read_roadmap` returns, in its order, with the state it
+    # declared — the index the drafting table's rooms are reached from (FR-001).
+    # On the same guarded router as every other read, so the token covers it by
+    # construction and it answers 401 without one (FR-007), and mounted above
+    # the catch-all for the reason the trio's route is.
+    @router.get("/api/draft")
+    async def api_draft_index():
+        return JSONResponse(read_corpus(settings.specs_root))
 
     # 014 US1: the drafting table's read, and US2's three attributed checks on
     # the same bytes.  Mounted before the SPA catch-all below, because

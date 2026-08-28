@@ -33,6 +33,7 @@
     { "path": "/api/attention", "kind": "api", "name": "The attention list" },
     { "path": "/api/events", "kind": "api", "name": "The floor event stream" },
     { "path": "/api/review/{spec_dir}", "kind": "api", "name": "The review document" },
+    { "path": "/api/draft", "kind": "api", "name": "The drafting table's index of the corpus" },
     { "path": "/api/draft/{spec_dir}", "kind": "api", "name": "The drafting table's trio" },
     { "path": "/api/attention/{correlation_id}/answer", "kind": "api", "name": "Answer, the one verb" },
     { "path": "/intake/{credential:path}", "kind": "api", "name": "The factory's webhook intake" },
@@ -42,15 +43,15 @@
     { "pattern": "pane/__init__.py", "routes": [] },
     {
       "pattern": "pane/app.py",
-      "routes": ["/", "/desk", "/showfloor", "/review", "/draft", "/api/floor", "/api/showfloor", "/api/attention", "/api/events", "/api/review/{spec_dir}", "/api/draft/{spec_dir}", "/api/attention/{correlation_id}/answer", "/intake/{credential:path}", "/{path:path}"]
+      "routes": ["/", "/desk", "/showfloor", "/review", "/draft", "/api/floor", "/api/showfloor", "/api/attention", "/api/events", "/api/review/{spec_dir}", "/api/draft", "/api/draft/{spec_dir}", "/api/attention/{correlation_id}/answer", "/intake/{credential:path}", "/{path:path}"]
     },
     {
       "pattern": "pane/auth.py",
-      "routes": ["/", "/desk", "/showfloor", "/review", "/draft", "/api/floor", "/api/showfloor", "/api/attention", "/api/events", "/api/review/{spec_dir}", "/api/draft/{spec_dir}", "/api/attention/{correlation_id}/answer", "/intake/{credential:path}", "/{path:path}"]
+      "routes": ["/", "/desk", "/showfloor", "/review", "/draft", "/api/floor", "/api/showfloor", "/api/attention", "/api/events", "/api/review/{spec_dir}", "/api/draft", "/api/draft/{spec_dir}", "/api/attention/{correlation_id}/answer", "/intake/{credential:path}", "/{path:path}"]
     },
     {
       "pattern": "pane/config.py",
-      "routes": ["/", "/desk", "/showfloor", "/review", "/draft", "/api/floor", "/api/showfloor", "/api/attention", "/api/events", "/api/review/{spec_dir}", "/api/draft/{spec_dir}", "/api/attention/{correlation_id}/answer", "/intake/{credential:path}", "/{path:path}"]
+      "routes": ["/", "/desk", "/showfloor", "/review", "/draft", "/api/floor", "/api/showfloor", "/api/attention", "/api/events", "/api/review/{spec_dir}", "/api/draft", "/api/draft/{spec_dir}", "/api/attention/{correlation_id}/answer", "/intake/{credential:path}", "/{path:path}"]
     },
     {
       "pattern": "pane/readers.py",
@@ -68,13 +69,14 @@
     { "pattern": "pane/events.py", "routes": ["/", "/desk", "/showfloor", "/api/events"] },
     { "pattern": "pane/showfloor.py", "routes": ["/", "/desk", "/showfloor", "/api/showfloor", "/api/events"] },
     { "pattern": "pane/stage.py", "routes": ["/showfloor", "/api/showfloor"] },
-    { "pattern": "pane/sweep.py", "routes": ["/showfloor", "/api/showfloor", "/draft", "/api/draft/{spec_dir}"] },
+    { "pattern": "pane/sweep.py", "routes": ["/showfloor", "/api/showfloor", "/draft", "/api/draft", "/api/draft/{spec_dir}"] },
     { "pattern": "pane/landing.py", "routes": ["/", "/desk", "/showfloor", "/review", "/api/showfloor", "/api/review/{spec_dir}"] },
     { "pattern": "pane/review.py", "routes": ["/review", "/api/review/{spec_dir}"] },
     { "pattern": "pane/revision.py", "routes": ["/review", "/api/review/{spec_dir}"] },
-    { "pattern": "pane/draft.py", "routes": ["/draft", "/api/draft/{spec_dir}"] },
+    { "pattern": "pane/draft.py", "routes": ["/draft", "/api/draft", "/api/draft/{spec_dir}"] },
+    { "pattern": "pane/draft_index.py", "routes": ["/draft", "/api/draft"] },
     { "pattern": "pane/checks.py", "routes": ["/draft", "/api/draft/{spec_dir}"] },
-    { "pattern": "route-manifest.json", "routes": ["/review", "/api/review/{spec_dir}", "/draft", "/api/draft/{spec_dir}"] },
+    { "pattern": "route-manifest.json", "routes": ["/review", "/api/review/{spec_dir}", "/draft", "/api/draft", "/api/draft/{spec_dir}"] },
     { "pattern": "fixtures/**", "routes": ["/", "/desk", "/showfloor", "/review", "/api/floor", "/api/showfloor", "/api/attention", "/api/events", "/api/review/{spec_dir}"] },
     { "pattern": "web/index.html", "routes": ["/", "/desk", "/showfloor", "/review", "/draft", "/{path:path}"] },
     { "pattern": "web/vite.config.ts", "routes": ["/", "/desk", "/showfloor", "/review", "/draft", "/{path:path}"] },
@@ -92,6 +94,7 @@
     { "pattern": "web/src/api/answer.ts", "routes": ["/", "/desk"] },
     { "pattern": "web/src/api/reviewDocument.ts", "routes": ["/review"] },
     { "pattern": "web/src/api/draftDocument.ts", "routes": ["/draft"] },
+    { "pattern": "web/src/api/draftIndexDocument.ts", "routes": ["/draft"] },
     { "pattern": "web/src/desk/**", "routes": ["/", "/desk"] },
     { "pattern": "web/src/showfloor/**", "routes": ["/showfloor"] },
     { "pattern": "web/src/review/**", "routes": ["/review"] },
