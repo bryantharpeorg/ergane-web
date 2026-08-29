@@ -1,5 +1,5 @@
 ---
-state: ready
+state: landed
 depends_on_landed: []
 # Written 2026-08-28 from a measured pass over the SHIPPED Showfloor, live and
 # demo, at 1440 / 1600 / 2560 in both themes. Screenshots and measurements are
@@ -37,6 +37,32 @@ depends_on_landed: []
 # already honest about it under the Unknown Rule. Filling those cells is
 # ergane's work, not this repository's, and a story that "fixed" it here would
 # be inventing a number (constitution V).
+#
+# LANDED 2026-08-28, three stories, THREE ATTEMPTS, no rework and no recovery
+# cycle -- `attempt=1, recovery_cycles=0` on all three nodes, read from the build
+# store rather than remembered. US1 at 893b5b0ba43f (#106), US2 at 3b176e4727d4
+# (#107), US3 at a5cbf9af184d (#108). Persona `implementer`, model
+# claude-opus-5, route `subscription`, so the epic cost nothing per token.
+#
+# Measured (UTC verbatim, CT beside): dispatched 22:05:22Z (5:05 PM CT),
+# complete 22:59:58Z (5:59 PM CT) -- 54m36s for the epic.
+#
+#   US1  build  9m34s   PR 22:14:56Z   landing 7m42s
+#   US2  build 14m46s   PR 22:37:24Z   landing 9m34s
+#   US3  build  4m51s   PR 22:51:49Z   landing 7m40s
+#
+# THE THREE STORIES DID NOT NEED TO BE SERIAL, and that is the useful finding.
+# All three derive with `depends_on_merged: []` -- they are independent by
+# declaration. What serialised them was the roadmap's `max_concurrent_nodes: 1`,
+# not the graph: each node branched from `dev` only after its predecessor
+# merged. The forecast for this epic called `pane/showfloor.py` contention
+# between us1 and us3 and it never materialised, which was luck rather than
+# design -- us3 branched from a `dev` that already held us1. That dial went to 2
+# on 2026-08-29, so a future epic shaped like this one runs two stories at once
+# and the graph has to declare what the dial used to hide.
+#
+# It is also the last epic this repository ran on the Claude subscription. Rung
+# 1 moved to `local/qwen3.8-flash-next` on the DGX Spark the same night.
 ---
 
 # Feature Specification: The room reads on arrival
