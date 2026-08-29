@@ -133,6 +133,28 @@ ladder:
 # `pane/app.py`, `pane/events.py` and `pane/readers.py`, so that toll is due on
 # every remaining story. Serial is slower on paper (seven rounds instead of four)
 # and cheaper in practice. Raise this to 2 again only for epics that share no
-# package.
+# package -- and it is still 1 below.
+#
+# WIDTH MOVED INTO THE EPIC INSTEAD, 2026-08-28, at the operator's ceiling of
+# "no more than 2 wide". The two dials multiply: worst-case concurrent agents is
+# max_concurrent_epics x max_concurrent_nodes. Going wide across EPICS is the
+# bet the paragraph above already lost; going wide across the STORIES OF ONE
+# epic is a different bet, because a spec author who knows two stories share a
+# file has a tool the roadmap does not -- `depends_on_merged` in the Work Graph,
+# which serialises exactly that pair and leaves the rest parallel. 019 is the
+# worked example from the other side: its us3 avoided the `pane/showfloor.py`
+# contention only because the 1-node dial made it branch after us1 merged, which
+# is luck rather than declaration. At 2 nodes that luck stops being available
+# and the graph has to say so.
+#
+# Two more facts worth having before raising either number. GATES DO NOT
+# PARALLELISE: `DEFAULT_GATE_CONCURRENCY` is 1 and is a process-level bound
+# across the host (factory/verify/gates.py:85), set deliberately below node
+# concurrency so a gate's wall clock measures its own work and not the queue it
+# waited in -- so this widens the agent phase only, and the five-gate suite
+# still queues behind itself. And rung 1 now runs on the DGX's llama.cpp engine,
+# which serves THREE slots; at 2 nodes that leaves one spare, and the judge does
+# not compete for it because it is on Ollama Cloud.
 roadmap:
   max_concurrent_epics: 1
+  max_concurrent_nodes: 2
