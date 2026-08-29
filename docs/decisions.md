@@ -1198,3 +1198,59 @@ that the choice be visible, not that it be forbidden."* Filed as
 **089-a-gate-may-bind-the-boundary-alone**, which proposes a `boundary_only_gates:` declaration beside
 `gates:`. If 089 lands, this entry may be revisited; until then, requiring the gate is what keeps the
 line running.
+
+---
+
+## D-027 · The record room opens 007's room early, and its shape is a join (decided 2026-08-29)
+
+**Raised by** the operator, 2026-08-29, asking for the buildable half of 007 as its own spec and for
+a work graph whose stories are not a straight line.
+
+**What is decided, in three parts.**
+
+1. **The room is `/spec/<spec-dir>`, and spec 020 opens it.** 007's Open Question 4 chose a third
+   room over a mode of the Showfloor, on the reasoning that a spec's build record is researched at a
+   desk and is too dense for a detail pane. That answer stands. What changes is *when*: 020 opens the
+   room with what is provable today, and 007 fills it when ergane PR-1 makes a durable, append-only
+   history exist. **There is not a second room**, and a future 007 that builds one is the
+   fragmentation this entry exists to prevent. `DESIGN.md` § The record room in this world is the
+   visual authority and is amended by this entry, before the spec that builds to it (constitution
+   VIII, the D-016/D-019/D-023 pattern).
+
+2. **What the room may show is bounded by what survives, and the bounds are named.** No token counts
+   (PR-10 measured 0 usage rows for every epic after 002); no coverage or scan artifacts (015 emits
+   them and forbids the pane reading them until PR-3); no persona or model as fact (PR-2 — and
+   guessing from the registry is forbidden, because the debugger rung relabels the persona without
+   re-resolving the model); no cross-dispatch history (PR-1, and not in `ergane-cli` 0.5.0 — measured
+   at #113). Each of those renders as `unknown` or as a stated limit, never as an omission. **A
+   pane-side archive to work around PR-1 stays forbidden** — constitution I names writing outside
+   `specs/` by name, and reopening that is its own decision, not a spec's.
+
+3. **`attempt_timings` is the epic-wide read and needs no new permission.** D-020 already put it on
+   constitution II's approved list beside `node_history`. Nothing in this repository has called it;
+   020 US3 is its first caller. Recording that here so nobody re-derives the question.
+
+**And one thing this entry deliberately does not decide.** 020's work graph is shaped 2 → 1 → 2 at
+the operator's request — the first graph in this corpus with a join in it, every previous spec having
+been a straight chain (001–015) or a row of isolated nodes (019). **The shape is a consequence of the
+decomposition, not a constraint on it.** Two independent derivations that share no file, one assembly
+that cannot exist without both, two surfaces that need the assembly and not each other: that is what
+the work is, and it is what the graph says. If refinement shows the natural decomposition is a
+different shape, the graph changes. A spec bent to draw a nicer picture is a spec that lies about its
+own structure, and constitution IV would catch it at the first scenario that could not be proved.
+
+**The concurrency is now declared rather than lucked into.** `max_concurrent_nodes` went to 2 on
+2026-08-28 and `ergane.yaml`'s own note says the graph has to say what the 1-node dial used to hide.
+020 plan D1 lists the paths each concurrent pair writes, because N38 presents in the merge queue
+rather than in the pull request — the boundary gate tests the branch and the queue tests the merge
+(N48), so a colliding pair passes every check a node can see.
+
+**A new platform gap was found writing this and is filed, not worked around.** The spec's first draft
+made resolved escalation history one of the two leaf derivations. It is not reachable:
+`pending_escalations` filters `WHERE resolution IS NULL` and its own docstring calls resolved rows
+"history", and `get_escalation` requires an id the pane does not hold. There is no exported reader
+that returns an epic's resolved escalations, and constitution II forbids the pane writing that query
+itself. It is out of scope in 020 and recorded in the feedback log as a platform requirement.
+
+**Why an entry at all.** It amends `DESIGN.md`, it binds a room's address across two specs, and it
+records four bounds that a later spec would otherwise have to rediscover by measurement.
