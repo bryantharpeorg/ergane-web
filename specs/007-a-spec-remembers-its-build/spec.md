@@ -8,6 +8,74 @@ depends_on_landed: [005-one-epic-on-stage, 006-the-desk-matches-the-stage]
 # the corpus's standard (scenarios provable from the diff, a compiled graph,
 # plan.md and tasks.md). `ergane spec validate` will refuse it today; that is
 # correct and expected for a sketch.
+#
+# RE-MEASURED 2026-08-29, AND HELD AT DRAFT. Every blocker below was read off a
+# tree or a store on this date rather than carried forward from the sketch, and
+# the shape of the spec changed under it in three ways.
+#
+# 1. THE ROOT PREREQUISITE IS STILL OPEN, MEASURED AGAINST THE RELEASE AND NOT
+# INFERRED FROM SILENCE. `ergane-cli` 0.5.0 is on PyPI; this repository pins
+# 0.2.0 (D-011) and the host runs 0.2.0. The 0.5.0 wheel was pulled and read:
+#
+#   - `VerificationResult`'s field list is IDENTICAL to 0.2.0's. No `dispatch_id`,
+#     no `persona`, no `model_alias`; `grep -rn dispatch_id factory/` over the
+#     whole wheel returns nothing. `upsert_result`'s docstring still reads
+#     "Keyed on `(epic_id, node_id, attempt, form)`: a `record_verification` that
+#     runs a second time updates the row the first one wrote instead of adding
+#     another." So N28 stands, a re-dispatch still destroys the previous one, and
+#     PR-1 and PR-2 are both open.
+#   - `expected_artifacts` is still the anti-rubber-stamp check and its one caller
+#     still passes an empty list literally -- the call moved from
+#     `factory/workgraph/workflow.py:2314` to `:2433` and did not change. PR-3 is
+#     open.
+#   - What 0.5.0 DID add is `ergane spec new` (PR-7's Create slice) and no verb
+#     that declares state, which is 010's blocker and not this spec's.
+#
+# 2. MOST OF THE SKETCH SHIPPED IN OTHER ROOMS WHILE IT SAT. This is the change
+# that matters most, because it means refining this spec from its own body would
+# rebuild four things that already exist:
+#
+#   | the sketch's candidate content        | where it actually lives now        |
+#   |---------------------------------------|------------------------------------|
+#   | per-attempt gates, commands, durations,| 013, in the Showfloor detail pane, |
+#   | judge verdict, the ladder that ran     | over `node_history` (D-020)        |
+#   | model and persona per attempt          | 013 FR-003 renders `unknown` BY    |
+#   |                                        | DESIGN -- that cell is PR-2        |
+#   | landing PR, SHA, merge time            | 009, replayed by 016               |
+#   | a dense reading room per landed epic   | 011, at `/review/<spec-dir>`       |
+#   | the story graph with final states      | 005 / 008 / 019                    |
+#   | coverage and security artifacts        | 015 EMITS them; 015's Out of scope |
+#   |                                        | forbids the pane READING them,     |
+#   |                                        | pending PR-3's typed collector     |
+#
+#   Open Question 4 chose "a third room" when the pane had two. It has four.
+#
+# 3. A BLOCKER THE SKETCH COULD NOT HAVE KNOWN: THE TOKEN GRID HAS NO DATA.
+# PR-10, filed 2026-08-28 off 165 ledger rows, measured that the `subscription`
+# route reports no usage at all -- 015, 017 and 018 carry zero counts, and the
+# last builder row carrying any was 002:us2 on 2026-08-23. `rollup` is approved
+# and works; the numbers are gone. Open Question 2's answer (tokens, never
+# dollars) is unaffected and still stands. What is affected is that the panel it
+# describes would render empty for every epic this repository has built since.
+#
+# AND THE ESCAPE HATCH IN OPEN QUESTION 1 IS SHUT. That question allowed "a
+# pane-side archive is chosen instead" of waiting for ergane. D-021 -- decided
+# the evening after this sketch was captured -- names "writing anywhere outside
+# `specs/`" forbidden by name in constitution I. The one precedent that would
+# reopen it is `pane/attention_store.py`, whose own docstring calls itself "the
+# one store the pane writes"; extending that to a build-history archive is a
+# D-entry, not a refinement of this spec, and no such entry exists.
+#
+# WHAT IS LEFT THAT IS BUILDABLE TODAY, recorded so it is not re-derived: a
+# spec-level rollup over seams already approved -- rework ratio and wall clock
+# from `node_history`, gate pass/fail counts, landing facts, and RESOLVED
+# ESCALATION HISTORY, which is store-lifetime durable and rendered in no room.
+# That is a smaller thing than this spec, it overlaps 011 and 013, and whether it
+# earns a fifth room is an open decision rather than a settled cut.
+#
+# NOTHING HERE FLIPS ANYTHING. Still `state: draft`, still no Work Graph, still
+# no plan.md and no tasks.md; `ergane spec validate` still refuses it and that is
+# still correct.
 ---
 
 # Feature Specification: A spec remembers its build (TBD)
