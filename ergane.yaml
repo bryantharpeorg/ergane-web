@@ -92,18 +92,35 @@ standards: .specify/memory/constitution.md
 # the operator chose `dev`; `main` is promoted from it after the build validates.
 landing_branch: dev
 
-# The verification ladder (schema v2), at ergane's own defaults. The 6/3 this
-# repo carried through epic 001 was a mistake worth recording: `max_attempts` is
-# shadowed by `max_judge_retries` (default 2) whenever the failure is
-# judge-driven, so the judge regime caps at three attempts no matter what this
-# says. The dial is live only where the judge never ran -- gate failures and
-# diff_check refusals -- which are the deterministic ones, where re-running the
-# same persona on the same input cannot change the answer. 001/us4 spent nine
-# rungs that way, the last four byte-identical. Raising the ceiling lengthens
-# exactly the fights that cannot converge. Nothing promotes to a closer
-# automatically; no promotion_persona is configured.
+# The verification ladder (schema v2). THREE RUNGS, THREE MODELS, set 2026-08-28
+# at the operator's instruction. Each rung resolves its own persona's model from
+# the registry -- verified in factory/workgraph/workflow.py, where
+# `_persona_for_action` returns DEBUGGER_PERSONA for the debugger rung and
+# `config.promotion_persona` for the promotion rung, and `_routing_for` reads
+# that persona's entry:
+#
+#   rung 1  the node's own persona (implementer)  x2   the local DGX model
+#   rung 2  promoter                              x1   the cheaper escalation
+#   rung 3  debugger                              x1   the strongest, and last
+#
+# Promotion fires BEFORE the debugger (factory/verify/ladder.py:211-215), which
+# is what lets rung 2 be cheaper than rung 3 rather than the other way round.
+# The persona names here are roles; constitution VII keeps every model name in
+# ~/.config/ergane/personas.yaml and this file learns none of them.
+#
+# `max_judge_retries: 1` IS LOAD-BEARING AND IS THE WHOLE REASON RUNG 1 GETS TWO
+# ATTEMPTS. It shadows `max_attempts` whenever the failure is judge-driven, and
+# its default is 2 -- so at the default this ladder would give rung 1 THREE
+# attempts and only reach the promotion rung on the fourth. The 6/3 this repo
+# carried through epic 001 is the same trap from the other side: 001/us4 spent
+# nine rungs on a deterministic refusal, the last four byte-identical, because
+# `max_attempts` is live only where the judge never ran. Set both dials or set
+# neither.
 ladder:
-  max_attempts: 3
+  max_attempts: 2
+  max_judge_retries: 1
+  promotion_persona: promoter
+  promotion_cycles: 1
   debugger_cycles: 1
 
 # Roadmap dials (schema v2). ONE epic at a time. 002 and 003 both depend only on

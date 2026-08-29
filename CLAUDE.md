@@ -260,13 +260,21 @@ unauthenticated `GET /api/floor` **or** `GET /showfloor` answers 401.
   model-constrained virtual key per attempt. Drive it with `./up.sh`.
 - **Secrets** — `~/.config/ergane/*.env`, mode 600, outside any repo. Never print values.
 - **Registry** — `~/.config/ergane/personas.yaml` is the only place a model name may
-  appear. This build: `implementer` and `debugger` build on `claude-opus-5` over
-  `agent: subscription`, GLM (`ollama-cloud/glm-5.2`) judges, `architect` and
-  `researcher` are on Kimi (`ollama-cloud/kimi-k2.7-code`), and no persona routes to a
-  metered provider (D-011) -- subscription runs on the operator's own Claude Code login
-  and bills nothing per token. Corrected 2026-08-27: this line read "Kimi builds" until
-  018/us1 landed on `implementer`/`claude-opus-5`, which is the Fable-to-Opus flip and
-  had not been written down. Read the registry, never this sentence.
+  appear. **The ladder is three rungs on three models** as of 2026-08-28: rung 1 is the
+  node's own `implementer` (×2), rung 2 is `promoter` on `ollama-cloud/glm-5.3-flash`
+  (×1), rung 3 is `debugger` on `ollama-cloud/glm-5.3` (×1), and `judge` is on
+  `glm-5.3` too — the operator's explicit call, overruling the standing argument that
+  the judge must differ from the builder so it does not share its blind spots.
+  `architect` and `researcher` stay on Kimi (`ollama-cloud/kimi-k2.7-code`). No persona
+  routes to a metered provider (D-011).
+  **Promotion fires before the debugger** (`factory/verify/ladder.py:211-215`), which is
+  what lets rung 2 be the cheaper model; each rung resolves its *own* persona's model,
+  verified in `factory/workgraph/workflow.py` — the old defect where a debugger rung
+  reported the implementer's alias was fixed in 075-US3.
+  **`max_judge_retries` is half of `max_attempts`'s job.** It shadows `max_attempts` for
+  judge-driven failures and defaults to 2, so the manifest sets both; at the default this
+  ladder would give rung 1 three attempts, not two. Read the registry, never this
+  sentence.
 - **Feedback** — this build is a dogfooding run. Every friction point with ergane goes in
   `~/code/ergane-feedback-round2-2026-08-22.md` as it happens, with `file:line` into the
   read-only checkout at `~/code/ergane`.
