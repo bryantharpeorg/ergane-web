@@ -261,8 +261,9 @@ unauthenticated `GET /api/floor` **or** `GET /showfloor` answers 401.
 - **Secrets** — `~/.config/ergane/*.env`, mode 600, outside any repo. Never print values.
 - **Registry** — `~/.config/ergane/personas.yaml` is the only place a model name may
   appear. **The ladder is three rungs on three models** as of 2026-08-28: rung 1 is the
-  node's own `implementer` (×2), rung 2 is `promoter` on `ollama-cloud/glm-5.3-flash`
-  (×1), rung 3 is `debugger` on `ollama-cloud/glm-5.3` (×1), and `judge` is on
+  node's own `implementer` (×2) on `local/qwen3.8-flash-next`, rung 2 is `promoter` on
+  `ollama-cloud/glm-5.3-flash` (×1), rung 3 is `debugger` on
+  `ollama-cloud/glm-5.3` (×1), and `judge` is on
   `glm-5.3` too — the operator's explicit call, overruling the standing argument that
   the judge must differ from the builder so it does not share its blind spots.
   `architect` and `researcher` stay on Kimi (`ollama-cloud/kimi-k2.7-code`). No persona
@@ -275,6 +276,24 @@ unauthenticated `GET /api/floor` **or** `GET /showfloor` answers 401.
   judge-driven failures and defaults to 2, so the manifest sets both; at the default this
   ladder would give rung 1 three attempts, not two. Read the registry, never this
   sentence.
+  **Rung 1 runs on the DGX Spark, through a tunnel, and the tunnel is a hard
+  dependency.** The engine is a llama.cpp server (three slots, 131072-token context
+  each) bound to the DGX's *own* docker bridge at `172.17.0.1:8002`, which is not
+  LAN-routable on purpose — `192.168.10.80:8002` refuses. The systemd user unit
+  `dgxspark-engine.service` on this host forwards it onto this machine's
+  `172.17.0.1:8002`, which the LiteLLM container reaches from `litellm_default`
+  (172.20.0.0/16) through the host. Three things about that are worth knowing before
+  you debug it at 2am:
+  - **A dead tunnel passes dispatch preflight.** `check_aliases` only asks the proxy
+    `/v1/models`, which lists declared aliases whatever the upstream is doing, so the
+    failure surfaces at attempt time — it burns both rung-1 attempts and escalates to
+    GLM rather than refusing to dispatch.
+  - **`fallback` is key scope, not failover.** The minted key permits
+    `[model, fallback]` (`factory/activities/agent_activities.py:299`) and nothing
+    switches routes on its own; there is no `fallbacks:` block in the LiteLLM config.
+  - **The engine answers any `model` string with 200** and runs the one model it
+    loaded, so the id declared in `~/code/litellm/config.yaml` is the only thing
+    keeping the alias honest — a typo resolves silently instead of erroring.
 - **Feedback** — this build is a dogfooding run. Every friction point with ergane goes in
   `~/code/ergane-feedback-round2-2026-08-22.md` as it happens, with `file:line` into the
   read-only checkout at `~/code/ergane`.
