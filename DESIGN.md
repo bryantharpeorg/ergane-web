@@ -341,6 +341,38 @@ thing itself, the notes. Same tokens, same chips, same tables.
   terms — a control that reads like a save button in a room that cannot save is
   the one lie this room could tell that the operator would not catch.
 
+### The record room in this world
+
+The fifth room (D-027, spec 020). One spec's build record, read at a desk rather
+than glanced at on a projector — 007's Open Question 4 chose this over a mode of
+the Showfloor and the density is why. Same tokens, same chips, same tables.
+
+- **Tables, not a detail pane.** A story's attempts are rows: attempt number,
+  verdict, the gates that ran with their outcomes, the ladder the attempt ran
+  under. The Showfloor's detail pane holds one story's current state and is the
+  right size for it; a spec's whole record is dozens of rows and wants a column
+  it can scroll. Numerals right-aligned tabular mono, durations with the unit
+  always present.
+- **The reach statement is furniture, not a footnote.** *This is the current
+  record and does not survive a re-dispatch* sits in micro uppercase over a
+  hairline at the top of the record, always present, never behind a disclosure.
+  A room that shows six attempts without saying it cannot show the seventh is
+  making a completeness claim the store cannot honour.
+- **Unknown is typeset, never omitted.** Persona, model, and any interval the
+  facts cannot bound read `unknown` in the Unknown Rule's italic muted face, in
+  the cell where the number would have gone. The cell is never blank, never `0`,
+  never a dash, and the word "live" never appears beside it. A missing column is
+  a question the operator stops asking; a column of `unknown` is a question with
+  a filed answer.
+- **Rework is the emphasis, because it is what the operator came for.** A story
+  that took one attempt is quiet. A story that took more carries the count in the
+  state vocabulary's attention face, and its extra attempts render as their own
+  rows rather than as a badge — the second attempt's gate failure is the whole
+  reason the row is interesting.
+- **The room is reachable from the stage.** A landed spec's stage carries the
+  door. 018 exists because 014 shipped a room reachable only by typing its URL,
+  and a fifth room repeats that mistake more cheaply than the fourth did.
+
 ### Motion
 
 Exactly one authored motion: the active ladder stop's 1.6s opacity pulse.
